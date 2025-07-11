@@ -1,17 +1,14 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+
 export default function Web() {
   return (
-    <div className="flex-1 items-center justify-center bg-gray-100 min-h-screen flex flex-col">
-      <h1 className="text-3xl font-bold text-blue-600 mb-4">
+    <div className="flex min-h-screen flex-1 flex-col items-center justify-center bg-gray-100">
+      <h1 className="mb-4 text-3xl font-bold text-blue-600">
         Web App with Tailwind
       </h1>
-      <button
-        className="bg-blue-500 text-white px-4 py-2 rounded-md active:bg-blue-600 cursor-pointer"
-        onClick={() => console.log("Pressed!")}
-      >
-        Boop
-      </button>
+      <Button onClick={() => console.log("Pressed!")}>Boop</Button>
     </div>
   );
 }
