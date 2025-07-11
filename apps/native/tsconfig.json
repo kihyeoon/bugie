@@ -1,5 +1,5 @@
 {
-  "extends": "@repo/typescript-config/react-native-library.json",
+  "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
     "paths": {
