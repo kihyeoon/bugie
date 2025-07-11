@@ -1,14 +1,17 @@
 "use client";
 
-import { Button } from "@repo/ui";
-
-import styles from "../styles/index.module.css";
-
 export default function Web() {
   return (
-    <div className={styles.container}>
-      <h1>Web</h1>
-      <Button onClick={() => console.log("Pressed!")} text="Boop" />
+    <div className="flex-1 items-center justify-center bg-gray-100 min-h-screen flex flex-col">
+      <h1 className="text-3xl font-bold text-blue-600 mb-4">
+        Web App with Tailwind
+      </h1>
+      <button
+        className="bg-blue-500 text-white px-4 py-2 rounded-md active:bg-blue-600 cursor-pointer"
+        onClick={() => console.log("Pressed!")}
+      >
+        Boop
+      </button>
     </div>
   );
 }

@@ -41,6 +41,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **인증**: Supabase Auth (소셜 로그인, 이메일/비밀번호)
 - **실시간 동기화**: Supabase Realtime
 
+## 추가 지침
+- /.claude/docs/workflow.md
+
 ## 주요 명령어
 
 ### 개발 서버 실행
@@ -113,20 +116,7 @@ import { Button } from '@repo/ui';
 - `nodeModulesPaths`: 로컬과 루트 node_modules 모두 탐색
 - 공유 패키지 Hot Reload 지원
 
-### React Native Web 설정 (Web)
-Next.js에서 React Native 컴포넌트 사용:
-- `react-native` → `react-native-web` alias
-- `.web.js`, `.web.tsx` 확장자 우선순위
-- React Native 스타일시트 지원
-
 ## 개발 시 주의사항
-
-### 새 UI 컴포넌트 추가
-1. `packages/ui/src/`에 컴포넌트 추가
-2. Tailwind/NativeWind 클래스로 스타일링
-3. `packages/ui/src/index.tsx`에서 export
-4. `pnpm build --filter ui`로 빌드
-5. 양쪽 앱에서 import하여 사용
 
 ### Supabase 연동
 - 환경변수에 Supabase URL과 anon key 설정
@@ -134,23 +124,7 @@ Next.js에서 React Native 컴포넌트 사용:
 - Row Level Security(RLS) 정책으로 데이터 보안
 - 가계부 공유 기능은 Supabase의 다중 사용자 정책 활용
 
-### 플랫폼별 코드 분기
-```tsx
-import { Platform } from 'react-native';
-
-// 플랫폼별 분기
-const behavior = Platform.select({
-  ios: 'padding',
-  android: 'height',
-  web: 'height',
-});
-
-// 파일 확장자로 분기
-// component.ios.tsx, component.android.tsx, component.web.tsx
-```
-
 ### 의존성 설치 규칙
-- React Native 호환 패키지만 `@repo/ui`에 추가
 - 웹 전용 패키지는 `apps/web`에만 설치
 - 네이티브 전용 패키지는 `apps/native`에만 설치
 - 공통 dev 도구는 루트 package.json에 설치
