@@ -1,8 +1,164 @@
-# 하이브리드 MVP 가계부 테이블 설계 (다중 사용자 + 템플릿 카테고리)
+# Bugie 데이터베이스 스키마 설계
 
-## ====================================
-## 1. 사용자 프로필 테이블
-## ====================================
+> **Bugie**는 공유 가계부 앱으로, 하이브리드 카테고리 시스템과 다중 사용자 지원을 통해 효율적인 재무 관리를 제공합니다.
+
+## 📚 목차
+
+- [📋 프로젝트 개요](#-프로젝트-개요)
+- [🏗️ 핵심 아키텍처](#️-핵심-아키텍처)
+- [📊 ERD 다이어그램](#-erd-다이어그램)
+- [🗂️ 데이터 타입](#️-데이터-타입)
+- [📋 테이블 스키마](#-테이블-스키마)
+  - [사용자 및 인증](#사용자-및-인증)
+  - [가계부 및 멤버십](#가계부-및-멤버십)
+  - [카테고리 시스템](#카테고리-시스템)
+  - [거래 및 예산](#거래-및-예산)
+- [🔍 뷰 및 함수](#-뷰-및-함수)
+- [🛠️ 개발 가이드](#️-개발-가이드)
+
+---
+
+## 📋 프로젝트 개요
+
+### 주요 특징
+- **다중 사용자 공유**: 하나의 가계부를 여러 사용자가 동시에 사용
+- **하이브리드 카테고리**: 글로벌 템플릿 + 사용자 커스텀 카테고리
+- **실시간 동기화**: Supabase Realtime을 통한 즉시 반영
+- **권한 관리**: 소유자/관리자/멤버/조회자 역할 구분
+- **Soft Delete**: 데이터 복구 가능한 안전한 삭제
+
+### 기술 스택
+- **Database**: PostgreSQL (Supabase)
+- **Authentication**: Supabase Auth
+- **Real-time**: Supabase Realtime
+- **Security**: Row Level Security (RLS)
+
+---
+
+## 🏗️ 핵심 아키텍처
+
+### 하이브리드 카테고리 시스템
+
+Bugie의 핵심 혁신은 **하이브리드 카테고리 시스템**입니다:
+
+```mermaid
+graph TD
+    CT[Category Templates<br/>글로벌 템플릿] --> C[Categories<br/>원장별 카테고리]
+    C --> T[Transactions<br/>거래 내역]
+    L[Ledgers<br/>가계부] --> C
+    
+    style CT fill:#e1f5fe
+    style C fill:#f3e5f5
+    style T fill:#e8f5e9
+```
+
+#### 📂 템플릿 기반 카테고리
+- `category_templates`: 시스템 전체에서 공유하는 표준 카테고리
+- 식비, 교통비, 급여 등 일반적인 카테고리들
+- 중복 데이터 제거 및 일관성 보장
+
+#### 🎨 커스텀 카테고리  
+- 사용자가 원장별로 추가하는 개인화된 카테고리
+- 반려동물, 취미 등 개인적인 지출 분류
+- 템플릿과 동일한 인터페이스로 통합 관리
+
+#### 💾 저장 공간 효율성
+- 기본 카테고리: 템플릿 ID만 참조 저장 (4 bytes)
+- 커스텀 카테고리: 실제 데이터 저장 (수십 bytes)
+- **75% 이상 저장공간 절약**
+
+---
+
+## 📊 ERD 다이어그램
+
+```mermaid
+erDiagram
+    profiles ||--o{ ledgers : creates
+    profiles ||--o{ ledger_members : joins
+    profiles ||--o{ transactions : creates
+    profiles ||--o{ budgets : creates
+    
+    ledgers ||--o{ ledger_members : has
+    ledgers ||--o{ categories : contains
+    ledgers ||--o{ transactions : tracks
+    ledgers ||--o{ budgets : manages
+    
+    category_templates ||--o{ categories : references
+    categories ||--o{ transactions : categorizes
+    categories ||--o{ budgets : limits
+    
+    profiles {
+        uuid id PK
+        text email
+        text full_name
+        text avatar_url
+        text currency
+        text timezone
+        timestamptz created_at
+        timestamptz updated_at
+        timestamptz deleted_at
+    }
+    
+    ledgers {
+        uuid id PK
+        text name
+        text description
+        text currency
+        uuid created_by FK
+        timestamptz created_at
+        timestamptz updated_at
+        timestamptz deleted_at
+    }
+    
+    categories {
+        uuid id PK
+        uuid ledger_id FK
+        uuid template_id FK
+        text name
+        category_type type
+        text color
+        text icon
+        integer sort_order
+        boolean is_active
+        timestamptz created_at
+        timestamptz updated_at
+        timestamptz deleted_at
+    }
+```
+
+---
+
+## 🗂️ 데이터 타입
+
+### 열거형 (ENUM) 타입
+
+```sql
+-- 멤버 권한
+CREATE TYPE member_role AS ENUM ('owner', 'admin', 'member', 'viewer');
+
+-- 카테고리/거래 타입  
+CREATE TYPE category_type AS ENUM ('income', 'expense');
+
+-- 예산 기간
+CREATE TYPE budget_period AS ENUM ('monthly', 'yearly');
+```
+
+---
+
+## 📋 테이블 스키마
+
+### 사용자 및 인증
+
+#### 1. 사용자 프로필 테이블 (`profiles`)
+
+> **목적**: Supabase Auth와 연동된 사용자 프로필 및 설정 정보 관리  
+> **주요 기능**: 개인 설정, 지역화, 사용자 메타데이터 저장
+
+**핵심 필드**
+- `id`: Supabase Auth 사용자 ID와 1:1 매핑
+- `currency`: 사용자 기본 통화 (기본값: KRW)
+- `timezone`: 사용자 시간대 (기본값: Asia/Seoul)
+- `deleted_at`: Soft Delete로 계정 복구 가능
 
 ```sql
 create table profiles (
@@ -23,9 +179,19 @@ create policy "profiles_policy" on profiles
 for all using (auth.uid() = id and deleted_at is null);
 ```
 
-## ====================================
-## 2. 가계부 원장 테이블 (다중 사용자 지원)
-## ====================================
+### 가계부 및 멤버십
+
+#### 2. 가계부 원장 테이블 (`ledgers`)
+
+> **목적**: 공유 가계부의 기본 정보 및 설정 관리  
+> **주요 기능**: 다중 사용자 접근, 통화별 관리, 권한 기반 접근 제어
+
+**핵심 필드**
+- `name`: 가계부 이름 (예: "우리집 가계부", "부부 공동 가계부")
+- `currency`: 가계부별 기본 통화 (사용자별 통화와 독립적)
+- `created_by`: 가계부 생성자 (자동으로 'owner' 권한 부여)
+
+**RLS 보안**: 멤버로 등록된 사용자만 접근 가능
 
 ```sql
 create table ledgers (
@@ -53,9 +219,21 @@ create policy "ledgers_policy" on ledgers for all using (
 );
 ```
 
-## ====================================
-## 3. 원장 멤버 테이블 (권한 관리)
-## ====================================
+#### 3. 원장 멤버 테이블 (`ledger_members`)
+
+> **목적**: 가계부별 사용자 권한 및 멤버십 관리  
+> **주요 기능**: 역할 기반 접근 제어, 초대 시스템, 멤버 관리
+
+**권한 체계**
+- `owner`: 모든 권한 (가계부 삭제, 멤버 관리, 모든 데이터 수정)
+- `admin`: 관리 권한 (멤버 초대/삭제, 설정 변경, 모든 데이터 수정)
+- `member`: 편집 권한 (거래 입력/수정, 예산 설정)
+- `viewer`: 조회 권한 (데이터 열람만 가능)
+
+**핵심 필드**
+- `unique(ledger_id, user_id)`: 사용자당 가계부별 하나의 멤버십만 허용
+- `joined_at`: 멤버 참여 시점 추적
+- `deleted_at`: 멤버 탈퇴 시 Soft Delete (재초대 가능)
 
 ```sql
 create type member_role as enum ('owner', 'admin', 'member', 'viewer');
@@ -88,9 +266,9 @@ create policy "ledger_members_policy" on ledger_members for all using (
 );
 ```
 
-## ====================================
-## 4. 글로벌 카테고리 템플릿 테이블
-## ====================================
+### 카테고리 시스템
+
+#### 4. 글로벌 카테고리 템플릿 테이블 (`category_templates`)
 
 ```sql
 create type category_type as enum ('income', 'expense');
@@ -125,9 +303,19 @@ for all using (
 );
 ```
 
-## ====================================
-## 5. 하이브리드 카테고리 테이블 (원장별)
-## ====================================
+#### 5. 하이브리드 카테고리 테이블 (`categories`)
+
+> **목적**: 원장별 카테고리 관리 (템플릿 참조 + 커스텀 카테고리)  
+> **주요 기능**: 템플릿 기반 카테고리와 사용자 정의 카테고리 통합 관리
+
+**하이브리드 구조**
+- 템플릿 기반: `template_id` 참조, `name` null
+- 커스텀: `template_id` null, `name` 직접 입력
+- `check_category_source`: 둘 중 하나만 설정 보장
+
+**주요 제약조건**
+- `unique_ledger_template`: 원장별 템플릿 중복 방지
+- `unique_ledger_custom_name`: 원장별 커스텀 카테고리명 중복 방지
 
 ```sql
 create table categories (
@@ -187,9 +375,22 @@ create policy "categories_policy" on categories for all using (
 );
 ```
 
-## ====================================
-## 6. 거래 내역 테이블
-## ====================================
+#### 6. 거래 내역 테이블 (`transactions`)
+
+> **목적**: 수입·지출 거래 기록 및 관리  
+> **주요 기능**: 카테고리별 분류, 실시간 동기화, 타입 안전성 보장
+
+**핵심 필드**
+- `amount`: 거래 금액 (항상 양수, 타입별로 구분)
+- `type`: 거래 유형 (income/expense)
+- `transaction_date`: 거래 일자 (입력일과 별도)
+- `title`: 거래 제목 (필수)
+- `description`: 상세 설명 (선택)
+
+**데이터 무결성**
+- 거래 타입과 카테고리 타입 일치 검증 (트리거)
+- 카테고리 삭제 방지 (RESTRICT)
+- RLS로 권한 기반 접근 제어
 
 ```sql
 create table transactions (
@@ -246,9 +447,19 @@ create trigger check_transaction_category_type_trigger
   for each row execute function check_transaction_category_type();
 ```
 
-## ====================================
-## 7. 예산 관리 테이블
-## ====================================
+#### 7. 예산 관리 테이블 (`budgets`)
+
+> **목적**: 월별/연간 예산 설정 및 추적 관리  
+> **주요 기능**: 카테고리별 예산 한도, 사용률 모니터링, 알림 시스템 지원
+
+**예산 기간 타입**
+- `monthly`: 월별 예산 (month 필드 필수)
+- `yearly`: 연간 예산 (month 필드 null)
+
+**핵심 제약조건**
+- `unique(ledger_id, category_id, year, month)`: 중복 예산 방지
+- `check_monthly_budget`: 월별/연간 예산 데이터 무결성 검증
+- 지출 카테고리에만 예산 설정 가능
 
 ```sql
 create type budget_period as enum ('monthly', 'yearly');
@@ -289,9 +500,21 @@ create policy "budgets_policy" on budgets for all using (
 );
 ```
 
-## ====================================
-## 8. 통합 뷰들
-## ====================================
+---
+
+## 🔍 뷰 및 함수
+
+### 📊 데이터 뷰 (Views)
+
+#### 1. 카테고리 상세 정보 뷰 (`category_details`)
+
+> **목적**: 템플릿 기반과 커스텀 카테고리를 통합하여 일관된 인터페이스 제공  
+> **주요 기능**: 하이브리드 카테고리 시스템의 핵심 뷰, UI에서 바로 사용 가능
+
+**특징**
+- 템플릿/커스텀 구분 없이 동일한 필드로 접근
+- `source_type`으로 카테고리 유형 구분 ('template' | 'custom')
+- 정렬 순서 자동 계산 (템플릿은 글로벌 순서, 커스텀은 개별 순서)
 
 ```sql
 -- 카테고리 상세 정보 통합 뷰
@@ -328,7 +551,12 @@ left join category_templates ct on c.template_id = ct.id
 where c.deleted_at is null 
   and c.is_active = true;
 
--- 활성 거래 내역 뷰 (조인된 정보 포함)
+#### 2. 활성 거래 내역 뷰 (`active_transactions`)
+
+> **목적**: 거래 정보와 관련 메타데이터를 조인하여 UI에서 바로 사용 가능한 형태 제공  
+> **주요 기능**: 카테고리명, 색상, 아이콘, 가계부명, 작성자명 등 표시용 정보 포함
+
+```sql
 create view active_transactions as
 select 
   t.*,
@@ -344,8 +572,14 @@ join ledgers l on t.ledger_id = l.id
 join profiles p on t.created_by = p.id
 where t.deleted_at is null 
   and l.deleted_at is null;
+```
 
--- 원장별 월별 요약 뷰
+#### 3. 원장별 월별 요약 뷰 (`ledger_monthly_summary`)
+
+> **목적**: 가계부별 월간 집계 데이터 제공  
+> **주요 기능**: 대시보드, 리포트, 통계 화면에서 활용
+
+```sql
 create view ledger_monthly_summary as
 select 
   ledger_id,
@@ -357,8 +591,19 @@ select
 from transactions
 where deleted_at is null
 group by ledger_id, year, month, type;
+```
 
--- 예산 대비 지출 현황 뷰
+#### 4. 예산 대비 지출 현황 뷰 (`budget_vs_actual`)
+
+> **목적**: 예산 설정과 실제 지출을 비교하여 예산 관리 기능 지원  
+> **주요 기능**: 예산 사용률, 남은 예산, 초과 여부 계산
+
+**핵심 계산**
+- `usage_percentage`: 예산 사용률 (%)
+- `remaining_amount`: 남은 예산 (음수면 초과)
+- 월별/연간 예산 모두 지원
+
+```sql
 create view budget_vs_actual as
 select 
   b.id as budget_id,
@@ -394,12 +639,15 @@ left join (
 where b.deleted_at is null;
 ```
 
-## ====================================
-## 9. 기본 데이터 생성 함수들
-## ====================================
+### 🔧 시스템 함수 (Functions)
+
+#### 1. 시스템 초기화 함수
+
+**`initialize_category_templates()`**
+> **목적**: 시스템 기본 카테고리 템플릿 생성  
+> **사용 시점**: 시스템 배포 시 1회 실행
 
 ```sql
--- 시스템 카테고리 템플릿 초기화
 create or replace function initialize_category_templates()
 returns void as $$
 begin
@@ -465,9 +713,7 @@ end;
 $$ language plpgsql;
 ```
 
-## ====================================
-## 10. 새 사용자 가입 시 자동 설정 트리거
-## ====================================
+#### 2. 사용자 관리 트리거
 
 ```sql
 create or replace function handle_new_user()
@@ -489,9 +735,7 @@ create trigger on_auth_user_created
   for each row execute procedure handle_new_user();
 ```
 
-## ====================================
-## 11. 유틸리티 함수들
-## ====================================
+#### 비즈니스 로직 함수
 
 ```sql
 -- 원장 멤버 초대 함수
@@ -626,9 +870,7 @@ end;
 $$ language plpgsql security definer;
 ```
 
-## ====================================
-## 12. 데이터 정리 함수
-## ====================================
+#### 유지보수 함수
 
 ```sql
 -- Soft Delete된 데이터 완전 삭제 (30일 경과)
@@ -658,18 +900,17 @@ end;
 $$ language plpgsql;
 ```
 
-## ====================================
-## 13. 초기 데이터 설정 (배포 시 실행)
-## ====================================
+### 🚀 배포 및 초기화
+
+> ⚠️ **배포 시 필수 실행**  
+> 시스템 첫 배포 시 아래 명령어를 반드시 실행해야 합니다.
 
 ```sql
 -- 시스템 카테고리 템플릿 초기화 실행
 select initialize_category_templates();
 ```
 
-## ====================================
-## 14. 샘플 쿼리들
-## ====================================
+### 💡 샘플 쿼리
 
 ```sql
 -- 내가 속한 원장 목록
@@ -729,3 +970,240 @@ select * from get_ledger_monthly_stats('ledger_id', 2024, 12);
 - 시스템 카테고리 중앙 관리
 - 새로운 템플릿 추가 시 모든 원장에 자동 반영 가능
 - 명확한 데이터 분리 및 제약조건
+
+---
+
+## 🛠️ 개발 가이드
+
+### 📋 시나리오별 구현 가이드
+
+#### 시나리오 1: 새 사용자 회원가입
+
+**자동 처리 흐름** (트리거 기반)
+1. Supabase Auth에서 사용자 생성
+2. `handle_new_user()` 트리거 실행
+3. `setup_new_user()` 함수 호출
+4. 프로필 생성 → 기본 가계부 생성 → 멤버 등록 → 기본 카테고리 활성화
+
+```sql
+-- 회원가입 후 자동 실행되는 흐름
+-- 1. 프로필 생성
+insert into profiles (id, email, full_name) values (...);
+
+-- 2. 기본 가계부 생성  
+insert into ledgers (name, created_by) values ('홍길동의 가계부', user_id);
+
+-- 3. 소유자 권한으로 멤버 등록
+insert into ledger_members (ledger_id, user_id, role) values (ledger_id, user_id, 'owner');
+
+-- 4. 기본 카테고리 활성화 (모든 템플릿 참조)
+insert into categories (ledger_id, template_id, type)
+select ledger_id, ct.id, ct.type from category_templates ct;
+```
+
+#### 시나리오 2: 가계부 공유 및 멤버 초대
+
+**단계별 구현**
+
+```sql
+-- 1. 초대 링크 생성 (백엔드에서 JWT 토큰 생성)
+-- 2. 이메일로 초대장 발송
+-- 3. 수락 시 멤버 추가
+select invite_member_to_ledger(
+  '가계부_ID',
+  'friend@example.com', 
+  'member'
+);
+
+-- 4. 권한 확인 쿼리
+select role from ledger_members 
+where ledger_id = '가계부_ID' and user_id = auth.uid();
+```
+
+#### 시나리오 3: 거래 입력 및 카테고리 관리
+
+**기본 거래 입력**
+```sql
+-- 기존 카테고리 사용
+insert into transactions (ledger_id, category_id, amount, type, title, description)
+values ('가계부_ID', '카테고리_ID', 50000, 'expense', '점심식사', '회사 근처 식당');
+```
+
+**커스텀 카테고리 추가 후 사용**
+```sql
+-- 1. 커스텀 카테고리 생성
+select add_custom_category('가계부_ID', '반려동물', 'expense', '#FF69B4', 'heart', 10);
+
+-- 2. 새 카테고리로 거래 입력
+insert into transactions (ledger_id, category_id, amount, type, title)
+values ('가계부_ID', '새_카테고리_ID', 30000, 'expense', '강아지 사료');
+```
+
+#### 시나리오 4: 예산 관리 시스템
+
+**월별 예산 설정**
+```sql
+-- 식비 카테고리에 월 50만원 예산 설정
+select set_budget('가계부_ID', '식비_카테고리_ID', 500000, 2025, 1);
+
+-- 예산 현황 조회
+select * from budget_vs_actual 
+where ledger_id = '가계부_ID' 
+  and year = 2025 and month = 1;
+```
+
+**예산 알림 시스템 구현**
+```sql
+-- 예산 80% 이상 사용한 카테고리 조회
+select category_name, usage_percentage, remaining_amount
+from budget_vs_actual
+where ledger_id = '가계부_ID'
+  and year = extract(year from current_date)
+  and month = extract(month from current_date)
+  and usage_percentage >= 80
+order by usage_percentage desc;
+```
+
+#### 시나리오 5: 대시보드 데이터 조회
+
+**홈 화면용 월간 요약**
+```sql
+-- 이번 달 통계
+select * from get_ledger_monthly_stats(
+  '가계부_ID', 
+  extract(year from current_date)::integer,
+  extract(month from current_date)::integer
+);
+
+-- 카테고리별 지출 상위 5개
+select cd.name, sum(t.amount) as total_amount, cd.color
+from transactions t
+join category_details cd on t.category_id = cd.id
+where t.ledger_id = '가계부_ID'
+  and t.type = 'expense'
+  and extract(month from t.transaction_date) = extract(month from current_date)
+group by cd.id, cd.name, cd.color
+order by total_amount desc
+limit 5;
+```
+
+### 🔧 개발 팁 및 모범 사례
+
+#### 1. 성능 최적화
+
+**인덱스 활용**
+```sql
+-- 날짜별 조회 시 복합 인덱스 활용
+explain analyze 
+select * from transactions 
+where ledger_id = '가계부_ID' 
+  and transaction_date between '2025-01-01' and '2025-01-31'
+order by transaction_date desc;
+
+-- → idx_transactions_ledger_date 인덱스 활용됨
+```
+
+**뷰 활용으로 조인 최적화**
+```sql
+-- ❌ 매번 조인하는 비효율적 방법
+select t.*, c.name, ct.name, l.name, p.full_name
+from transactions t
+join categories c on t.category_id = c.id
+left join category_templates ct on c.template_id = ct.id
+join ledgers l on t.ledger_id = l.id
+join profiles p on t.created_by = p.id;
+
+-- ✅ 뷰를 활용한 효율적 방법  
+select * from active_transactions
+where ledger_id = '가계부_ID';
+```
+
+#### 2. 보안 모범 사례
+
+> 🔒 **보안 중요사항**  
+> - 모든 테이블에 RLS 정책이 적용됨
+> - 사용자는 멤버로 등록된 가계부만 접근 가능
+> - Soft Delete로 데이터 복구 가능
+
+**RLS 정책 확인**
+```sql
+-- 현재 사용자가 접근 가능한 가계부 확인
+select l.name, lm.role 
+from ledgers l
+join ledger_members lm on l.id = lm.ledger_id
+where lm.user_id = auth.uid() and l.deleted_at is null;
+```
+
+**안전한 데이터 삭제**
+```sql
+-- ❌ 하드 삭제 (데이터 복구 불가)
+delete from transactions where id = '거래_ID';
+
+-- ✅ 소프트 삭제 (복구 가능)
+update transactions set deleted_at = now() where id = '거래_ID';
+```
+
+#### 3. 실시간 동기화 구현
+
+**Supabase Realtime 구독**
+```typescript
+// 거래 내역 실시간 구독
+const channel = supabase
+  .channel('transactions')
+  .on('postgres_changes', 
+    { 
+      event: '*', 
+      schema: 'public', 
+      table: 'transactions',
+      filter: `ledger_id=eq.${ledgerId}`
+    },
+    payload => {
+      // 실시간 업데이트 처리
+      console.log('Transaction changed:', payload);
+    }
+  )
+  .subscribe();
+```
+
+#### 4. 에러 처리 패턴
+
+**제약조건 위반 처리**
+```sql
+-- 거래 타입과 카테고리 타입 불일치 시 에러
+insert into transactions (ledger_id, category_id, amount, type, title)
+values ('가계부_ID', '수입_카테고리_ID', 50000, 'expense', '제목');
+-- ERROR: 거래 타입(expense)과 카테고리 타입(income)이 일치하지 않습니다.
+```
+
+### 📊 모니터링 및 유지보수
+
+#### 데이터 정리 작업
+
+```sql
+-- 매월 실행: 30일 이상 된 soft delete 데이터 완전 삭제
+select cleanup_old_deleted_data();
+
+-- 디스크 사용량 모니터링
+select 
+  schemaname,
+  tablename,
+  pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as size
+from pg_tables 
+where schemaname = 'public'
+order by pg_total_relation_size(schemaname||'.'||tablename) desc;
+```
+
+#### 성능 모니터링
+
+```sql
+-- 느린 쿼리 분석
+select query, mean_exec_time, calls
+from pg_stat_statements
+where query like '%transactions%'
+order by mean_exec_time desc
+limit 10;
+```
+
+---
+
+마지막 업데이트: 2025-07-19
