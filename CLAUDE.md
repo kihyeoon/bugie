@@ -9,14 +9,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### 핵심 기능
 
 **1. 공유 가계부**
-- 하나의 가계부에 최대 2명(추후 확장) 동시 접근
+- 하나의 가계부에 다수의 사용자가 동시 접근
 - 역할 권한 구분: 소유자·편집자·조회자
-- 실시간 동기화: 두 사용자 입력·편집 시 3초 이내 반영
+- 실시간 동기화: 사용자 입력·편집 시 3초 이내 반영
 
 **2. 수입·지출 관리**
 - 수동 입력: 항목, 금액, 카테고리, 결제수단, 메모
 - 자동 분류: 카테고리 추천 정확도 80% 이상
-- 빠른 입력: 음성 입력, 카메라 영수증 스캔, 원터치 자주 사용 항목
+- 빠른 입력: 음성 입력, 카메라 영수증 스캔, 원터치 자주 사용 항목 추천
 
 **3. 예산 관리**
 - 월/주 카테고리별 예산 설정
@@ -30,11 +30,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### 기술 스택
 
 **프론트엔드**
-- **web**: Next.js 15 + React Native Web 앱
-- **native**: Expo SDK 53 + Expo Router 앱  
+- **web**: Next.js 15
+- **native**: Expo SDK 53 + Expo Router 앱 + Web View
 - **@repo/ui**: 공유 UI 컴포넌트 라이브러리
 - **@repo/typescript-config**: 공유 TypeScript 설정
-- **스타일링**: Tailwind CSS (React Native용 NativeWind)
+- **스타일링**: Tailwind CSS(Web), React Native StyleSheet(Native)
 
 **백엔드 & 인프라**
 - **데이터베이스**: Supabase PostgreSQL
@@ -42,7 +42,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **실시간 동기화**: Supabase Realtime
 
 ## 추가 지침
-- /.claude/docs/workflow.md
+- @docs/workflow.md - 개발 워크플로우 및 작업 방식
+- @docs/prd.md - 제품 요구사항 문서
+- @docs/mvp-plan.md - MVP 개발 계획 및 일정
+- @docs/screen-design.md - 화면별 상세 설계 문서
+- @docs/database.md - 데이터베이스 스키마 설계
 
 ## 주요 명령어
 
