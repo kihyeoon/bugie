@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "lint": "eslint . --config eslint.config.js"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
