@@ -21,6 +21,7 @@
 ## 📋 프로젝트 개요
 
 ### 주요 특징
+
 - **다중 사용자 공유**: 하나의 가계부를 여러 사용자가 동시에 사용
 - **하이브리드 카테고리**: 글로벌 템플릿 + 사용자 커스텀 카테고리
 - **실시간 동기화**: Supabase Realtime을 통한 즉시 반영
@@ -28,6 +29,7 @@
 - **Soft Delete**: 데이터 복구 가능한 안전한 삭제
 
 ### 기술 스택
+
 - **Database**: PostgreSQL (Supabase)
 - **Authentication**: Supabase Auth
 - **Real-time**: Supabase Realtime
@@ -46,23 +48,26 @@ graph TD
     CT[Category Templates<br/>글로벌 템플릿] --> C[Categories<br/>원장별 카테고리]
     C --> T[Transactions<br/>거래 내역]
     L[Ledgers<br/>가계부] --> C
-    
+
     style CT fill:#e1f5fe
     style C fill:#f3e5f5
     style T fill:#e8f5e9
 ```
 
 #### 📂 템플릿 기반 카테고리
+
 - `category_templates`: 시스템 전체에서 공유하는 표준 카테고리
 - 식비, 교통비, 급여 등 일반적인 카테고리들
 - 중복 데이터 제거 및 일관성 보장
 
-#### 🎨 커스텀 카테고리  
+#### 🎨 커스텀 카테고리
+
 - 사용자가 원장별로 추가하는 개인화된 카테고리
 - 반려동물, 취미 등 개인적인 지출 분류
 - 템플릿과 동일한 인터페이스로 통합 관리
 
 #### 💾 저장 공간 효율성
+
 - 기본 카테고리: 템플릿 ID만 참조 저장 (4 bytes)
 - 커스텀 카테고리: 실제 데이터 저장 (수십 bytes)
 - **75% 이상 저장공간 절약**
@@ -77,16 +82,16 @@ erDiagram
     profiles ||--o{ ledger_members : joins
     profiles ||--o{ transactions : creates
     profiles ||--o{ budgets : creates
-    
+
     ledgers ||--o{ ledger_members : has
     ledgers ||--o{ categories : contains
     ledgers ||--o{ transactions : tracks
     ledgers ||--o{ budgets : manages
-    
+
     category_templates ||--o{ categories : references
     categories ||--o{ transactions : categorizes
     categories ||--o{ budgets : limits
-    
+
     profiles {
         uuid id PK
         text email
@@ -98,7 +103,7 @@ erDiagram
         timestamptz updated_at
         timestamptz deleted_at
     }
-    
+
     ledgers {
         uuid id PK
         text name
@@ -109,7 +114,7 @@ erDiagram
         timestamptz updated_at
         timestamptz deleted_at
     }
-    
+
     categories {
         uuid id PK
         uuid ledger_id FK
@@ -136,7 +141,7 @@ erDiagram
 -- 멤버 권한
 CREATE TYPE member_role AS ENUM ('owner', 'admin', 'member', 'viewer');
 
--- 카테고리/거래 타입  
+-- 카테고리/거래 타입
 CREATE TYPE category_type AS ENUM ('income', 'expense');
 
 -- 예산 기간
@@ -155,6 +160,7 @@ CREATE TYPE budget_period AS ENUM ('monthly', 'yearly');
 > **주요 기능**: 개인 설정, 지역화, 사용자 메타데이터 저장
 
 **핵심 필드**
+
 - `id`: Supabase Auth 사용자 ID와 1:1 매핑
 - `currency`: 사용자 기본 통화 (기본값: KRW)
 - `timezone`: 사용자 시간대 (기본값: Asia/Seoul)
@@ -175,7 +181,7 @@ create table profiles (
 
 -- RLS 정책
 alter table profiles enable row level security;
-create policy "profiles_policy" on profiles 
+create policy "profiles_policy" on profiles
 for all using (auth.uid() = id and deleted_at is null);
 ```
 
@@ -187,6 +193,7 @@ for all using (auth.uid() = id and deleted_at is null);
 > **주요 기능**: 다중 사용자 접근, 통화별 관리, 권한 기반 접근 제어
 
 **핵심 필드**
+
 - `name`: 가계부 이름 (예: "우리집 가계부", "부부 공동 가계부")
 - `currency`: 가계부별 기본 통화 (사용자별 통화와 독립적)
 - `created_by`: 가계부 생성자 (자동으로 'owner' 권한 부여)
@@ -213,7 +220,7 @@ alter table ledgers enable row level security;
 create policy "ledgers_policy" on ledgers for all using (
   deleted_at is null and
   id in (
-    select ledger_id from ledger_members 
+    select ledger_id from ledger_members
     where user_id = auth.uid() and deleted_at is null
   )
 );
@@ -225,12 +232,14 @@ create policy "ledgers_policy" on ledgers for all using (
 > **주요 기능**: 역할 기반 접근 제어, 초대 시스템, 멤버 관리
 
 **권한 체계**
+
 - `owner`: 모든 권한 (가계부 삭제, 멤버 관리, 모든 데이터 수정)
 - `admin`: 관리 권한 (멤버 초대/삭제, 설정 변경, 모든 데이터 수정)
 - `member`: 편집 권한 (거래 입력/수정, 예산 설정)
 - `viewer`: 조회 권한 (데이터 열람만 가능)
 
 **핵심 필드**
+
 - `unique(ledger_id, user_id)`: 사용자당 가계부별 하나의 멤버십만 허용
 - `joined_at`: 멤버 참여 시점 추적
 - `deleted_at`: 멤버 탈퇴 시 Soft Delete (재초대 가능)
@@ -245,7 +254,7 @@ create table ledger_members (
   role member_role default 'member',
   joined_at timestamptz default now(),
   deleted_at timestamptz, -- Soft Delete
-  
+
   unique(ledger_id, user_id)
 );
 
@@ -257,9 +266,9 @@ create index idx_ledger_members_ledger on ledger_members(ledger_id) where delete
 alter table ledger_members enable row level security;
 create policy "ledger_members_policy" on ledger_members for all using (
   deleted_at is null and (
-    user_id = auth.uid() or 
+    user_id = auth.uid() or
     ledger_id in (
-      select ledger_id from ledger_members 
+      select ledger_id from ledger_members
       where user_id = auth.uid() and role in ('owner', 'admin') and deleted_at is null
     )
   )
@@ -282,7 +291,7 @@ create table category_templates (
   sort_order integer default 0,
   created_at timestamptz default now(),
   updated_at timestamptz default now(),
-  
+
   unique(name, type)
 );
 
@@ -293,12 +302,12 @@ create index idx_category_templates_name on category_templates(name);
 -- RLS 정책 (모든 사용자가 읽기 가능, 관리자만 수정)
 alter table category_templates enable row level security;
 
-create policy "category_templates_select_policy" on category_templates 
+create policy "category_templates_select_policy" on category_templates
 for select using (true);
 
-create policy "category_templates_modify_policy" on category_templates 
+create policy "category_templates_modify_policy" on category_templates
 for all using (
-  auth.jwt() ->> 'role' = 'admin' or 
+  auth.jwt() ->> 'role' = 'admin' or
   auth.jwt() ->> 'role' = 'service_role'
 );
 ```
@@ -309,11 +318,13 @@ for all using (
 > **주요 기능**: 템플릿 기반 카테고리와 사용자 정의 카테고리 통합 관리
 
 **하이브리드 구조**
+
 - 템플릿 기반: `template_id` 참조, `name` null
 - 커스텀: `template_id` null, `name` 직접 입력
 - `check_category_source`: 둘 중 하나만 설정 보장
 
 **주요 제약조건**
+
 - `unique_ledger_template`: 원장별 템플릿 중복 방지
 - `unique_ledger_custom_name`: 원장별 커스텀 카테고리명 중복 방지
 
@@ -322,46 +333,46 @@ create table categories (
   id uuid default gen_random_uuid() primary key,
   ledger_id uuid references ledgers(id) on delete cascade not null,
   template_id uuid references category_templates(id) on delete cascade,
-  
+
   -- 커스텀 카테고리용 필드들
   name text,
   type category_type not null,
   color text default '#6B7280',
   icon text default 'tag',
   sort_order integer default 0,
-  
+
   is_active boolean default true,
   created_at timestamptz default now(),
   updated_at timestamptz default now(),
   deleted_at timestamptz, -- Soft Delete
-  
+
   -- 제약조건: 템플릿 기반 OR 커스텀 (둘 중 하나만)
   constraint check_category_source check (
     (template_id is not null and name is null) or
     (template_id is null and name is not null)
   ),
-  
+
   -- 원장별 템플릿 중복 방지
   constraint unique_ledger_template unique(ledger_id, template_id),
-  
+
   -- 원장별 커스텀 카테고리명 중복 방지
   constraint unique_ledger_custom_name unique(ledger_id, name, type)
 );
 
 -- 인덱스
-create index idx_categories_ledger_template on categories(ledger_id, template_id) 
+create index idx_categories_ledger_template on categories(ledger_id, template_id)
 where deleted_at is null and is_active = true;
 
-create index idx_categories_ledger_active on categories(ledger_id, is_active) 
+create index idx_categories_ledger_active on categories(ledger_id, is_active)
 where deleted_at is null;
 
-create index idx_categories_template_id on categories(template_id) 
+create index idx_categories_template_id on categories(template_id)
 where deleted_at is null and template_id is not null;
 
-create index idx_categories_ledger_custom on categories(ledger_id, name) 
+create index idx_categories_ledger_custom on categories(ledger_id, name)
 where deleted_at is null and name is not null;
 
-create index idx_categories_ledger_sort on categories(ledger_id, sort_order, name) 
+create index idx_categories_ledger_sort on categories(ledger_id, sort_order, name)
 where deleted_at is null and is_active = true;
 
 -- RLS 정책
@@ -369,7 +380,7 @@ alter table categories enable row level security;
 create policy "categories_policy" on categories for all using (
   deleted_at is null and
   ledger_id in (
-    select ledger_id from ledger_members 
+    select ledger_id from ledger_members
     where user_id = auth.uid() and deleted_at is null
   )
 );
@@ -381,6 +392,7 @@ create policy "categories_policy" on categories for all using (
 > **주요 기능**: 카테고리별 분류, 실시간 동기화, 타입 안전성 보장
 
 **핵심 필드**
+
 - `amount`: 거래 금액 (항상 양수, 타입별로 구분)
 - `type`: 거래 유형 (income/expense)
 - `transaction_date`: 거래 일자 (입력일과 별도)
@@ -388,6 +400,7 @@ create policy "categories_policy" on categories for all using (
 - `description`: 상세 설명 (선택)
 
 **데이터 무결성**
+
 - 거래 타입과 카테고리 타입 일치 검증 (트리거)
 - 카테고리 삭제 방지 (RESTRICT)
 - RLS로 권한 기반 접근 제어
@@ -418,7 +431,7 @@ alter table transactions enable row level security;
 create policy "transactions_policy" on transactions for all using (
   deleted_at is null and
   ledger_id in (
-    select ledger_id from ledger_members 
+    select ledger_id from ledger_members
     where user_id = auth.uid() and deleted_at is null
   )
 );
@@ -432,11 +445,11 @@ begin
   select cd.type into cat_type
   from category_details cd
   where cd.id = new.category_id;
-  
+
   if cat_type != new.type then
     raise exception '거래 타입(%)과 카테고리 타입(%)이 일치하지 않습니다.', new.type, cat_type;
   end if;
-  
+
   return new;
 end;
 $$ language plpgsql;
@@ -453,10 +466,12 @@ create trigger check_transaction_category_type_trigger
 > **주요 기능**: 카테고리별 예산 한도, 사용률 모니터링, 알림 시스템 지원
 
 **예산 기간 타입**
+
 - `monthly`: 월별 예산 (month 필드 필수)
 - `yearly`: 연간 예산 (month 필드 null)
 
 **핵심 제약조건**
+
 - `unique(ledger_id, category_id, year, month)`: 중복 예산 방지
 - `check_monthly_budget`: 월별/연간 예산 데이터 무결성 검증
 - 지출 카테고리에만 예산 설정 가능
@@ -476,13 +491,13 @@ create table budgets (
   created_at timestamptz default now(),
   updated_at timestamptz default now(),
   deleted_at timestamptz, -- Soft Delete
-  
+
   -- 월별 예산의 경우 month 필수, 연간 예산의 경우 month null
   constraint check_monthly_budget check (
     (period = 'monthly' and month is not null) or
     (period = 'yearly' and month is null)
   ),
-  
+
   unique(ledger_id, category_id, year, month)
 );
 
@@ -494,7 +509,7 @@ alter table budgets enable row level security;
 create policy "budgets_policy" on budgets for all using (
   deleted_at is null and
   ledger_id in (
-    select ledger_id from ledger_members 
+    select ledger_id from ledger_members
     where user_id = auth.uid() and deleted_at is null
   )
 );
@@ -512,34 +527,35 @@ create policy "budgets_policy" on budgets for all using (
 > **주요 기능**: 하이브리드 카테고리 시스템의 핵심 뷰, UI에서 바로 사용 가능
 
 **특징**
+
 - 템플릿/커스텀 구분 없이 동일한 필드로 접근
 - `source_type`으로 카테고리 유형 구분 ('template' | 'custom')
 - 정렬 순서 자동 계산 (템플릿은 글로벌 순서, 커스텀은 개별 순서)
 
-```sql
+````sql
 -- 카테고리 상세 정보 통합 뷰
 create view category_details as
-select 
+select
   c.id,
   c.ledger_id,
   c.template_id,
-  
+
   -- 템플릿 기반이면 템플릿 정보, 커스텀이면 커스텀 정보 사용
   coalesce(ct.name, c.name) as name,
   coalesce(ct.color, c.color) as color,
   coalesce(ct.icon, c.icon) as icon,
   coalesce(c.type, ct.type) as type,
-  
+
   c.is_active,
   c.created_at,
   c.updated_at,
-  
+
   -- 카테고리 출처 구분
-  case 
+  case
     when c.template_id is not null then 'template'
-    else 'custom' 
+    else 'custom'
   end as source_type,
-  
+
   -- 정렬순서: 템플릿은 템플릿의 sort_order, 커스텀은 커스텀의 sort_order
   case
     when c.template_id is not null then ct.sort_order
@@ -548,17 +564,17 @@ select
 
 from categories c
 left join category_templates ct on c.template_id = ct.id
-where c.deleted_at is null 
+where c.deleted_at is null
   and c.is_active = true;
 
 #### 2. 활성 거래 내역 뷰 (`active_transactions`)
 
-> **목적**: 거래 정보와 관련 메타데이터를 조인하여 UI에서 바로 사용 가능한 형태 제공  
+> **목적**: 거래 정보와 관련 메타데이터를 조인하여 UI에서 바로 사용 가능한 형태 제공
 > **주요 기능**: 카테고리명, 색상, 아이콘, 가계부명, 작성자명 등 표시용 정보 포함
 
 ```sql
 create view active_transactions as
-select 
+select
   t.*,
   cd.name as category_name,
   cd.color as category_color,
@@ -570,9 +586,9 @@ from transactions t
 join category_details cd on t.category_id = cd.id
 join ledgers l on t.ledger_id = l.id
 join profiles p on t.created_by = p.id
-where t.deleted_at is null 
+where t.deleted_at is null
   and l.deleted_at is null;
-```
+````
 
 #### 3. 원장별 월별 요약 뷰 (`ledger_monthly_summary`)
 
@@ -581,7 +597,7 @@ where t.deleted_at is null
 
 ```sql
 create view ledger_monthly_summary as
-select 
+select
   ledger_id,
   extract(year from transaction_date) as year,
   extract(month from transaction_date) as month,
@@ -599,13 +615,14 @@ group by ledger_id, year, month, type;
 > **주요 기능**: 예산 사용률, 남은 예산, 초과 여부 계산
 
 **핵심 계산**
+
 - `usage_percentage`: 예산 사용률 (%)
 - `remaining_amount`: 남은 예산 (음수면 초과)
 - 월별/연간 예산 모두 지원
 
 ```sql
 create view budget_vs_actual as
-select 
+select
   b.id as budget_id,
   b.ledger_id,
   b.category_id,
@@ -618,14 +635,14 @@ select
   b.month,
   coalesce(t.actual_amount, 0) as actual_amount,
   b.amount - coalesce(t.actual_amount, 0) as remaining_amount,
-  case 
+  case
     when b.amount > 0 then (coalesce(t.actual_amount, 0) / b.amount * 100)
-    else 0 
+    else 0
   end as usage_percentage
 from budgets b
 join category_details cd on b.category_id = cd.id
 left join (
-  select 
+  select
     category_id,
     extract(year from transaction_date) as year,
     extract(month from transaction_date) as month,
@@ -633,8 +650,8 @@ left join (
   from transactions
   where deleted_at is null and type = 'expense'
   group by category_id, year, month
-) t on b.category_id = t.category_id 
-  and b.year = t.year 
+) t on b.category_id = t.category_id
+  and b.year = t.year
   and (b.month = t.month or b.period = 'yearly')
 where b.deleted_at is null;
 ```
@@ -644,6 +661,7 @@ where b.deleted_at is null;
 #### 1. 시스템 초기화 함수
 
 **`initialize_category_templates()`**
+
 > **목적**: 시스템 기본 카테고리 템플릿 생성  
 > **사용 시점**: 시스템 배포 시 1회 실행
 
@@ -661,7 +679,7 @@ begin
   ('주거/통신', 'expense', '#F59E0B', 'home', 6),
   ('교육', 'expense', '#8B5A2B', 'book', 7),
   ('기타지출', 'expense', '#6B7280', 'more-horizontal', 99),
-  
+
   -- 수입 카테고리
   ('급여', 'income', '#059669', 'briefcase', 1),
   ('사업소득', 'income', '#DC2626', 'trending-up', 2),
@@ -695,19 +713,19 @@ begin
   on conflict (id) do update set
     email = excluded.email,
     full_name = excluded.full_name;
-  
+
   -- 기본 원장 생성
   insert into ledgers (name, description, created_by)
   values (user_name || '의 가계부', '개인 가계부입니다.', user_uuid)
   returning id into new_ledger_id;
-  
+
   -- 원장 소유자로 추가
   insert into ledger_members (ledger_id, user_id, role)
   values (new_ledger_id, user_uuid, 'owner');
-  
+
   -- 기본 카테고리 활성화
   perform activate_default_categories(new_ledger_id);
-  
+
   return new_ledger_id;
 end;
 $$ language plpgsql;
@@ -720,8 +738,8 @@ create or replace function handle_new_user()
 returns trigger as $$
 begin
   perform setup_new_user(
-    new.id, 
-    new.email, 
+    new.id,
+    new.email,
     coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1))
   );
   return new;
@@ -752,30 +770,30 @@ begin
   -- 현재 사용자가 초대 권한이 있는지 확인
   select role into current_user_role
   from ledger_members
-  where ledger_id = target_ledger_id 
-    and user_id = auth.uid() 
+  where ledger_id = target_ledger_id
+    and user_id = auth.uid()
     and deleted_at is null;
-  
+
   if current_user_role not in ('owner', 'admin') then
     raise exception '권한이 없습니다.';
   end if;
-  
+
   -- 초대할 사용자 ID 찾기
   select id into target_user_id
   from profiles
   where email = target_user_email and deleted_at is null;
-  
+
   if target_user_id is null then
     raise exception '사용자를 찾을 수 없습니다.';
   end if;
-  
+
   -- 멤버 추가
   insert into ledger_members (ledger_id, user_id, role)
   values (target_ledger_id, target_user_id, member_role)
   on conflict (ledger_id, user_id) do update set
     role = excluded.role,
     deleted_at = null;
-  
+
   return true;
 end;
 $$ language plpgsql security definer;
@@ -795,7 +813,7 @@ declare
 begin
   -- 월별/연간 구분
   budget_period := case when budget_month is null then 'yearly' else 'monthly' end;
-  
+
   -- 예산 설정 (upsert)
   insert into budgets (ledger_id, category_id, amount, period, year, month, created_by)
   values (target_ledger_id, target_category_id, budget_amount, budget_period, budget_year, budget_month, auth.uid())
@@ -804,7 +822,7 @@ begin
     updated_at = now(),
     deleted_at = null
   returning id into budget_id;
-  
+
   return budget_id;
 end;
 $$ language plpgsql security definer;
@@ -825,7 +843,7 @@ begin
   insert into categories (ledger_id, name, type, color, icon, sort_order)
   values (target_ledger_id, category_name, category_type, category_color, category_icon, category_sort_order)
   returning id into category_id;
-  
+
   return category_id;
 end;
 $$ language plpgsql security definer;
@@ -846,7 +864,7 @@ returns table(
 ) as $$
 begin
   return query
-  select 
+  select
     coalesce(sum(case when t.type = 'income' then t.amount else 0 end), 0) as total_income,
     coalesce(sum(case when t.type = 'expense' then t.amount else 0 end), 0) as total_expense,
     coalesce(sum(case when t.type = 'income' then t.amount else -t.amount end), 0) as net_amount,
@@ -854,8 +872,8 @@ begin
     coalesce(sum(b.amount), 0) as budget_total,
     coalesce(sum(b.amount), 0) - coalesce(sum(case when t.type = 'expense' then t.amount else 0 end), 0) as budget_remaining
   from transactions t
-  full outer join budgets b on b.ledger_id = target_ledger_id 
-    and b.year = target_year 
+  full outer join budgets b on b.ledger_id = target_ledger_id
+    and b.year = target_year
     and (b.month = target_month or b.period = 'yearly')
     and b.deleted_at is null
   where (t.ledger_id = target_ledger_id or t.ledger_id is null)
@@ -877,24 +895,24 @@ $$ language plpgsql security definer;
 create or replace function cleanup_old_deleted_data()
 returns void as $$
 begin
-  delete from transactions 
-  where deleted_at is not null 
+  delete from transactions
+  where deleted_at is not null
     and deleted_at < now() - interval '30 days';
-    
-  delete from budgets 
-  where deleted_at is not null 
+
+  delete from budgets
+  where deleted_at is not null
     and deleted_at < now() - interval '30 days';
-    
-  delete from categories 
-  where deleted_at is not null 
+
+  delete from categories
+  where deleted_at is not null
     and deleted_at < now() - interval '30 days';
-    
-  delete from ledger_members 
-  where deleted_at is not null 
+
+  delete from ledger_members
+  where deleted_at is not null
     and deleted_at < now() - interval '30 days';
-    
-  delete from ledgers 
-  where deleted_at is not null 
+
+  delete from ledgers
+  where deleted_at is not null
     and deleted_at < now() - interval '30 days';
 end;
 $$ language plpgsql;
@@ -920,14 +938,14 @@ join ledger_members lm on l.id = lm.ledger_id
 where lm.user_id = auth.uid() and l.deleted_at is null and lm.deleted_at is null;
 
 -- 특정 원장의 카테고리 목록 (정렬순서대로)
-select * from category_details 
+select * from category_details
 where ledger_id = 'your_ledger_id'
 order by sort_order, name;
 
 -- 특정 원장의 최근 거래 내역
-select * from active_transactions 
+select * from active_transactions
 where ledger_id = 'your_ledger_id'
-order by transaction_date desc, created_at desc 
+order by transaction_date desc, created_at desc
 limit 10;
 
 -- 이번 달 예산 대비 지출 현황
@@ -952,21 +970,25 @@ select * from get_ledger_monthly_stats('ledger_id', 2024, 12);
 ## 🎯 주요 변경사항 요약
 
 ### 1. **하이브리드 카테고리 시스템**
+
 - `category_templates`: 글로벌 카테고리 템플릿 저장
 - `categories`: 템플릿 참조 또는 커스텀 카테고리 저장
 - 데이터 중복 제거 및 일관성 향상
 
 ### 2. **효율적인 저장공간 사용**
+
 - 기본 카테고리는 템플릿 참조만 저장
 - 커스텀 카테고리만 실제 데이터 저장
 - 75% 이상 저장공간 절약
 
 ### 3. **향상된 사용자 경험**
+
 - `sort_order`로 카테고리 정렬 지원
 - 템플릿과 커스텀 카테고리 통합 관리
 - `category_details` 뷰로 일관된 인터페이스 제공
 
 ### 4. **확장성 및 유지보수성**
+
 - 시스템 카테고리 중앙 관리
 - 새로운 템플릿 추가 시 모든 원장에 자동 반영 가능
 - 명확한 데이터 분리 및 제약조건
@@ -980,6 +1002,7 @@ select * from get_ledger_monthly_stats('ledger_id', 2024, 12);
 #### 시나리오 1: 새 사용자 회원가입
 
 **자동 처리 흐름** (트리거 기반)
+
 1. Supabase Auth에서 사용자 생성
 2. `handle_new_user()` 트리거 실행
 3. `setup_new_user()` 함수 호출
@@ -990,7 +1013,7 @@ select * from get_ledger_monthly_stats('ledger_id', 2024, 12);
 -- 1. 프로필 생성
 insert into profiles (id, email, full_name) values (...);
 
--- 2. 기본 가계부 생성  
+-- 2. 기본 가계부 생성
 insert into ledgers (name, created_by) values ('홍길동의 가계부', user_id);
 
 -- 3. 소유자 권한으로 멤버 등록
@@ -1011,18 +1034,19 @@ select ledger_id, ct.id, ct.type from category_templates ct;
 -- 3. 수락 시 멤버 추가
 select invite_member_to_ledger(
   '가계부_ID',
-  'friend@example.com', 
+  'friend@example.com',
   'member'
 );
 
 -- 4. 권한 확인 쿼리
-select role from ledger_members 
+select role from ledger_members
 where ledger_id = '가계부_ID' and user_id = auth.uid();
 ```
 
 #### 시나리오 3: 거래 입력 및 카테고리 관리
 
 **기본 거래 입력**
+
 ```sql
 -- 기존 카테고리 사용
 insert into transactions (ledger_id, category_id, amount, type, title, description)
@@ -1030,6 +1054,7 @@ values ('가계부_ID', '카테고리_ID', 50000, 'expense', '점심식사', '�
 ```
 
 **커스텀 카테고리 추가 후 사용**
+
 ```sql
 -- 1. 커스텀 카테고리 생성
 select add_custom_category('가계부_ID', '반려동물', 'expense', '#FF69B4', 'heart', 10);
@@ -1042,17 +1067,19 @@ values ('가계부_ID', '새_카테고리_ID', 30000, 'expense', '강아지 사�
 #### 시나리오 4: 예산 관리 시스템
 
 **월별 예산 설정**
+
 ```sql
 -- 식비 카테고리에 월 50만원 예산 설정
 select set_budget('가계부_ID', '식비_카테고리_ID', 500000, 2025, 1);
 
 -- 예산 현황 조회
-select * from budget_vs_actual 
-where ledger_id = '가계부_ID' 
+select * from budget_vs_actual
+where ledger_id = '가계부_ID'
   and year = 2025 and month = 1;
 ```
 
 **예산 알림 시스템 구현**
+
 ```sql
 -- 예산 80% 이상 사용한 카테고리 조회
 select category_name, usage_percentage, remaining_amount
@@ -1067,10 +1094,11 @@ order by usage_percentage desc;
 #### 시나리오 5: 대시보드 데이터 조회
 
 **홈 화면용 월간 요약**
+
 ```sql
 -- 이번 달 통계
 select * from get_ledger_monthly_stats(
-  '가계부_ID', 
+  '가계부_ID',
   extract(year from current_date)::integer,
   extract(month from current_date)::integer
 );
@@ -1092,11 +1120,12 @@ limit 5;
 #### 1. 성능 최적화
 
 **인덱스 활용**
+
 ```sql
 -- 날짜별 조회 시 복합 인덱스 활용
-explain analyze 
-select * from transactions 
-where ledger_id = '가계부_ID' 
+explain analyze
+select * from transactions
+where ledger_id = '가계부_ID'
   and transaction_date between '2025-01-01' and '2025-01-31'
 order by transaction_date desc;
 
@@ -1104,6 +1133,7 @@ order by transaction_date desc;
 ```
 
 **뷰 활용으로 조인 최적화**
+
 ```sql
 -- ❌ 매번 조인하는 비효율적 방법
 select t.*, c.name, ct.name, l.name, p.full_name
@@ -1113,28 +1143,31 @@ left join category_templates ct on c.template_id = ct.id
 join ledgers l on t.ledger_id = l.id
 join profiles p on t.created_by = p.id;
 
--- ✅ 뷰를 활용한 효율적 방법  
+-- ✅ 뷰를 활용한 효율적 방법
 select * from active_transactions
 where ledger_id = '가계부_ID';
 ```
 
 #### 2. 보안 모범 사례
 
-> 🔒 **보안 중요사항**  
+> 🔒 **보안 중요사항**
+>
 > - 모든 테이블에 RLS 정책이 적용됨
 > - 사용자는 멤버로 등록된 가계부만 접근 가능
 > - Soft Delete로 데이터 복구 가능
 
 **RLS 정책 확인**
+
 ```sql
 -- 현재 사용자가 접근 가능한 가계부 확인
-select l.name, lm.role 
+select l.name, lm.role
 from ledgers l
 join ledger_members lm on l.id = lm.ledger_id
 where lm.user_id = auth.uid() and l.deleted_at is null;
 ```
 
 **안전한 데이터 삭제**
+
 ```sql
 -- ❌ 하드 삭제 (데이터 복구 불가)
 delete from transactions where id = '거래_ID';
@@ -1146,18 +1179,20 @@ update transactions set deleted_at = now() where id = '거래_ID';
 #### 3. 실시간 동기화 구현
 
 **Supabase Realtime 구독**
+
 ```typescript
 // 거래 내역 실시간 구독
 const channel = supabase
   .channel('transactions')
-  .on('postgres_changes', 
-    { 
-      event: '*', 
-      schema: 'public', 
+  .on(
+    'postgres_changes',
+    {
+      event: '*',
+      schema: 'public',
       table: 'transactions',
-      filter: `ledger_id=eq.${ledgerId}`
+      filter: `ledger_id=eq.${ledgerId}`,
     },
-    payload => {
+    (payload) => {
       // 실시간 업데이트 처리
       console.log('Transaction changed:', payload);
     }
@@ -1168,6 +1203,7 @@ const channel = supabase
 #### 4. 에러 처리 패턴
 
 **제약조건 위반 처리**
+
 ```sql
 -- 거래 타입과 카테고리 타입 불일치 시 에러
 insert into transactions (ledger_id, category_id, amount, type, title)
@@ -1184,11 +1220,11 @@ values ('가계부_ID', '수입_카테고리_ID', 50000, 'expense', '제목');
 select cleanup_old_deleted_data();
 
 -- 디스크 사용량 모니터링
-select 
+select
   schemaname,
   tablename,
   pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as size
-from pg_tables 
+from pg_tables
 where schemaname = 'public'
 order by pg_total_relation_size(schemaname||'.'||tablename) desc;
 ```

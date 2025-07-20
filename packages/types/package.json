@@ -4,7 +4,7 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "lint": "tsc --noEmit"
+    "lint": "eslint . --config eslint.config.js && tsc --noEmit"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",

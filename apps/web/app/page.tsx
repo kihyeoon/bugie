@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 
 export default function Web() {
   return (
@@ -8,7 +8,7 @@ export default function Web() {
       <h1 className="mb-4 text-3xl font-bold text-blue-600">
         Web App with Tailwind
       </h1>
-      <Button onClick={() => console.log("Pressed!")}>Boop</Button>
+      <Button onClick={() => console.log('Pressed!')}>Boop</Button>
     </div>
   );
 }
