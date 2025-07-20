@@ -82,25 +82,19 @@
 
 ### 6. 로그인 화면 구현
 **파일**:
-- `apps/web/app/(auth)/login/page.tsx`
-- `apps/web/app/(auth)/layout.tsx`
-- `apps/web/components/auth/SocialLoginButton.tsx`
 - `apps/native/app/(auth)/login.tsx`
 - `apps/native/app/(auth)/_layout.tsx`
 - `apps/native/components/auth/SocialLoginButton.tsx`
 
 **작업 내용**:
-- [ ] 웹 로그인 페이지 레이아웃
 - [ ] 네이티브 로그인 스크린 레이아웃
-- [ ] SocialLoginButton 컴포넌트 (재사용 가능)
+- [ ] SocialLoginButton 컴포넌트
 - [ ] 로딩 상태 처리
 - [ ] 에러 메시지 표시
 - [ ] 브랜드 로고 및 스타일링
 
 ### 7. 프로필 설정 화면 구현
 **파일**:
-- `apps/web/app/(auth)/profile-setup/page.tsx`
-- `apps/web/components/auth/ProfileForm.tsx`
 - `apps/native/app/(auth)/profile-setup.tsx`
 - `apps/native/components/auth/ProfileForm.tsx`
 
@@ -115,9 +109,6 @@
 
 ### 8. 보호된 라우트 구현
 **파일**:
-- `apps/web/app/(protected)/layout.tsx`
-- `apps/web/components/auth/AuthGuard.tsx`
-- `apps/web/middleware.ts`
 - `apps/native/app/(tabs)/_layout.tsx`
 - `apps/native/components/auth/AuthGuard.tsx`
 
@@ -126,16 +117,13 @@
 - [ ] 인증 상태 확인 로직
 - [ ] 미인증 시 로그인 페이지 리다이렉트
 - [ ] 프로필 미설정 시 프로필 설정 페이지 리다이렉트
-- [ ] 웹용 미들웨어 설정
 - [ ] 네이티브 네비게이션 가드
 
 ### 9. OAuth 콜백 처리
 **파일**:
-- `apps/web/app/auth/callback/route.ts`
 - `apps/native/app/auth/callback.tsx`
 
 **작업 내용**:
-- [ ] 웹 OAuth 콜백 라우트 핸들러
 - [ ] 네이티브 딥링크 처리
 - [ ] 인증 코드 교환
 - [ ] 세션 설정
@@ -143,10 +131,21 @@
 
 ## Week 2 후반: 마무리 및 테스트
 
-### 10. 에러 처리 및 로딩 상태
+### 10. 웹뷰 통합 및 세션 전달
 **파일**:
-- `apps/web/components/ui/ErrorMessage.tsx`
-- `apps/web/components/ui/LoadingSpinner.tsx`
+- `apps/native/components/webview/AuthenticatedWebView.tsx`
+- `apps/web/lib/supabase/webview-client.ts`
+- `apps/web/utils/auth-helpers.ts`
+
+**작업 내용**:
+- [ ] AuthenticatedWebView 컴포넌트 구현
+- [ ] 세션 주입 로직 구현
+- [ ] 웹뷰-네이티브 통신 프로토콜 정의
+- [ ] 세션 업데이트 실시간 동기화
+- [ ] 웹뷰 보안 설정 (도메인 화이트리스트)
+
+### 11. 에러 처리 및 로딩 상태
+**파일**:
 - `apps/native/components/ui/ErrorMessage.tsx`
 - `apps/native/components/ui/LoadingSpinner.tsx`
 
@@ -156,9 +155,8 @@
 - [ ] 에러 바운더리 설정
 - [ ] 사용자 친화적 메시지
 
-### 11. 환경변수 및 설정 파일
+### 12. 환경변수 및 설정 파일
 **파일**:
-- `apps/web/.env.local.example`
 - `apps/native/.env.example`
 - 문서 업데이트
 
@@ -167,7 +165,7 @@
 - [ ] 설정 가이드 문서 작성
 - [ ] OAuth 앱 설정 가이드
 
-### 12. 테스트 및 디버깅
+### 13. 테스트 및 디버깅
 **작업 내용**:
 - [ ] Google 로그인 플로우 테스트
 - [ ] Apple 로그인 플로우 테스트
@@ -175,6 +173,8 @@
 - [ ] 프로필 설정 플로우 테스트
 - [ ] 세션 갱신 테스트
 - [ ] 로그아웃 테스트
+- [ ] 웹뷰 세션 주입 테스트
+- [ ] 웹뷰-네이티브 통신 테스트
 - [ ] 에러 시나리오 테스트
 - [ ] 크로스 플랫폼 동작 확인
 
