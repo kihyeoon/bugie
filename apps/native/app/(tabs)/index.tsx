@@ -24,7 +24,7 @@ export default function HomeScreen() {
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">공유 UI 컴포넌트 테스트</ThemedText>
-        <Button />
+        <Button text="테스트 버튼" />
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Step 1: Try it</ThemedText>

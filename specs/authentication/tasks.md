@@ -3,74 +3,82 @@
 ## 개요
 네이티브 앱에서만 인증을 구현하고, 웹뷰에는 세션을 전달하는 구조로 개발합니다.
 
+## 진행 상황
+- ✅ Week 1: 백엔드 및 기초 설정 (완료)
+  - ✅ Supabase OAuth 설정 (Google 완료, Apple/Kakao 대기)
+  - ✅ 데이터베이스 구성
+  - ✅ 타입 정의
+  - ✅ 클라이언트 설정
+- 🔄 Week 2: 프론트엔드 구현 (진행중)
+  - ✅ AuthContext 구현
+  - ⏳ 로그인 화면
+  - ⏳ 프로필 설정 화면
+  - ⏳ 보호된 라우트
+  - ⏳ OAuth 콜백 처리
+
 ## Week 1: 백엔드 및 기초 설정
 
-### 1. Supabase 프로젝트 설정 및 OAuth 구성
+### 1. Supabase 프로젝트 설정 및 OAuth 구성 ✅
 **파일**: 없음 (Supabase 대시보드 작업)
 **작업 내용**:
-- [ ] Supabase 프로젝트에서 Authentication 설정 활성화
-- [ ] Google OAuth 앱 생성 및 Client ID/Secret 설정
+- [x] Supabase 프로젝트에서 Authentication 설정 활성화
+- [x] Google OAuth 앱 생성 및 Client ID/Secret 설정
 - [ ] Apple OAuth 설정 (Apple Developer 계정 필요)
 - [ ] Kakao OAuth 앱 생성 및 설정
-- [ ] 리다이렉트 URL 구성:
+- [x] 리다이렉트 URL 구성:
   - 웹: `https://{project-ref}.supabase.co/auth/v1/callback`
-  - 로컬: `http://localhost:3000/auth/callback`
-- [ ] 환경변수 파일 업데이트
+  - 네이티브: `bugie://auth/callback`
+- [x] 환경변수 파일 업데이트 (심볼릭 링크로 루트 .env.local 사용)
 
-### 2. 데이터베이스 마이그레이션 작성
+### 2. 데이터베이스 마이그레이션 작성 ✅
 **파일**: `supabase/migrations/001_create_profiles_table.sql`
 **작업 내용**:
-- [ ] profiles 테이블 생성 SQL 작성
-- [ ] RLS 정책 추가
-- [ ] handle_new_user() 함수 생성
-- [ ] 트리거 설정
-- [ ] 마이그레이션 실행 및 테스트
+- [x] profiles 테이블 생성 SQL 작성
+- [x] RLS 정책 추가
+- [x] handle_new_user() 함수 생성
+- [x] 트리거 설정
+- [x] 마이그레이션 실행 및 테스트
 
-### 3. 공통 타입 패키지 생성
+### 3. 공통 타입 패키지 생성 ✅
 **파일**: 
-- `packages/types/package.json`
-- `packages/types/tsconfig.json`
-- `packages/types/src/index.ts`
-- `packages/types/src/auth.ts`
+- `packages/types/package.json` (기존 파일 사용)
+- `packages/types/tsconfig.json` (기존 파일 사용)
+- `packages/types/src/index.ts` (수정)
+- `packages/types/src/auth.ts` (수정)
 
 **작업 내용**:
-- [ ] @repo/types 패키지 초기화
-- [ ] TypeScript 설정
-- [ ] auth.ts에 User, Profile, Session, AuthState 타입 정의
-- [ ] index.ts에서 export
-- [ ] 빌드 스크립트 설정
+- [x] @repo/types 패키지 초기화 (이미 존재)
+- [x] TypeScript 설정
+- [x] auth.ts에 User, Profile, Session, AuthState 타입 정의
+- [x] index.ts에서 export (중복 방지를 위해 export type 사용)
+- [x] 빌드 스크립트 설정
 
-### 4. Supabase 클라이언트 구성
+### 4. Supabase 클라이언트 구성 ✅
 **파일**:
-- `apps/web/lib/supabase/client.ts` (수정)
-- `apps/web/lib/supabase/server.ts` (수정)
-- `apps/web/lib/supabase/auth.ts` (생성)
 - `apps/native/utils/supabase.ts` (수정)
+- `apps/native/utils/webviewBridge.ts` (생성)
 
 **작업 내용**:
-- [ ] 웹용 브라우저 클라이언트 설정
-- [ ] 웹용 서버 클라이언트 설정
-- [ ] 네이티브용 클라이언트 설정 (AsyncStorage 연동)
-- [ ] 인증 관련 헬퍼 함수 작성
-- [ ] 타입 안전성 확보
+- [x] 네이티브용 클라이언트 설정 (SecureStore 사용)
+- [x] OAuth 리다이렉트 URL 헬퍼 함수 추가
+- [x] 웹뷰 브릿지 헬퍼 함수 작성
+- [x] 타입 안전성 확보
 
 ## Week 2: 프론트엔드 구현
 
-### 5. AuthContext 구현
+### 5. AuthContext 구현 ✅
 **파일**:
-- `apps/web/contexts/AuthContext.tsx`
-- `apps/native/contexts/AuthContext.tsx`
-- `apps/web/hooks/useAuth.ts`
-- `apps/native/hooks/useAuth.ts`
+- `apps/native/contexts/AuthContext.tsx` (생성)
+- `apps/native/hooks/useAuth.ts` (생성)
 
 **작업 내용**:
-- [ ] AuthContext Provider 컴포넌트 생성
-- [ ] 인증 상태 관리 로직
-- [ ] 세션 자동 갱신 설정
-- [ ] signInWithOAuth 함수 구현
-- [ ] signOut 함수 구현
-- [ ] updateProfile 함수 구현
-- [ ] useAuth 훅 생성
+- [x] AuthContext Provider 컴포넌트 생성
+- [x] 인증 상태 관리 로직
+- [x] 세션 자동 갱신 설정
+- [x] signInWithOAuth 함수 구현
+- [x] signOut 함수 구현
+- [x] updateProfile 함수 구현
+- [x] useAuth 훅 생성
 
 ### 6. 로그인 화면 구현
 **파일**:
