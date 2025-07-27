@@ -17,6 +17,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { SocialLoginButton } from '../../components/auth/SocialLoginButton';
 import { supabase } from '../../utils/supabase';
+import { router } from 'expo-router';
 import type { OAuthProvider } from '@repo/types';
 
 const { height } = Dimensions.get('window');
@@ -54,7 +55,26 @@ export default function LoginScreen() {
           Alert.alert('로그인 오류', error.message);
         } else {
           console.log('Google Sign-In successful:', data);
-          // AuthContext의 onAuthStateChange가 자동으로 처리
+          
+          // 프로필 확인을 위해 잠시 대기
+          setTimeout(async () => {
+            // 프로필 정보 가져오기
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', data.user.id)
+              .single();
+            
+            // 프로필이 없거나 full_name이 없으면 프로필 설정으로
+            if (!profile || !profile.full_name) {
+              console.log('Redirecting to profile setup...');
+              router.replace('/(auth)/profile-setup');
+            } else {
+              // 프로필이 완성되어 있으면 홈으로
+              console.log('Redirecting to home...');
+              router.replace('/(tabs)');
+            }
+          }, 100); // AuthContext가 상태를 업데이트할 시간을 줌
         }
       } else {
         throw new Error('Google ID token을 받을 수 없습니다.');
