@@ -53,6 +53,9 @@ importers:
       '@react-native-async-storage/async-storage':
         specifier: ^2.2.0
         version: 2.2.0(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.0.14)(react@19.0.0))
+      '@react-native-google-signin/google-signin':
+        specifier: ^15.0.0
+        version: 15.0.0(expo@53.0.17(@babel/core@7.28.0)(@expo/metro-runtime@5.0.4(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.0.14)(react@19.0.0)))(react-native-webview@13.13.5(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
       '@react-navigation/bottom-tabs':
         specifier: ^7.3.10
         version: 7.4.2(@react-navigation/native@7.1.14(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native-safe-area-context@5.4.0(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native-screens@4.11.1(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
@@ -1403,6 +1406,16 @@ packages:
     resolution: {integrity: sha512-gvRvjR5JAaUZF8tv2Kcq/Gbt3JHwbKFYfmb445rhOj6NUMx3qPLixmDx5pZAyb9at1bYvJ4/eTUipU5aki45xw==}
     peerDependencies:
       react-native: ^0.0.0-0 || >=0.65 <1.0
+
+  '@react-native-google-signin/google-signin@15.0.0':
+    resolution: {integrity: sha512-oU49nE+Z9TT/WaO1K7BH/QL2Nx3d2T3I5PGcYdD8swKNtfhMt8qCX/3mOnNEzthTBPrR0CWFGo3LXpkYspalog==}
+    peerDependencies:
+      expo: '>=52.0.40'
+      react: '*'
+      react-native: '*'
+    peerDependenciesMeta:
+      expo:
+        optional: true
 
   '@react-native/assets-registry@0.79.5':
     resolution: {integrity: sha512-N4Kt1cKxO5zgM/BLiyzuuDNquZPiIgfktEQ6TqJ/4nKA8zr4e8KJgU6Tb2eleihDO4E24HmkvGc73naybKRz/w==}
@@ -6682,6 +6695,13 @@ snapshots:
       merge-options: 3.0.4
       react-native: 0.79.5(@babel/core@7.28.0)(@types/react@19.0.14)(react@19.0.0)
 
+  '@react-native-google-signin/google-signin@15.0.0(expo@53.0.17(@babel/core@7.28.0)(@expo/metro-runtime@5.0.4(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.0.14)(react@19.0.0)))(react-native-webview@13.13.5(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)':
+    dependencies:
+      react: 19.0.0
+      react-native: 0.79.5(@babel/core@7.28.0)(@types/react@19.0.14)(react@19.0.0)
+    optionalDependencies:
+      expo: 53.0.17(@babel/core@7.28.0)(@expo/metro-runtime@5.0.4(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.0.14)(react@19.0.0)))(react-native-webview@13.13.5(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.0)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
+
   '@react-native/assets-registry@0.79.5': {}
 
   '@react-native/babel-plugin-codegen@0.79.5(@babel/core@7.28.0)':
@@ -8326,7 +8346,7 @@ snapshots:
       '@typescript-eslint/parser': 6.21.0(eslint@8.57.1)(typescript@5.5.4)
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@6.21.0(eslint@8.57.1)(typescript@5.5.4))(eslint@8.57.1))(eslint@8.57.1)
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@8.57.1)
       eslint-plugin-import: 2.32.0(@typescript-eslint/parser@6.21.0(eslint@8.57.1)(typescript@5.5.4))(eslint-import-resolver-typescript@3.10.1)(eslint@8.57.1)
       eslint-plugin-jsx-a11y: 6.10.2(eslint@8.57.1)
       eslint-plugin-react: 7.37.5(eslint@8.57.1)
@@ -8350,7 +8370,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@6.21.0(eslint@8.57.1)(typescript@5.5.4))(eslint@8.57.1))(eslint@8.57.1):
+  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@8.57.1):
     dependencies:
       '@nolyfill/is-core-module': 1.0.39
       debug: 4.4.1
@@ -8380,14 +8400,14 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.12.1(@typescript-eslint/parser@6.21.0(eslint@8.57.1)(typescript@5.5.4))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@6.21.0(eslint@8.57.1)(typescript@5.5.4))(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1):
+  eslint-module-utils@2.12.1(@typescript-eslint/parser@6.21.0(eslint@8.57.1)(typescript@5.5.4))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1)(eslint@8.57.1):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
       '@typescript-eslint/parser': 6.21.0(eslint@8.57.1)(typescript@5.5.4)
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@6.21.0(eslint@8.57.1)(typescript@5.5.4))(eslint@8.57.1))(eslint@8.57.1)
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@8.57.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -8422,7 +8442,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.12.1(@typescript-eslint/parser@6.21.0(eslint@8.57.1)(typescript@5.5.4))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@6.21.0(eslint@8.57.1)(typescript@5.5.4))(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
+      eslint-module-utils: 2.12.1(@typescript-eslint/parser@6.21.0(eslint@8.57.1)(typescript@5.5.4))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1)(eslint@8.57.1)
       hasown: 2.0.2
       is-core-module: 2.16.1
       is-glob: 4.0.3

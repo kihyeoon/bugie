@@ -79,7 +79,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // OAuth 콜백 처리를 위한 딥링크 핸들러
+  // OAuth 콜백 처리를 위한 딥링크 핸들러 (Apple, Kakao용)
+  // Google은 네이티브 로그인을 사용하므로 이 핸들러를 거치지 않음
   const handleOAuthCallback = useCallback(
     async (url: string) => {
       if (!url.includes('auth/callback') || isSettingSession.current) return;
@@ -311,7 +312,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [fetchProfile, handleOAuthCallback]);
 
-  // OAuth 로그인
+  // OAuth 로그인 (Apple, Kakao용)
   const signInWithOAuth = useCallback(async (provider: OAuthProvider) => {
     try {
       const redirectTo = getOAuthRedirectUrl();
