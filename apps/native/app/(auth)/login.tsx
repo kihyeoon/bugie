@@ -11,11 +11,11 @@ import {
 } from 'react-native';
 import {
   GoogleSignin,
-  GoogleSigninButton,
   statusCodes,
 } from '@react-native-google-signin/google-signin';
 import { supabase } from '../../utils/supabase';
 import { router } from 'expo-router';
+import { SocialLoginButton } from '../../components/auth/SocialLoginButton';
 
 const { height } = Dimensions.get('window');
 
@@ -111,13 +111,11 @@ export default function LoginScreen() {
 
           {/* 중앙 영역 - 소셜 로그인 버튼들 */}
           <View style={styles.buttonSection}>
-            {/* Google 공식 로그인 버튼 */}
-            <GoogleSigninButton
-              size={GoogleSigninButton.Size.Wide}
-              color={GoogleSigninButton.Color.Light}
+            <SocialLoginButton
+              provider="google"
               onPress={handleGoogleSignIn}
+              loading={googleSignInLoading}
               disabled={googleSignInLoading}
-              style={styles.googleButton}
             />
           </View>
 
@@ -187,10 +185,6 @@ const styles = StyleSheet.create({
   },
   buttonSpacing: {
     height: 12,
-  },
-  googleButton: {
-    height: 56,
-    borderRadius: 12,
   },
   footerSection: {
     flex: 0.2,

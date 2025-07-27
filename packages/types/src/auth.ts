@@ -28,7 +28,7 @@ export interface AuthState {
   needsProfile: boolean;
 }
 
-export type OAuthProvider = "google";
+export type OAuthProvider = "google" | "apple" | "kakao";
 
 export interface AuthError {
   message: string;
