@@ -1,40 +1,17 @@
 import { Redirect } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 import { View, ActivityIndicator } from 'react-native';
-import { useEffect, useState } from 'react';
-import * as Linking from 'expo-linking';
 
 export default function Index() {
   const { user, loading, needsProfile, session } = useAuth();
-  const [isProcessingOAuth, setIsProcessingOAuth] = useState(false);
-
-  // OAuth 콜백 감지
-  useEffect(() => {
-    const checkForOAuthCallback = async () => {
-      const url = await Linking.getInitialURL();
-      if (url && url.includes('auth/callback')) {
-        console.log(
-          'app/index.tsx - OAuth callback detected, waiting for processing...'
-        );
-        setIsProcessingOAuth(true);
-        // OAuth 처리를 위한 짧은 대기
-        setTimeout(() => {
-          setIsProcessingOAuth(false);
-        }, 1000);
-      }
-    };
-
-    checkForOAuthCallback();
-  }, []);
 
   console.log('app/index.tsx - Navigation decision:', {
     user: user ? { id: user.id, email: user.email } : null,
     loading,
     needsProfile,
     session: !!session,
-    isProcessingOAuth,
     decision:
-      loading || isProcessingOAuth
+      loading
         ? 'loading'
         : !user
           ? 'login'
@@ -43,8 +20,8 @@ export default function Index() {
             : 'home',
   });
 
-  // 로딩 중이거나 OAuth 처리 중일 때는 로딩 화면 표시
-  if (loading || isProcessingOAuth) {
+  // 로딩 중일 때는 로딩 화면 표시
+  if (loading) {
     return (
       <View
         style={{

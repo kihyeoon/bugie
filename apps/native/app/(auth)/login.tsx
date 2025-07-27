@@ -14,19 +14,12 @@ import {
   GoogleSigninButton,
   statusCodes,
 } from '@react-native-google-signin/google-signin';
-import { useAuth } from '../../contexts/AuthContext';
-import { SocialLoginButton } from '../../components/auth/SocialLoginButton';
 import { supabase } from '../../utils/supabase';
 import { router } from 'expo-router';
-import type { OAuthProvider } from '@repo/types';
 
 const { height } = Dimensions.get('window');
 
 export default function LoginScreen() {
-  const { signInWithOAuth } = useAuth();
-  const [loadingProvider, setLoadingProvider] = useState<OAuthProvider | null>(
-    null
-  );
   const [googleSignInLoading, setGoogleSignInLoading] = useState(false);
 
   // Google Sign-In 설정
@@ -103,18 +96,6 @@ export default function LoginScreen() {
     }
   };
 
-  // Apple, Kakao 로그인 핸들러
-  const handleSocialLogin = async (provider: OAuthProvider) => {
-    try {
-      setLoadingProvider(provider);
-      await signInWithOAuth(provider);
-      // 로그인 성공 시 AuthContext에서 자동으로 홈으로 리다이렉트됨
-    } catch (error) {
-      console.error('Login error:', error);
-    } finally {
-      setLoadingProvider(null);
-    }
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -142,22 +123,8 @@ export default function LoginScreen() {
               size={GoogleSigninButton.Size.Wide}
               color={GoogleSigninButton.Color.Light}
               onPress={handleGoogleSignIn}
-              disabled={googleSignInLoading || loadingProvider !== null}
+              disabled={googleSignInLoading}
               style={styles.googleButton}
-            />
-            <View style={styles.buttonSpacing} />
-            <SocialLoginButton
-              provider="apple"
-              onPress={() => handleSocialLogin('apple')}
-              loading={loadingProvider === 'apple'}
-              disabled={loadingProvider !== null || googleSignInLoading}
-            />
-            <View style={styles.buttonSpacing} />
-            <SocialLoginButton
-              provider="kakao"
-              onPress={() => handleSocialLogin('kakao')}
-              loading={loadingProvider === 'kakao'}
-              disabled={loadingProvider !== null || googleSignInLoading}
             />
           </View>
 

@@ -7,16 +7,10 @@ import React, {
   useRef,
 } from 'react';
 import { Alert } from 'react-native';
-import * as Linking from 'expo-linking';
-import type {
-  AuthState,
-  OAuthProvider,
-  AuthProfile as Profile,
-} from '@repo/types';
-import { supabase, getOAuthRedirectUrl } from '../utils/supabase';
+import type { AuthState, AuthProfile as Profile } from '@repo/types';
+import { supabase } from '../utils/supabase';
 
 interface AuthContextValue extends AuthState {
-  signInWithOAuth: (provider: OAuthProvider) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (data: Partial<Profile>) => Promise<void>;
   refreshSession: () => Promise<void>;
@@ -79,96 +73,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // OAuth 콜백 처리를 위한 딥링크 핸들러 (Apple, Kakao용)
-  // Google은 네이티브 로그인을 사용하므로 이 핸들러를 거치지 않음
-  const handleOAuthCallback = useCallback(
-    async (url: string) => {
-      if (!url.includes('auth/callback') || isSettingSession.current) return;
-
-      console.log('AuthContext: Processing OAuth callback from URL:', url);
-      isSettingSession.current = true;
-
-      try {
-        const fragment = url.split('#')[1];
-        if (fragment) {
-          const params = new URLSearchParams(fragment);
-          const accessToken = params.get('access_token');
-          const refreshToken = params.get('refresh_token');
-
-          if (accessToken && refreshToken) {
-            console.log('AuthContext: Found OAuth tokens, setting session...');
-
-            // 먼저 loading을 true로 설정하여 UI가 대기하도록 함
-            setAuthState((prev) => {
-              const newState = { ...prev, loading: true };
-              logAuthStateChange('OAuth Processing Start', newState);
-              return newState;
-            });
-
-            const { data, error } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken,
-            });
-
-            if (error) {
-              console.error('AuthContext: Session error:', error);
-              // 에러 발생 시 loading을 false로
-              setAuthState((prev) => {
-                const newState = { ...prev, loading: false };
-                logAuthStateChange('OAuth Session Error', newState);
-                return newState;
-              });
-            } else if (data?.session) {
-              console.log(
-                'AuthContext: Session set successfully, fetching profile...'
-              );
-              // 프로필 가져오기
-              const profile = await fetchProfile(data.session.user.id);
-              const newState = {
-                user: data.session.user,
-                profile,
-                session: data.session,
-                loading: false,
-                needsProfile: !profile?.full_name,
-              };
-              logAuthStateChange('OAuth Complete', newState);
-              setAuthState(newState);
-              console.log('AuthContext: OAuth flow completed successfully');
-
-              // Double-check the session was set correctly
-              setTimeout(async () => {
-                const {
-                  data: { session: currentSession },
-                } = await supabase.auth.getSession();
-                console.log('AuthContext: Session verification:', {
-                  hasSession: !!currentSession,
-                  userId: currentSession?.user?.id,
-                  matches: currentSession?.user?.id === data?.session?.user?.id,
-                });
-              }, 100);
-            }
-          } else {
-            console.warn(
-              'AuthContext: No valid tokens found in OAuth callback'
-            );
-          }
-        }
-      } catch (error) {
-        console.error('AuthContext: OAuth callback error:', error);
-        // 에러 발생 시 loading을 false로
-        setAuthState((prev) => {
-          const newState = { ...prev, loading: false };
-          logAuthStateChange('OAuth Error', newState);
-          return newState;
-        });
-      } finally {
-        isSettingSession.current = false;
-        console.log('AuthContext: OAuth callback processing completed');
-      }
-    },
-    [fetchProfile]
-  );
-
   // 세션 체크 및 초기화
   useEffect(() => {
     // React StrictMode에서 중복 실행 방지
@@ -179,20 +83,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isInitialized.current = true;
 
     console.log('AuthContext: Initializing for the first time...');
-
-    // 딥링크 리스너 설정
-    const subscription = Linking.addEventListener('url', (event) => {
-      console.log('AuthContext: URL event received:', event.url);
-      handleOAuthCallback(event.url);
-    });
-
-    // 초기 URL 확인 (앱이 딥링크로 열린 경우)
-    Linking.getInitialURL().then((url) => {
-      if (url) {
-        console.log('AuthContext: Initial URL detected:', url);
-        handleOAuthCallback(url);
-      }
-    });
 
     // 기존 세션 확인
     supabase.auth.getSession().then(({ data: { session }, error }) => {
@@ -307,39 +197,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     return () => {
-      subscription.remove();
       authListener.subscription.unsubscribe();
     };
-  }, [fetchProfile, handleOAuthCallback]);
-
-  // OAuth 로그인 (Apple, Kakao용)
-  const signInWithOAuth = useCallback(async (provider: OAuthProvider) => {
-    try {
-      const redirectTo = getOAuthRedirectUrl();
-      console.log('redirectTo', redirectTo);
-      // OAuth URL 생성 및 브라우저 열기
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo,
-          skipBrowserRedirect: true,
-        },
-      });
-
-      if (error) throw error;
-
-      if (data?.url) {
-        await Linking.openURL(data.url);
-      }
-    } catch (error) {
-      Alert.alert(
-        '로그인 오류',
-        error instanceof Error
-          ? error.message
-          : '로그인 중 오류가 발생했습니다.'
-      );
-    }
-  }, []);
+  }, [fetchProfile]);
 
   // 로그아웃
   const signOut = useCallback(async () => {
@@ -441,7 +301,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value: AuthContextValue = {
     ...authState,
-    signInWithOAuth,
     signOut,
     updateProfile,
     refreshSession,
