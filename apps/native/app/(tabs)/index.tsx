@@ -10,15 +10,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
 export default function HomeScreen() {
-  const { signOut, user, loading, session, needsProfile } = useAuth();
-
-  // 디버그 로그 추가 - 올바른 auth state 로깅
-  console.log('(tabs)/index.tsx - Auth state:', {
-    user: user ? { id: user.id, email: user.email } : null,
-    loading,
-    session: !!session,
-    needsProfile,
-  });
+  const { signOut, user } = useAuth();
 
   const handleLogout = async () => {
     Alert.alert('로그아웃', '정말 로그아웃 하시겠습니까?', [

@@ -19,41 +19,21 @@ interface AuthContextValue extends AuthState {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [authState, setAuthState] = useState<AuthState>(() => {
-    const initialState = {
-      user: null,
-      profile: null,
-      session: null,
-      loading: true,
-      needsProfile: false,
-    };
-    console.log('[AuthContext] Initial state created:', initialState);
-    return initialState;
+  const [authState, setAuthState] = useState<AuthState>({
+    user: null,
+    profile: null,
+    session: null,
+    loading: true,
+    needsProfile: false,
   });
 
   // React StrictMode 대응을 위한 초기화 플래그
   const isInitialized = useRef(false);
   const isSettingSession = useRef(false);
-  const stateUpdateCount = useRef(0);
-
-  // Auth state 변경 추적을 위한 로깅
-  const logAuthStateChange = (source: string, newState: AuthState) => {
-    stateUpdateCount.current += 1;
-    console.log(`[AuthState #${stateUpdateCount.current}] ${source}:`, {
-      user: newState.user
-        ? { id: newState.user.id, email: newState.user.email }
-        : null,
-      profile: !!newState.profile,
-      session: !!newState.session,
-      loading: newState.loading,
-      needsProfile: newState.needsProfile,
-    });
-  };
 
   // 프로필 데이터 가져오기
   const fetchProfile = useCallback(async (userId: string) => {
     try {
-      console.log('Fetching profile for user:', userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -65,7 +45,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
 
-      console.log('Profile data retrieved:', data);
       return data;
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -77,121 +56,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // React StrictMode에서 중복 실행 방지
     if (isInitialized.current) {
-      console.log('AuthContext: Already initialized, skipping...');
       return;
     }
     isInitialized.current = true;
 
-    console.log('AuthContext: Initializing for the first time...');
-
     // 기존 세션 확인
     supabase.auth.getSession().then(({ data: { session }, error }) => {
-      console.log('AuthContext: Initial session check:', {
-        hasSession: !!session,
-        error: error?.message,
-        userId: session?.user?.id,
-      });
-
       if (session && !isSettingSession.current) {
         fetchProfile(session.user.id).then((profile) => {
-          console.log('AuthContext: Initial profile loaded:', !!profile);
-          const newState = {
+          setAuthState({
             user: session.user,
             profile,
             session,
             loading: false,
             needsProfile: !profile?.full_name,
-          };
-          logAuthStateChange('Initial Session Loaded', newState);
-          setAuthState(newState);
+          });
         });
       } else if (!isSettingSession.current) {
-        console.log(
-          'AuthContext: No initial session, setting loading to false'
-        );
-        const newState = { ...authState, loading: false };
-        logAuthStateChange('No Initial Session', newState);
-        setAuthState(newState);
+        setAuthState((prev) => ({ ...prev, loading: false }));
       }
     });
 
     // 인증 상태 변경 리스너
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('AuthContext: onAuthStateChange event:', event);
-        console.log(
-          'AuthContext: Session in event:',
-          session
-            ? {
-                userId: session.user.id,
-                email: session.user.email,
-                expiresAt: session.expires_at,
-              }
-            : null
-        );
-
         // 이미 세션 설정 중이면 무시
         if (isSettingSession.current) {
-          console.log(
-            'AuthContext: Session is being set, ignoring auth state change'
-          );
           return;
         }
 
         if (event === 'SIGNED_IN' && session) {
-          console.log('AuthContext: SIGNED_IN event - fetching profile...');
           const profile = await fetchProfile(session.user.id);
-          console.log('AuthContext: Profile fetch result:', {
-            hasProfile: !!profile,
-            fullName: profile?.full_name,
-          });
-
-          const newState = {
+          setAuthState({
             user: session.user,
             profile,
             session,
             loading: false,
             needsProfile: !profile?.full_name,
-          };
-          console.log('AuthContext: Updating auth state after SIGNED_IN:', {
-            hasUser: !!newState.user,
-            hasProfile: !!newState.profile,
-            needsProfile: newState.needsProfile,
           });
-          logAuthStateChange('SIGNED_IN Event', newState);
-          setAuthState(newState);
         } else if (event === 'SIGNED_OUT') {
-          console.log('AuthContext: SIGNED_OUT event');
-          const newState = {
+          setAuthState({
             user: null,
             profile: null,
             session: null,
             loading: false,
             needsProfile: false,
-          };
-          logAuthStateChange('SIGNED_OUT Event', newState);
-          setAuthState(newState);
-        } else if (event === 'TOKEN_REFRESHED' && session) {
-          console.log('AuthContext: TOKEN_REFRESHED event');
-          setAuthState((prev: AuthState) => {
-            const newState = { ...prev, session };
-            logAuthStateChange('TOKEN_REFRESHED Event', newState);
-            return newState;
           });
+        } else if (event === 'TOKEN_REFRESHED' && session) {
+          setAuthState((prev: AuthState) => ({ ...prev, session }));
         } else if (event === 'INITIAL_SESSION' && session) {
-          console.log(
-            'AuthContext: INITIAL_SESSION event - fetching profile...'
-          );
           const profile = await fetchProfile(session.user.id);
-          const newState = {
+          setAuthState({
             user: session.user,
             profile,
             session,
             loading: false,
             needsProfile: !profile?.full_name,
-          };
-          logAuthStateChange('INITIAL_SESSION Event', newState);
-          setAuthState(newState);
+          });
         }
       }
     );
@@ -204,16 +125,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // 로그아웃
   const signOut = useCallback(async () => {
     try {
-      console.log('Starting logout process...');
       await supabase.auth.signOut();
-      console.log('Logout successful');
     } catch (error) {
       // AuthSessionMissingError는 이미 로그아웃된 상태이므로 정상으로 처리
       if (
         error instanceof Error &&
         error.message.includes('Auth session missing')
       ) {
-        console.log('Session already missing, proceeding with cleanup');
+        // 세션이 없는 것은 정상
       } else {
         console.error('Unexpected logout error:', error);
         Alert.alert(
@@ -226,16 +145,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } finally {
       // 성공하거나 AuthSessionMissingError인 경우 상태 정리
-      console.log('Clearing auth state...');
-      const newState = {
+      setAuthState({
         user: null,
         profile: null,
         session: null,
         loading: false,
         needsProfile: false,
-      };
-      logAuthStateChange('Sign Out', newState);
-      setAuthState(newState);
+      });
     }
   }, []);
 
@@ -257,15 +173,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // 프로필 다시 가져오기
         const updatedProfile = await fetchProfile(authState.user.id);
-        setAuthState((prev: AuthState) => {
-          const newState = {
-            ...prev,
-            profile: updatedProfile,
-            needsProfile: false,
-          };
-          logAuthStateChange('Profile Updated', newState);
-          return newState;
-        });
+        setAuthState((prev: AuthState) => ({
+          ...prev,
+          profile: updatedProfile,
+          needsProfile: false,
+        }));
       } catch (error) {
         Alert.alert(
           '프로필 업데이트 오류',
@@ -288,11 +200,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
 
       if (session) {
-        setAuthState((prev: AuthState) => {
-          const newState = { ...prev, session };
-          logAuthStateChange('Session Refreshed', newState);
-          return newState;
-        });
+        setAuthState((prev: AuthState) => ({ ...prev, session }));
       }
     } catch (error) {
       console.error('Session refresh error:', error);

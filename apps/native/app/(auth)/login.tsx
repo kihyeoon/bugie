@@ -47,8 +47,6 @@ export default function LoginScreen() {
           console.error('Supabase auth error:', error);
           Alert.alert('로그인 오류', error.message);
         } else {
-          console.log('Google Sign-In successful:', data);
-          
           // 프로필 확인을 위해 잠시 대기
           setTimeout(async () => {
             // 프로필 정보 가져오기
@@ -57,14 +55,12 @@ export default function LoginScreen() {
               .select('*')
               .eq('id', data.user.id)
               .single();
-            
+
             // 프로필이 없거나 full_name이 없으면 프로필 설정으로
             if (!profile || !profile.full_name) {
-              console.log('Redirecting to profile setup...');
               router.replace('/(auth)/profile-setup');
             } else {
               // 프로필이 완성되어 있으면 홈으로
-              console.log('Redirecting to home...');
               router.replace('/(tabs)');
             }
           }, 100); // AuthContext가 상태를 업데이트할 시간을 줌
@@ -76,10 +72,8 @@ export default function LoginScreen() {
       const googleError = error as { code?: string; message?: string };
       if (googleError.code === statusCodes.SIGN_IN_CANCELLED) {
         // 사용자가 로그인을 취소함
-        console.log('User cancelled the login flow');
       } else if (googleError.code === statusCodes.IN_PROGRESS) {
         // 이미 로그인이 진행 중
-        console.log('Sign in is in progress already');
       } else if (googleError.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
         // Play 서비스를 사용할 수 없음
         Alert.alert('오류', 'Google Play 서비스를 사용할 수 없습니다.');
@@ -95,7 +89,6 @@ export default function LoginScreen() {
       setGoogleSignInLoading(false);
     }
   };
-
 
   return (
     <SafeAreaView style={styles.container}>

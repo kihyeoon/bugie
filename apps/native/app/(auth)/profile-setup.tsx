@@ -12,7 +12,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { router } from 'expo-router';
 
 export default function ProfileSetupScreen() {
-  const { user, updateProfile } = useAuth();
+  const { updateProfile } = useAuth();
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -27,7 +27,7 @@ export default function ProfileSetupScreen() {
       await updateProfile({
         full_name: fullName.trim(),
       });
-      
+
       // 프로필 설정 완료 후 홈으로 이동
       router.replace('/(tabs)');
     } catch (error) {
