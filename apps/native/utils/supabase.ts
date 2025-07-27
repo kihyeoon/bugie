@@ -25,11 +25,20 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     storage: ExpoSecureStoreAdapter,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
+    detectSessionInUrl: false, // React Native에서는 수동 처리 필요
   },
 });
 
 // OAuth 리다이렉트 URL 생성 헬퍼
 export const getOAuthRedirectUrl = () => {
-  return Linking.createURL('auth/callback');
+  // 개발 환경에서는 Expo 개발 서버 URL 사용
+  if (__DEV__) {
+    // Expo Go 앱에서 테스트하는 경우
+    const devUrl = Linking.createURL('auth/callback');
+    console.log('OAuth Redirect URL (dev):', devUrl);
+    return devUrl;
+  }
+
+  // 프로덕션 환경
+  return 'bugie://auth/callback';
 };

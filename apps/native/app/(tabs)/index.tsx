@@ -1,6 +1,8 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet, Alert } from 'react-native';
 import { Button } from '@repo/ui';
+import { useAuth } from '../../contexts/AuthContext';
+import { router } from 'expo-router';
 
 import { HelloWave } from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
@@ -8,6 +10,34 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
 export default function HomeScreen() {
+  const { signOut, user, loading, session, needsProfile } = useAuth();
+
+  // 디버그 로그 추가 - 올바른 auth state 로깅
+  console.log('(tabs)/index.tsx - Auth state:', {
+    user: user ? { id: user.id, email: user.email } : null,
+    loading,
+    session: !!session,
+    needsProfile,
+  });
+
+  const handleLogout = async () => {
+    Alert.alert('로그아웃', '정말 로그아웃 하시겠습니까?', [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '로그아웃',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await signOut();
+            // 로그아웃 후 강제로 로그인 화면으로 이동
+            router.replace('/(auth)/login');
+          } catch (error) {
+            console.error('Logout error:', error);
+          }
+        },
+      },
+    ]);
+  };
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
@@ -19,12 +49,14 @@ export default function HomeScreen() {
       }
     >
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
+        <ThemedText type="title">
+          안녕하세요, {user?.user_metadata?.full_name || user?.email}님!
+        </ThemedText>
         <HelloWave />
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">공유 UI 컴포넌트 테스트</ThemedText>
-        <Button text="테스트 버튼" />
+        <ThemedText type="subtitle">로그아웃 테스트</ThemedText>
+        <Button text="로그아웃" onClick={handleLogout} />
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Step 1: Try it</ThemedText>
