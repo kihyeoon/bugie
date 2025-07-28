@@ -7,11 +7,17 @@ import React, {
   useRef,
 } from 'react';
 import { Alert } from 'react-native';
-import type { AuthState, AuthProfile as Profile } from '@repo/types';
+import type {
+  AuthState,
+  AuthProfile as Profile,
+  OAuthProvider,
+} from '@repo/types';
 import { supabase } from '../utils/supabase';
+import { signInWithOAuth as authSignInWithOAuth } from '../services/auth';
 
 interface AuthContextValue extends AuthState {
   signOut: () => Promise<void>;
+  signInWithOAuth: (provider: OAuthProvider) => Promise<void>;
   updateProfile: (data: Partial<Profile>) => Promise<void>;
   refreshSession: () => Promise<void>;
 }
@@ -122,23 +128,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [fetchProfile]);
 
+  // OAuth 로그인
+  const signInWithOAuth = useCallback(async (provider: OAuthProvider) => {
+    try {
+      const result = await authSignInWithOAuth(provider);
+
+      if (!result.success && result.error) {
+        // 빈 에러 메시지는 사용자 취소를 의미하므로 Alert 표시하지 않음
+        if (result.error) {
+          Alert.alert('로그인 오류', result.error);
+        }
+      }
+    } catch (error) {
+      console.error('OAuth sign in error:', error);
+      Alert.alert(
+        '로그인 오류',
+        error instanceof Error
+          ? error.message
+          : '로그인 중 오류가 발생했습니다.'
+      );
+    }
+  }, []);
+
   // 로그아웃
   const signOut = useCallback(async () => {
     try {
       await supabase.auth.signOut();
-    } catch (error) {
+    } catch (err) {
       // AuthSessionMissingError는 이미 로그아웃된 상태이므로 정상으로 처리
       if (
-        error instanceof Error &&
-        error.message.includes('Auth session missing')
+        err instanceof Error &&
+        err.message.includes('Auth session missing')
       ) {
         // 세션이 없는 것은 정상
       } else {
-        console.error('Unexpected logout error:', error);
+        console.error('Unexpected logout error:', err);
         Alert.alert(
           '로그아웃 오류',
-          error instanceof Error
-            ? error.message
+          err instanceof Error
+            ? err.message
             : '로그아웃 중 오류가 발생했습니다.'
         );
         return; // 예상치 못한 에러는 상태 정리하지 않음
@@ -210,6 +238,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value: AuthContextValue = {
     ...authState,
     signOut,
+    signInWithOAuth,
     updateProfile,
     refreshSession,
   };

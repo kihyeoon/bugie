@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,86 +7,28 @@ import {
   KeyboardAvoidingView,
   Platform,
   Dimensions,
-  Alert,
 } from 'react-native';
-import {
-  GoogleSignin,
-  statusCodes,
-} from '@react-native-google-signin/google-signin';
-import { supabase } from '../../utils/supabase';
-import { router } from 'expo-router';
+import { useAuth } from '../../hooks/useAuth';
 import { SocialLoginButton } from '../../components/auth/SocialLoginButton';
+import type { OAuthProvider } from '@repo/types';
 
 const { height } = Dimensions.get('window');
 
 export default function LoginScreen() {
-  const [googleSignInLoading, setGoogleSignInLoading] = useState(false);
+  const { signInWithOAuth } = useAuth();
+  const [loadingProvider, setLoadingProvider] = useState<OAuthProvider | null>(
+    null
+  );
 
-  // Google Sign-In 설정
-  useEffect(() => {
-    GoogleSignin.configure({
-      webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID!, // Web Client ID (Supabase용)
-      iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID, // iOS Client ID
-    });
-  }, []);
-
-  // Google 로그인 핸들러
-  const handleGoogleSignIn = async () => {
+  const handleSocialLogin = async (provider: OAuthProvider) => {
     try {
-      setGoogleSignInLoading(true);
-      await GoogleSignin.hasPlayServices();
-      const userInfo = await GoogleSignin.signIn();
-
-      if (userInfo.data?.idToken) {
-        const { data, error } = await supabase.auth.signInWithIdToken({
-          provider: 'google',
-          token: userInfo.data.idToken,
-        });
-
-        if (error) {
-          console.error('Supabase auth error:', error);
-          Alert.alert('로그인 오류', error.message);
-        } else {
-          // 프로필 확인을 위해 잠시 대기
-          setTimeout(async () => {
-            // 프로필 정보 가져오기
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', data.user.id)
-              .single();
-
-            // 프로필이 없거나 full_name이 없으면 프로필 설정으로
-            if (!profile || !profile.full_name) {
-              router.replace('/(auth)/profile-setup');
-            } else {
-              // 프로필이 완성되어 있으면 홈으로
-              router.replace('/(tabs)');
-            }
-          }, 100); // AuthContext가 상태를 업데이트할 시간을 줌
-        }
-      } else {
-        throw new Error('Google ID token을 받을 수 없습니다.');
-      }
-    } catch (error: unknown) {
-      const googleError = error as { code?: string; message?: string };
-      if (googleError.code === statusCodes.SIGN_IN_CANCELLED) {
-        // 사용자가 로그인을 취소함
-      } else if (googleError.code === statusCodes.IN_PROGRESS) {
-        // 이미 로그인이 진행 중
-      } else if (googleError.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        // Play 서비스를 사용할 수 없음
-        Alert.alert('오류', 'Google Play 서비스를 사용할 수 없습니다.');
-      } else {
-        // 기타 오류
-        console.error('Google Sign-In error:', error);
-        Alert.alert(
-          '로그인 오류',
-          googleError.message || '구글 로그인 중 오류가 발생했습니다.'
-        );
-      }
+      setLoadingProvider(provider);
+      await signInWithOAuth(provider);
+      // 로그인 성공 시 AuthContext와 authService에서 자동으로 라우팅 처리
+    } catch (error) {
+      console.error('Login error:', error);
     } finally {
-      setGoogleSignInLoading(false);
+      setLoadingProvider(null);
     }
   };
 
@@ -100,7 +42,6 @@ export default function LoginScreen() {
           {/* 상단 영역 - 로고와 인사말 */}
           <View style={styles.headerSection}>
             <View style={styles.logoContainer}>
-              {/* 로고 이미지가 있다면 여기에 추가 */}
               <View style={styles.logoPlaceholder}>
                 <Text style={styles.logoText}>B</Text>
               </View>
@@ -113,9 +54,9 @@ export default function LoginScreen() {
           <View style={styles.buttonSection}>
             <SocialLoginButton
               provider="google"
-              onPress={handleGoogleSignIn}
-              loading={googleSignInLoading}
-              disabled={googleSignInLoading}
+              onPress={() => handleSocialLogin('google')}
+              loading={loadingProvider === 'google'}
+              disabled={loadingProvider !== null}
             />
           </View>
 
@@ -182,9 +123,6 @@ const styles = StyleSheet.create({
     flex: 0.4,
     justifyContent: 'center',
     paddingVertical: 48,
-  },
-  buttonSpacing: {
-    height: 12,
   },
   footerSection: {
     flex: 0.2,
