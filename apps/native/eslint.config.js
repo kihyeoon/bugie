@@ -1,10 +1,6 @@
-const rootConfig = require('../../eslint.config.js');
 const expoConfig = require('eslint-config-expo/flat');
 
 module.exports = [
-  // 루트 설정 상속
-  ...rootConfig,
-
   // Expo 설정 추가
   ...expoConfig,
 
@@ -18,6 +14,9 @@ module.exports = [
       // React Native 특화 규칙
       'react-native/no-inline-styles': 'off', // 인라인 스타일 허용
       'react-native/no-unused-styles': 'off',
+      
+      // TypeScript 규칙
+      '@typescript-eslint/no-explicit-any': 'warn',
     },
   },
 

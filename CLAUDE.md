@@ -49,7 +49,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 추가 지침
 
-- @docs/workflow.md - 개발 워크플로우 및 작업 방식
+- @docs/spec-workflow.md - 스펙 기반 개발 워크플로우('스펙 기반으로 개발' 요청 시 사용)
 - @docs/prd.md - 제품 요구사항 문서
 - @docs/mvp-plan.md - MVP 개발 계획 및 일정
 - @docs/screen-design.md - 화면별 상세 설계 문서

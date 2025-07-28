@@ -734,14 +734,48 @@ $$ language plpgsql;
 #### 2. 사용자 관리 트리거
 
 ```sql
+-- 개선된 handle_new_user 함수 (OAuth 제공자별 데이터 형식 대응)
 create or replace function handle_new_user()
 returns trigger as $$
 begin
-  perform setup_new_user(
-    new.id,
-    new.email,
-    coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1))
-  );
+  -- 오류 처리를 통해 사용자 생성이 실패하지 않도록 보장
+  begin
+    -- 프로필 직접 생성 (다양한 OAuth 제공자 대응)
+    insert into public.profiles (id, email, full_name, avatar_url)
+    values (
+      new.id,
+      new.email,
+      coalesce(
+        new.raw_user_meta_data->>'full_name',  -- Google, Kakao
+        new.raw_user_meta_data->>'name',       -- Apple, GitHub
+        split_part(new.email, '@', 1)          -- 이메일에서 추출
+      ),
+      new.raw_user_meta_data->>'avatar_url'
+    );
+    
+    -- setup_new_user 함수가 존재하는 경우 실행
+    if exists (
+      select 1 from pg_proc p 
+      join pg_namespace n on p.pronamespace = n.oid 
+      where n.nspname = 'public' and p.proname = 'setup_new_user'
+    ) then
+      perform setup_new_user(
+        new.id,
+        new.email,
+        coalesce(
+          new.raw_user_meta_data->>'full_name',
+          new.raw_user_meta_data->>'name',
+          split_part(new.email, '@', 1)
+        )
+      );
+    end if;
+  exception
+    when others then
+      -- 오류가 발생해도 사용자 생성은 계속 진행
+      -- 오류는 로그에만 기록
+      raise warning 'Error in handle_new_user for user %: %', new.id, sqlerrm;
+  end;
+  
   return new;
 end;
 $$ language plpgsql security definer;
@@ -750,7 +784,7 @@ $$ language plpgsql security definer;
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
-  for each row execute procedure handle_new_user();
+  for each row execute function handle_new_user();
 ```
 
 #### 비즈니스 로직 함수
@@ -1242,4 +1276,42 @@ limit 10;
 
 ---
 
-마지막 업데이트: 2025-07-19
+## 🚨 트러블슈팅
+
+### OAuth 인증 오류 해결
+
+#### 문제: "Database error saving new user"
+
+**원인**: OAuth 로그인 시 사용자 프로필 생성 중 오류 발생
+
+**해결 방법**:
+1. `handle_new_user()` 함수가 다양한 OAuth 제공자 대응하도록 개선
+2. 오류 발생 시에도 사용자 생성은 계속 진행되도록 예외 처리 추가
+
+```sql
+-- 기존 사용자 프로필 복구
+INSERT INTO public.profiles (id, email, full_name)
+SELECT 
+    u.id,
+    u.email,
+    COALESCE(
+        u.raw_user_meta_data->>'full_name',
+        u.raw_user_meta_data->>'name',
+        split_part(u.email, '@', 1)
+    )
+FROM auth.users u
+WHERE NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = u.id);
+```
+
+#### OAuth 제공자별 데이터 형식
+
+| 제공자 | 이름 필드 | 프로필 사진 필드 |
+|--------|-----------|------------------|
+| Google | `raw_user_meta_data->>'full_name'` | `raw_user_meta_data->>'avatar_url'` |
+| Apple | `raw_user_meta_data->>'name'` | 제공하지 않음 |
+| Kakao | `raw_user_meta_data->>'full_name'` | `raw_user_meta_data->>'avatar_url'` |
+| GitHub | `raw_user_meta_data->>'name'` | `raw_user_meta_data->>'avatar_url'` |
+
+---
+
+마지막 업데이트: 2025-07-21
