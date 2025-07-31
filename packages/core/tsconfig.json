@@ -1,0 +1,10 @@
+{
+  "extends": "@repo/typescript-config/react-native-library.json",
+  "compilerOptions": {
+    "lib": ["es2017", "dom"],
+    "module": "esnext",
+    "jsx": "react-native"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}
