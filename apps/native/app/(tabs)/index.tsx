@@ -1,10 +1,11 @@
-import { StyleSheet, View, TouchableOpacity, Text } from 'react-native';
+import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { Typography, Card, Button, AmountDisplay } from '@/components/ui';
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -26,17 +27,14 @@ export default function HomeScreen() {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
   };
 
-  const formatCurrency = (amount: number) => {
-    return amount.toLocaleString('ko-KR');
-  };
 
   return (
     <ThemedView style={styles.container}>
       {/* 헤더 */}
       <View style={[styles.header, { backgroundColor: colors.background }]}>
-        <Text style={[styles.greeting, { color: colors.textSecondary }]}>
+        <Typography variant="h3" color="secondary">
           안녕하세요, {userName}님
-        </Text>
+        </Typography>
       </View>
 
       {/* 월 선택 */}
@@ -44,53 +42,63 @@ export default function HomeScreen() {
         <TouchableOpacity onPress={goToPreviousMonth} style={styles.monthButton}>
           <IconSymbol name="chevron.left" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.monthText, { color: colors.text }]}>{formatMonth(currentMonth)}</Text>
+        <Typography variant="h4">{formatMonth(currentMonth)}</Typography>
         <TouchableOpacity onPress={goToNextMonth} style={styles.monthButton}>
           <IconSymbol name="chevron.right" size={24} color={colors.text} />
         </TouchableOpacity>
       </View>
 
       {/* 캘린더 (임시) */}
-      <View style={[styles.calendar, { backgroundColor: colors.backgroundSecondary }]}>
-        <Text style={[styles.placeholderText, { color: colors.textSecondary }]}>
+      <Card variant="filled" style={[styles.calendar, { backgroundColor: colors.backgroundSecondary }]}>
+        <Typography variant="body2" color="secondary" align="center">
           캘린더 컴포넌트 (구현 예정)
-        </Text>
-      </View>
+        </Typography>
+      </Card>
 
       {/* 월간 요약 */}
-      <View style={[styles.summaryCard, { backgroundColor: colors.background }]}>
-        <Text style={[styles.summaryTitle, { color: colors.text }]}>이번 달 요약</Text>
+      <Card variant="elevated" style={styles.summaryCard}>
+        <Typography variant="body1" weight="600" style={{ marginBottom: 20 }}>
+          이번 달 요약
+        </Typography>
         
         <View style={styles.summaryRow}>
-          <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>수입</Text>
-          <Text style={[styles.summaryAmount, { color: colors.income }]}>
-            +{formatCurrency(0)}원
-          </Text>
+          <Typography variant="body1" color="secondary">수입</Typography>
+          <AmountDisplay
+            amount={0}
+            type="income"
+            size="medium"
+          />
         </View>
         
         <View style={styles.summaryRow}>
-          <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>지출</Text>
-          <Text style={[styles.summaryAmount, { color: colors.expense }]}>
-            -{formatCurrency(0)}원
-          </Text>
+          <Typography variant="body1" color="secondary">지출</Typography>
+          <AmountDisplay
+            amount={0}
+            type="expense"
+            size="medium"
+          />
         </View>
         
         <View style={[styles.summaryRow, styles.summaryTotal, { borderTopColor: colors.border }]}>
-          <Text style={[styles.summaryLabel, { color: colors.text }]}>잔액</Text>
-          <Text style={[styles.summaryTotalAmount, { color: colors.text }]}>
-            {formatCurrency(0)}원
-          </Text>
+          <Typography variant="body1">잔액</Typography>
+          <AmountDisplay
+            amount={0}
+            type="neutral"
+            size="large"
+          />
         </View>
-      </View>
+      </Card>
 
       {/* 빠른 입력 버튼 */}
-      <TouchableOpacity
-        style={[styles.quickAddButton, { backgroundColor: colors.tint }]}
-        activeOpacity={0.8}
+      <Button
+        variant="primary"
+        size="large"
+        icon="plus"
+        fullWidth
+        style={styles.quickAddButton}
       >
-        <IconSymbol name="plus" size={20} color="white" />
-        <Text style={styles.quickAddText}>빠른 입력</Text>
-      </TouchableOpacity>
+        빠른 입력
+      </Button>
     </ThemedView>
   );
 }
@@ -139,16 +147,6 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     marginHorizontal: 24,
-    padding: 24,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
   },
   summaryTitle: {
     fontSize: 16,
@@ -183,19 +181,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   quickAddButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
     marginHorizontal: 24,
     marginVertical: 20,
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
-  },
-  quickAddText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: -0.3,
   },
 });

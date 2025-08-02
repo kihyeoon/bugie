@@ -7,12 +7,10 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 
 export function CustomTabBarButton(props: BottomTabBarButtonProps) {
   const colorScheme = useColorScheme();
-  const { children, onPress, accessibilityState } = props;
-  const isSelected = accessibilityState?.selected;
+  const { onPress } = props;
 
   return (
     <TouchableOpacity
-      {...props}
       style={styles.container}
       onPress={(e) => {
         if (process.env.EXPO_OS === 'ios') {

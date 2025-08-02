@@ -2,6 +2,7 @@ import { StyleSheet, TextInput, TouchableOpacity, View, Text, Keyboard } from 'r
 import { useState } from 'react';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { Typography, ToggleSwitch, Button, AmountDisplay } from '@/components/ui';
 
 export default function AddTransactionScreen() {
   const colorScheme = useColorScheme();
@@ -26,10 +27,6 @@ export default function AddTransactionScreen() {
     }
   };
 
-  const formatAmount = (value: string) => {
-    const number = parseInt(value.replace(/,/g, ''));
-    return number.toLocaleString('ko-KR');
-  };
 
   const categories = isExpense 
     ? ['식비', '교통', '쇼핑', '문화']
@@ -39,51 +36,28 @@ export default function AddTransactionScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* 헤더 */}
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>빠른 입력</Text>
+        <Typography variant="h2" style={{ marginBottom: 20 }}>빠른 입력</Typography>
         
         {/* 수입/지출 토글 */}
-        <View style={[styles.toggleContainer, { backgroundColor: colors.backgroundSecondary }]}>
-          <TouchableOpacity
-            style={[
-              styles.toggleButton,
-              !isExpense && { backgroundColor: colors.background }
-            ]}
-            onPress={() => setIsExpense(false)}
-            activeOpacity={0.7}
-          >
-            <Text style={[
-              styles.toggleText,
-              { color: !isExpense ? colors.income : colors.textSecondary }
-            ]}>
-              수입
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.toggleButton,
-              isExpense && { backgroundColor: colors.background }
-            ]}
-            onPress={() => setIsExpense(true)}
-            activeOpacity={0.7}
-          >
-            <Text style={[
-              styles.toggleText,
-              { color: isExpense ? colors.expense : colors.textSecondary }
-            ]}>
-              지출
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <ToggleSwitch
+          options={[
+            { label: '수입', value: 'income', color: colors.income },
+            { label: '지출', value: 'expense', color: colors.expense },
+          ]}
+          value={isExpense ? 'expense' : 'income'}
+          onChange={(value) => setIsExpense(value === 'expense')}
+          fullWidth
+        />
       </View>
 
       {/* 금액 표시 */}
       <View style={styles.amountContainer}>
-        <Text style={[
-          styles.amount,
-          { color: isExpense ? colors.expense : colors.income }
-        ]}>
-          {formatAmount(amount)}원
-        </Text>
+        <AmountDisplay
+          amount={parseInt(amount)}
+          type={isExpense ? 'expense' : 'income'}
+          size="xlarge"
+          showSign={false}
+        />
       </View>
 
       {/* 카테고리 선택 */}
@@ -168,20 +142,15 @@ export default function AddTransactionScreen() {
       </View>
 
       {/* 저장 버튼 */}
-      <TouchableOpacity
-        style={[
-          styles.saveButton,
-          { 
-            backgroundColor: amount === '0' || !selectedCategory 
-              ? colors.textDisabled 
-              : colors.tint 
-          }
-        ]}
+      <Button
+        variant="primary"
+        size="large"
+        fullWidth
         disabled={amount === '0' || !selectedCategory}
-        activeOpacity={0.8}
+        style={styles.saveButton}
       >
-        <Text style={styles.saveButtonText}>저장하기</Text>
-      </TouchableOpacity>
+        저장하기
+      </Button>
     </View>
   );
 }

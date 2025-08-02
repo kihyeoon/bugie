@@ -1,12 +1,15 @@
-import { StyleSheet, TouchableOpacity, View, Text, ScrollView } from 'react-native';
-import { router } from 'expo-router';
+import { StyleSheet, View, ScrollView } from 'react-native';
+import { ComponentProps } from 'react';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { Typography, ListItem, Card } from '@/components/ui';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+
+type IconSymbolName = ComponentProps<typeof IconSymbol>['name'];
 
 interface MenuItem {
   title: string;
-  icon: string;
+  icon: IconSymbolName;
   onPress: () => void;
 }
 
@@ -55,31 +58,24 @@ export default function MoreScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={[styles.header, { backgroundColor: colors.backgroundSecondary }]}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>더보기</Text>
+        <Typography variant="h2">더보기</Typography>
       </View>
 
-      <View style={[styles.menuSection, { backgroundColor: colors.background }]}>
+      <Card variant="filled" padding="none" style={styles.menuSection}>
         {menuItems.map((item, index) => (
-          <TouchableOpacity
+          <ListItem
             key={index}
-            style={styles.menuItem}
+            title={item.title}
+            leftIcon={item.icon}
             onPress={item.onPress}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.menuItemText, { color: colors.text }]}>{item.title}</Text>
-            <IconSymbol
-              name="chevron.right"
-              size={18}
-              color={colors.textSecondary}
-            />
-          </TouchableOpacity>
+          />
         ))}
-      </View>
+      </Card>
 
       <View style={styles.footer}>
-        <Text style={[styles.versionText, { color: colors.textSecondary }]}>
+        <Typography variant="caption" color="secondary">
           버전 1.0.0
-        </Text>
+        </Typography>
       </View>
     </ScrollView>
   );
@@ -101,27 +97,9 @@ const styles = StyleSheet.create({
   },
   menuSection: {
     marginHorizontal: 16,
-    borderRadius: 16,
-    paddingVertical: 8,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-  },
-  menuItemText: {
-    fontSize: 16,
-    fontWeight: '500',
-    letterSpacing: -0.3,
   },
   footer: {
     paddingVertical: 40,
     alignItems: 'center',
-  },
-  versionText: {
-    fontSize: 13,
-    letterSpacing: -0.2,
   },
 });
