@@ -1,4 +1,8 @@
-import type { CategoryType } from '@repo/types';
+import type { CategoryType } from '../../domain/ledger/types';
+
+/**
+ * 애플리케이션 레이어 입력 타입
+ */
 
 export interface CreateTransactionInput {
   ledgerId: string;
@@ -19,7 +23,7 @@ export interface UpdateTransactionInput {
   transactionDate?: string;
 }
 
-export interface TransactionFilter {
+export interface TransactionFilterInput {
   ledgerId: string;
   startDate?: string;
   endDate?: string;
@@ -27,14 +31,4 @@ export interface TransactionFilter {
   categoryId?: string;
   limit?: number;
   offset?: number;
-}
-
-export interface MonthlySummary {
-  year: number;
-  month: number;
-  totalIncome: number;
-  totalExpense: number;
-  netAmount: number;
-  transactionCount: number;
-  dailySummary: Record<string, { income: number; expense: number }>;
 }

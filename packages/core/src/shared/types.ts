@@ -1,38 +1,77 @@
-import type {
-  Ledger,
-  LedgerMember,
-  Profile,
-  Category,
-  Transaction,
-} from '@repo/types';
+import type { MemberRole, CategoryType } from '../domain/ledger/types';
 
 // 가계부 관련 응답 타입
-export interface LedgerWithMembers extends Ledger {
+export interface LedgerWithMembers {
+  id: string;
+  name: string;
+  description: string | null;
+  currency: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
   ledger_members: Array<{
-    role: LedgerMember['role'];
+    role: MemberRole;
     user_id: string;
   }>;
 }
 
-export interface LedgerDetail extends Ledger {
-  ledger_members: Array<
-    LedgerMember & {
-      profiles: Pick<Profile, 'id' | 'email' | 'full_name' | 'avatar_url'>;
-    }
-  >;
+export interface LedgerDetail {
+  id: string;
+  name: string;
+  description: string | null;
+  currency: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  ledger_members: Array<{
+    id: string;
+    ledger_id: string;
+    user_id: string;
+    role: MemberRole;
+    joined_at: string;
+    deleted_at: string | null;
+    profiles: {
+      id: string;
+      email: string;
+      full_name: string | null;
+      avatar_url: string | null;
+    };
+  }>;
 }
 
 // 카테고리 관련 응답 타입
-export interface CategoryDetail
-  extends Omit<Category, 'name' | 'color' | 'icon'> {
+export interface CategoryDetail {
+  id: string;
+  ledger_id: string;
+  template_id: string | null;
   name: string;
+  type: CategoryType;
   color: string;
   icon: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
   source_type: 'template' | 'custom';
 }
 
 // 거래 관련 응답 타입
-export interface TransactionWithDetails extends Transaction {
+export interface TransactionWithDetails {
+  id: string;
+  ledger_id: string;
+  category_id: string;
+  created_by: string;
+  amount: string | number;
+  type: CategoryType;
+  title: string;
+  description: string | null;
+  transaction_date: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
   category_name: string;
   category_color: string;
   category_icon: string;
