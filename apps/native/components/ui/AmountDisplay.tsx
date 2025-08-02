@@ -1,0 +1,100 @@
+import { Text, TextProps, StyleSheet } from 'react-native';
+import { Colors } from '@/constants/Colors';
+import { useColorScheme } from '@/hooks/useColorScheme';
+
+interface AmountDisplayProps extends Omit<TextProps, 'children'> {
+  amount: number;
+  type?: 'income' | 'expense' | 'neutral';
+  size?: 'small' | 'medium' | 'large' | 'xlarge';
+  showSign?: boolean;
+  currency?: string;
+  currencyPosition?: 'before' | 'after';
+}
+
+export function AmountDisplay({
+  amount,
+  type = 'neutral',
+  size = 'medium',
+  showSign = true,
+  currency = '원',
+  currencyPosition = 'after',
+  style,
+  ...props
+}: AmountDisplayProps) {
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? 'light'];
+
+  const formatAmount = (value: number) => {
+    return Math.abs(value).toLocaleString('ko-KR');
+  };
+
+  const getSign = () => {
+    if (!showSign) return '';
+    if (type === 'income' || amount > 0) return '+';
+    if (type === 'expense' || amount < 0) return '-';
+    return '';
+  };
+
+  const getColor = () => {
+    if (type === 'income') return colors.income;
+    if (type === 'expense') return colors.expense;
+    if (amount > 0) return colors.income;
+    if (amount < 0) return colors.expense;
+    return colors.text;
+  };
+
+  const getSizeStyle = () => {
+    const sizeStyles = {
+      small: styles.small,
+      medium: styles.medium,
+      large: styles.large,
+      xlarge: styles.xlarge,
+    };
+    return sizeStyles[size];
+  };
+
+  const sign = getSign();
+  const formattedAmount = formatAmount(amount);
+  const displayText = currencyPosition === 'before' 
+    ? `${sign}${currency}${formattedAmount}`
+    : `${sign}${formattedAmount}${currency}`;
+
+  return (
+    <Text
+      {...props}
+      style={[
+        styles.base,
+        getSizeStyle(),
+        { color: getColor() },
+        style,
+      ]}
+    >
+      {displayText}
+    </Text>
+  );
+}
+
+const styles = StyleSheet.create({
+  base: {
+    fontWeight: '600',
+    letterSpacing: -0.3,
+  },
+  small: {
+    fontSize: 14,
+    letterSpacing: -0.2,
+  },
+  medium: {
+    fontSize: 17,
+    letterSpacing: -0.3,
+  },
+  large: {
+    fontSize: 24,
+    letterSpacing: -0.5,
+    fontWeight: '700',
+  },
+  xlarge: {
+    fontSize: 48,
+    letterSpacing: -1,
+    fontWeight: '700',
+  },
+});
