@@ -54,6 +54,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - @docs/mvp-plan.md - MVP 개발 계획 및 일정
 - @docs/screen-design.md - 화면별 상세 설계 문서
 - @docs/database.md - 데이터베이스 스키마 설계
+- @docs/design-principles.md - 디자인 원칙
 
 ## 주요 명령어
 
@@ -99,28 +100,6 @@ pnpm install                       # 모든 workspace 의존성 설치
 ```
 
 ## 아키텍처 구조
-
-### 모노레포 의존성 흐름
-
-```
-apps/web     →  @repo/ui  →  packages/ui
-apps/native  →  @repo/ui  →  packages/ui
-             →  @repo/typescript-config  →  packages/typescript-config
-```
-
-### 공유 컴포넌트 사용법
-
-```tsx
-// 양쪽 앱에서 동일하게 사용
-import { Button } from '@repo/ui';
-
-// React Native 스타일 컴포넌트 + Tailwind
-<Button
-  onPress={() => {}}
-  title="클릭"
-  className="rounded-lg bg-blue-500 px-4 py-2"
-/>;
-```
 
 ### TypeScript 설정 계층
 
