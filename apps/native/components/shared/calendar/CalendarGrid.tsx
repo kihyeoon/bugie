@@ -1,6 +1,9 @@
 import React from 'react';
 import { StyleSheet, ViewStyle } from 'react-native';
-import Animated, { useAnimatedStyle, AnimatedStyleProp } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle,
+  AnimatedStyleProp,
+} from 'react-native-reanimated';
 import { CalendarDay } from './CalendarDay';
 import { useCalendar } from './CalendarContext';
 import { useCalendarDates } from './hooks/useCalendarDates';
@@ -13,29 +16,29 @@ interface CalendarGridProps {
 export function CalendarGrid({ animatedStyle }: CalendarGridProps) {
   const { selectedDate, selectDate, transactions, viewType } = useCalendar();
   const { weekDates, selectedWeekIndex } = useCalendarDates();
-  
+
   const weekAnimatedStyle = useAnimatedStyle(() => {
     if (viewType === 'month') {
       return {
         opacity: 1,
-        height: 'auto',
       };
     }
-    
+
     // 주간 뷰에서는 선택된 주만 보이도록
     return {
       opacity: 1,
       height: 50, // 주간 뷰 높이
     };
   });
-  
+
   return (
     <Animated.View style={[styles.container, animatedStyle]}>
       {weekDates.map((week, weekIndex) => {
-        const shouldShow = viewType === 'month' || weekIndex === selectedWeekIndex;
-        
+        const shouldShow =
+          viewType === 'month' || weekIndex === selectedWeekIndex;
+
         if (!shouldShow) return null;
-        
+
         return (
           <Animated.View
             key={weekIndex}
@@ -44,8 +47,10 @@ export function CalendarGrid({ animatedStyle }: CalendarGridProps) {
             {week.map((day) => {
               const dateKey = formatDateKey(day.date);
               const transaction = transactions?.[dateKey];
-              const isSelected = selectedDate ? isSameDay(day.date, selectedDate) : false;
-              
+              const isSelected = selectedDate
+                ? isSameDay(day.date, selectedDate)
+                : false;
+
               return (
                 <CalendarDay
                   key={dateKey}
@@ -67,10 +72,10 @@ export function CalendarGrid({ animatedStyle }: CalendarGridProps) {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
   },
   week: {
     flexDirection: 'row',
-    marginBottom: 4,
+    marginBottom: 2,
   },
 });

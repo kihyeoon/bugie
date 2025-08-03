@@ -21,8 +21,8 @@ export const CalendarWeekDays = memo(({ locale = 'ko-KR' }: CalendarWeekDaysProp
             style={[
               styles.weekdayText,
               { color: colors.textSecondary },
-              index === 0 && styles.sunday,
-              index === 6 && styles.saturday,
+              index === 0 && { color: colors.expense },
+              index === 6 && { color: colors.income },
             ]}
           >
             {day}
@@ -48,11 +48,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     letterSpacing: -0.2,
-  },
-  sunday: {
-    color: '#FF5A5F',
-  },
-  saturday: {
-    color: '#4E7EFF',
   },
 });

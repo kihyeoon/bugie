@@ -23,6 +23,28 @@ export function formatTransactionAmount(amount: number, type: 'income' | 'expens
   return type === 'income' ? `+${formatted}` : `-${formatted}`;
 }
 
+export function formatFullAmount(amount: number): string {
+  if (amount === 0) return '';
+  
+  const absAmount = Math.abs(amount);
+  
+  // 천만원 이상은 축약 표현
+  if (absAmount >= 10000000) {
+    const millions = absAmount / 1000000;
+    return `${millions.toFixed(millions >= 100 ? 0 : 1)}M`;
+  }
+  
+  // 천만원 미만은 전체 표시
+  return absAmount.toLocaleString('ko-KR');
+}
+
+export function formatFullTransactionAmount(amount: number, type: 'income' | 'expense'): string {
+  const formatted = formatFullAmount(amount);
+  if (!formatted) return '';
+  
+  return type === 'income' ? `+${formatted}` : `-${formatted}`;
+}
+
 export function formatCurrency(amount: number, currency: string = 'KRW'): string {
   return new Intl.NumberFormat('ko-KR', {
     style: 'currency',
