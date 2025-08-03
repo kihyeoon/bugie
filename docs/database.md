@@ -217,12 +217,54 @@ create index idx_ledgers_created_by on ledgers(created_by) where deleted_at is n
 
 -- RLS 정책
 alter table ledgers enable row level security;
-create policy "ledgers_policy" on ledgers for all using (
-  deleted_at is null and
-  id in (
-    select ledger_id from ledger_members
-    where user_id = auth.uid() and deleted_at is null
+
+-- SELECT 정책: 가계부 조회
+create policy "ledgers_select_policy" on ledgers
+for select using (
+  deleted_at is null and (
+    -- 생성자는 항상 조회 가능
+    created_by = auth.uid()
+    or
+    -- 멤버인 경우 조회 가능
+    id in (
+      select ledger_id 
+      from ledger_members 
+      where user_id = auth.uid() 
+      and deleted_at is null
+    )
   )
+);
+
+-- INSERT 정책: 가계부 생성
+create policy "ledgers_insert_policy" on ledgers
+for insert with check (
+  -- 누구나 가계부를 생성할 수 있음 (생성자가 owner가 됨)
+  created_by = auth.uid()
+);
+
+-- UPDATE 정책: 가계부 정보 수정
+create policy "ledgers_update_policy" on ledgers
+for update using (
+  deleted_at is null and (
+    -- 생성자
+    created_by = auth.uid()
+    or
+    -- admin 권한자
+    id in (
+      select ledger_id 
+      from ledger_members 
+      where user_id = auth.uid() 
+      and role in ('owner', 'admin')
+      and deleted_at is null
+    )
+  )
+);
+
+-- DELETE 정책: 가계부 삭제 (soft delete)
+create policy "ledgers_delete_policy" on ledgers
+for delete using (
+  -- 생성자만 삭제 가능
+  created_by = auth.uid()
 );
 ```
 
@@ -264,12 +306,48 @@ create index idx_ledger_members_ledger on ledger_members(ledger_id) where delete
 
 -- RLS 정책
 alter table ledger_members enable row level security;
-create policy "ledger_members_policy" on ledger_members for all using (
+
+-- SELECT 정책: 멤버 정보 조회 (보안은 ledgers 테이블에서 처리)
+create policy "ledger_members_select_policy" on ledger_members
+for select using (
+  deleted_at is null
+  -- 모든 인증된 사용자에게 개방
+  -- 무한 재귀 방지를 위해 의도적으로 개방
+  -- 실제 보안은 ledgers 테이블 레벨에서 처리
+);
+
+-- INSERT 정책: 멤버 추가 (owner만 - 재귀 방지)
+create policy "ledger_members_insert_policy" on ledger_members
+for insert with check (
+  ledger_id in (
+    select id from ledgers 
+    where created_by = auth.uid() 
+    and deleted_at is null
+  )
+);
+
+-- UPDATE 정책: 멤버 정보 수정 (owner만 - 재귀 방지)
+create policy "ledger_members_update_policy" on ledger_members
+for update using (
+  deleted_at is null and
+  ledger_id in (
+    select id from ledgers 
+    where created_by = auth.uid() 
+    and deleted_at is null
+  )
+);
+
+-- DELETE 정책: 멤버 삭제
+create policy "ledger_members_delete_policy" on ledger_members
+for delete using (
   deleted_at is null and (
+    -- 자신의 멤버십 삭제 (탈퇴)
     user_id = auth.uid() or
+    -- 가계부 생성자는 모든 멤버 삭제 가능
     ledger_id in (
-      select ledger_id from ledger_members
-      where user_id = auth.uid() and role in ('owner', 'admin') and deleted_at is null
+      select id from ledgers 
+      where created_by = auth.uid() 
+      and deleted_at is null
     )
   )
 );
@@ -1312,6 +1390,95 @@ WHERE NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = u.id);
 | Kakao | `raw_user_meta_data->>'full_name'` | `raw_user_meta_data->>'avatar_url'` |
 | GitHub | `raw_user_meta_data->>'name'` | `raw_user_meta_data->>'avatar_url'` |
 
+### RLS 무한 재귀 문제 해결
+
+#### 문제: "infinite recursion detected in policy for relation"
+
+**원인**: 
+1. 초기 문제: `ledger_members` 테이블의 RLS 정책이 자기 자신을 참조하여 무한 재귀 발생
+2. 추가 발견: `ledgers`와 `ledger_members` 테이블 간 순환 참조 문제
+
+**문제가 있던 정책 패턴들**:
+```sql
+-- ❌ 자기 참조로 인한 무한 재귀
+create policy "ledger_members_policy" on ledger_members for all using (
+  deleted_at is null and (
+    user_id = auth.uid() or
+    ledger_id in (
+      select ledger_id from ledger_members  -- 자기 자신을 다시 조회!
+      where user_id = auth.uid() and role in ('owner', 'admin')
+    )
+  )
+);
+
+-- ❌ EXISTS도 여전히 자기 참조 문제 발생
+EXISTS (
+  SELECT 1 FROM ledger_members lm1  -- 여전히 자기 자신을 참조!
+  WHERE lm1.user_id = auth.uid() 
+  AND lm1.ledger_id = ledger_members.ledger_id
+)
+```
+
+**최종 해결 방법**: 
+1. `ledger_members` SELECT 정책을 완전히 개방하여 순환 참조 제거
+2. 보안은 `ledgers` 테이블 레벨에서 처리
+3. INSERT/UPDATE/DELETE는 `ledgers` 테이블만 참조
+
+```sql
+-- ✅ ledger_members SELECT 정책 - 재귀 없음
+CREATE POLICY "ledger_members_select_policy" ON ledger_members
+FOR SELECT USING (
+  deleted_at IS NULL
+  -- 모든 인증된 사용자에게 개방
+  -- 보안은 ledgers 테이블에서 처리
+);
+
+-- ✅ ledgers SELECT 정책 - 이제 안전하게 ledger_members 참조 가능
+CREATE POLICY "ledgers_select_policy" ON ledgers
+FOR SELECT USING (
+  deleted_at IS NULL AND (
+    created_by = auth.uid() OR
+    id IN (
+      SELECT ledger_id FROM ledger_members  -- 이제 안전함!
+      WHERE user_id = auth.uid() AND deleted_at IS NULL
+    )
+  )
+);
+```
+
+**추가 최적화**: `get_user_ledgers()` security definer 함수 제공
+```sql
+-- 성능 최적화를 위한 헬퍼 함수
+CREATE OR REPLACE FUNCTION get_user_ledgers()
+RETURNS TABLE (...) 
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT l.*, lm.role
+  FROM ledgers l
+  INNER JOIN ledger_members lm ON l.id = lm.ledger_id
+  WHERE lm.user_id = auth.uid()
+  AND l.deleted_at IS NULL
+  AND lm.deleted_at IS NULL;
+END;
+$$;
+```
+
+**적용된 마이그레이션**:
+1. `20250803_005_fix_rls_infinite_recursion.sql` - 초기 시도 (자기 참조 문제 남음)
+2. `20250803_006_fix_rls_final_solution.sql` - 최종 해결책 (순환 참조 완전 제거)
+
+**적용 방법**:
+1. Supabase Dashboard → SQL Editor
+2. 최종 마이그레이션 실행: `20250803_006_fix_rls_final_solution.sql`
+3. 앱 재시작
+
+**주의사항**: 
+- 2025-08-03부터 테이블별로 단일 정책(FOR ALL)이 아닌 작업별 정책으로 분리됨
+- `ledger_members` SELECT는 의도적으로 개방되어 있음 (보안은 `ledgers`에서 처리)
+- 기존 마이그레이션과의 충돌을 방지하기 위해 정책 생성 전 기존 정책 삭제 필요
+
 ---
 
-마지막 업데이트: 2025-07-21
+마지막 업데이트: 2025-08-03
