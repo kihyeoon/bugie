@@ -20,7 +20,7 @@ interface MonthlyDataResult {
 /**
  * API 응답의 일별 데이터를 캘린더 컴포넌트 형식으로 변환
  * @param dailySummary - API에서 받은 날짜별 수입/지출 데이터 (YYYY-MM-DD 형식)
- * @returns 캘린더 컴포넌트용 데이터 (일(day)을 키로 사용)
+ * @returns 캘린더 컴포넌트용 데이터 (YYYY-MM-DD 형식을 키로 사용)
  */
 function transformToCalendarData(
   dailySummary: Record<string, unknown>
@@ -28,15 +28,13 @@ function transformToCalendarData(
   const calendarTransactions: CalendarTransaction = {};
 
   Object.entries(dailySummary).forEach(([dateStr, amounts]) => {
-    // YYYY-MM-DD 형식에서 일(day) 숫자만 추출
-    const day = parseInt(dateStr.split('-')[2], 10);
-
     // 타입 안전성을 위한 타입 단언
     const dayAmounts = amounts as { income: number; expense: number };
 
     // 수입이나 지출이 있는 날만 포함
     if (dayAmounts.income > 0 || dayAmounts.expense > 0) {
-      calendarTransactions[day] = {
+      // 전체 날짜 문자열을 그대로 키로 사용
+      calendarTransactions[dateStr] = {
         income: dayAmounts.income,
         expense: dayAmounts.expense,
       };
