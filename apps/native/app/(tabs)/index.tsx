@@ -1,5 +1,11 @@
-import { StyleSheet, View, TouchableOpacity, ScrollView } from 'react-native';
-import { useState, useMemo } from 'react';
+import {
+  StyleSheet,
+  View,
+  TouchableOpacity,
+  ScrollView,
+  RefreshControl,
+} from 'react-native';
+import { useState, useMemo, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
@@ -9,12 +15,40 @@ import { Typography, Card, Button, AmountDisplay } from '@/components/ui';
 import { Calendar } from '@/components/shared/calendar';
 import { CalendarTransaction } from '@/components/shared/calendar/types';
 import { router } from 'expo-router';
+import { useLedger } from '../../contexts/LedgerContext';
+import { useMonthlyData } from '../../hooks/useMonthlyData';
+import { LoadingState } from '../../components/shared/LoadingState';
+import { ErrorState } from '../../components/shared/ErrorState';
+import { EmptyState } from '../../components/shared/EmptyState';
+import { LedgerSelector } from '../../components/shared/LedgerSelector';
 
 export default function HomeScreen() {
   const { user } = useAuth();
   const colorScheme = useColorScheme();
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const colors = Colors[colorScheme ?? 'light'];
+
+  const {
+    currentLedger,
+    ledgers,
+    loading: ledgerLoading,
+    error: ledgerError,
+    refreshLedgers,
+  } = useLedger();
+
+  // Extract year and month for API calls
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth() + 1;
+
+  // Fetch monthly data (calendar + summary)
+  const {
+    calendarData,
+    monthlySummary,
+    loading: dataLoading,
+    error: dataError,
+    refetch: refetchData,
+  } = useMonthlyData(year, month);
 
   const userName =
     user?.user_metadata?.full_name || user?.email?.split('@')[0] || '사용자';
@@ -35,89 +69,34 @@ export default function HomeScreen() {
     );
   };
 
-  // 더미 거래 데이터 (개발용)
-  const dummyTransactions: CalendarTransaction = useMemo(() => {
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
-
-    return {
-      [`${year}-${String(month + 1).padStart(2, '0')}-01`]: {
-        income: 50949,
-        expense: 15500,
-      },
-      [`${year}-${String(month + 1).padStart(2, '0')}-02`]: {
-        income: 0,
-        expense: 40758,
-      },
-      [`${year}-${String(month + 1).padStart(2, '0')}-03`]: {
-        income: 0,
-        expense: 7750,
-      },
-      [`${year}-${String(month + 1).padStart(2, '0')}-04`]: {
-        income: 2773580,
-        expense: 15511,
-      },
-      [`${year}-${String(month + 1).padStart(2, '0')}-05`]: {
-        income: 0,
-        expense: 232230,
-      },
-      [`${year}-${String(month + 1).padStart(2, '0')}-06`]: {
-        income: 0,
-        expense: 84431,
-      },
-      [`${year}-${String(month + 1).padStart(2, '0')}-07`]: {
-        income: 0,
-        expense: 13700,
-      },
-      [`${year}-${String(month + 1).padStart(2, '0')}-08`]: {
-        income: 1182,
-        expense: 101900,
-      },
-      [`${year}-${String(month + 1).padStart(2, '0')}-09`]: {
-        income: 100,
-        expense: 14600,
-      },
-      [`${year}-${String(month + 1).padStart(2, '0')}-10`]: {
-        income: 1100000,
-        expense: 185290,
-      },
-      [`${year}-${String(month + 1).padStart(2, '0')}-11`]: {
-        income: 51200000,
-        expense: 110200,
-      },
-      [`${year}-${String(month + 1).padStart(2, '0')}-12`]: {
-        income: 0,
-        expense: 66900,
-      },
-    };
-  }, [currentMonth]);
-
-  // 월간 합계 계산
-  const monthlyTotal = useMemo(() => {
-    const totals = Object.values(dummyTransactions).reduce(
-      (acc, day) => ({
-        income: acc.income + day.income,
-        expense: acc.expense + day.expense,
-      }),
-      { income: 0, expense: 0 }
-    );
-
-    return {
-      ...totals,
-      balance: totals.income - totals.expense,
-    };
-  }, [dummyTransactions]);
+  // Refresh handler
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        refreshLedgers(),
+        refetchData(),
+      ]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refreshLedgers, refetchData]);
 
   // 날짜 선택 핸들러
   const handleDateSelect = (date: Date) => {
     // 해당 날짜의 거래 목록으로 이동
     const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    const hasTransactions = dummyTransactions[dateKey];
 
-    if (hasTransactions) {
-      // TODO: 거래 목록 화면으로 네비게이션
-      // router.push(`/transactions?date=${dateKey}`);
-      console.log('Navigate to transactions for:', dateKey);
+    if (calendarData) {
+      const dayTransactions = calendarData[date.getDate()];
+      if (
+        dayTransactions &&
+        (dayTransactions.income > 0 || dayTransactions.expense > 0)
+      ) {
+        // TODO: 거래 목록 화면으로 네비게이션
+        // router.push(`/transactions?date=${dateKey}`);
+        console.log('Navigate to transactions for:', dateKey);
+      }
     }
   };
 
@@ -126,14 +105,55 @@ export default function HomeScreen() {
     setCurrentMonth(new Date(year, month - 1));
   };
 
+  // Show loading state
+  if (ledgerLoading || (currentLedger && dataLoading)) {
+    return <LoadingState message="데이터를 불러오는 중..." />;
+  }
+
+  // Show error state
+  if (ledgerError || dataError) {
+    return (
+      <ErrorState
+        message="데이터를 불러올 수 없습니다"
+        onRetry={handleRefresh}
+      />
+    );
+  }
+
+  // Show empty state if no ledgers
+  if (!currentLedger || ledgers.length === 0) {
+    return (
+      <EmptyState
+        icon="wallet-outline"
+        title="가계부가 없습니다"
+        message="새로운 가계부를 만들어 재무 관리를 시작해보세요"
+        actionLabel="가계부 만들기"
+        onAction={() => {
+          // TODO: Navigate to create ledger
+          console.log('Create ledger');
+        }}
+      />
+    );
+  }
+
   return (
     <ThemedView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.tint}
+          />
+        }
+      >
         {/* 헤더 */}
         <View style={[styles.header, { backgroundColor: colors.background }]}>
           <Typography variant="h3" color="secondary">
             안녕하세요, {userName}님
           </Typography>
+          <LedgerSelector />
         </View>
 
         {/* 캘린더 */}
@@ -141,7 +161,7 @@ export default function HomeScreen() {
           mode="static"
           viewType="month"
           selectedDate={currentMonth}
-          transactions={dummyTransactions}
+          transactions={calendarData || {}}
           onDateSelect={handleDateSelect}
           onMonthChange={handleMonthChange}
           containerStyle={styles.calendarContainer}
@@ -158,7 +178,7 @@ export default function HomeScreen() {
               수입
             </Typography>
             <AmountDisplay
-              amount={monthlyTotal.income}
+              amount={monthlySummary?.income || 0}
               type="income"
               size="medium"
             />
@@ -169,7 +189,7 @@ export default function HomeScreen() {
               지출
             </Typography>
             <AmountDisplay
-              amount={monthlyTotal.expense}
+              amount={monthlySummary?.expense || 0}
               type="expense"
               size="medium"
             />
@@ -184,7 +204,7 @@ export default function HomeScreen() {
           >
             <Typography variant="body1">잔액</Typography>
             <AmountDisplay
-              amount={monthlyTotal.balance}
+              amount={monthlySummary?.balance || 0}
               type="neutral"
               size="large"
             />
