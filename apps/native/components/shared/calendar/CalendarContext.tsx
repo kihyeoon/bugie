@@ -37,7 +37,7 @@ export function CalendarProvider({
   onMonthChange,
 }: CalendarProviderProps) {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(propSelectedDate);
-  const [currentMonth, setCurrentMonth] = useState(() => new Date());
+  const [currentMonth, setCurrentMonth] = useState(() => propSelectedDate || new Date());
   const [viewType, setViewType] = useState<ViewType>(initialViewType);
   
   // Animation values for scrollable mode

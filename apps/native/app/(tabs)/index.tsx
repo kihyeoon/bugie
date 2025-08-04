@@ -102,7 +102,7 @@ export default function HomeScreen() {
 
   // 월 변경 핸들러
   const handleMonthChange = (year: number, month: number) => {
-    setCurrentMonth(new Date(year, month - 1));
+    setCurrentMonth(new Date(year, month));
   };
 
   // Show loading state
