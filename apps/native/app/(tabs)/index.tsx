@@ -10,9 +10,8 @@ import { useState, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { Typography, Card, Button, AmountDisplay } from '@/components/ui';
+import { Typography, Card, AmountDisplay } from '@/components/ui';
 import { Calendar } from '@/components/shared/calendar';
-import { router } from 'expo-router';
 import { useLedger } from '../../contexts/LedgerContext';
 import { useMonthlyData } from '../../hooks/useMonthlyData';
 import { LoadingState } from '../../components/shared/LoadingState';
@@ -24,7 +23,7 @@ import { LedgerSelector } from '../../components/shared/LedgerSelector';
 const CONSTANTS = {
   PADDING: {
     HORIZONTAL: 16,
-    HEADER_HORIZONTAL: 24,
+    HEADER_HORIZONTAL: 16,
     HEADER_TOP_IOS: 8,
     HEADER_TOP_ANDROID: 16,
     HEADER_BOTTOM: 8,
@@ -37,8 +36,6 @@ const CONSTANTS = {
     SUMMARY_CARD_TITLE: 20,
     CALENDAR_TOP: 8,
     CALENDAR_BOTTOM: 16,
-    QUICK_ADD_TOP: 20,
-    QUICK_ADD_BOTTOM: 10,
   },
   SIZES: {
     CALENDAR_MIN_HEIGHT: 380,
@@ -241,18 +238,6 @@ export default function HomeScreen() {
             />
           </View>
         </Card>
-
-        {/* 빠른 입력 버튼 */}
-        <Button
-          variant="primary"
-          size="large"
-          icon="plus"
-          fullWidth
-          style={styles.quickAddButton}
-          onPress={() => router.push('/add')}
-        >
-          빠른 입력
-        </Button>
       </ScrollView>
     </SafeAreaView>
   );
@@ -296,9 +281,5 @@ const styles = StyleSheet.create({
     paddingTop: CONSTANTS.SPACING.SUMMARY_ROW,
     borderTopWidth: 1,
     marginBottom: 0,
-  },
-  quickAddButton: {
-    marginTop: CONSTANTS.SPACING.QUICK_ADD_TOP,
-    marginBottom: CONSTANTS.SPACING.QUICK_ADD_BOTTOM,
   },
 });
