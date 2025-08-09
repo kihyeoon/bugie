@@ -22,7 +22,6 @@ export default function TabLayout() {
         tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
           ios: {
-            position: 'absolute',
             backgroundColor: Colors[colorScheme ?? 'light'].background,
             borderTopWidth: 1,
             borderTopColor: Colors[colorScheme ?? 'light'].border,

@@ -1,19 +1,17 @@
 import {
   StyleSheet,
   View,
-  TouchableOpacity,
   ScrollView,
   RefreshControl,
+  Platform,
+  SafeAreaView,
 } from 'react-native';
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Typography, Card, Button, AmountDisplay } from '@/components/ui';
 import { Calendar } from '@/components/shared/calendar';
-import { CalendarTransaction } from '@/components/shared/calendar/types';
 import { router } from 'expo-router';
 import { useLedger } from '../../contexts/LedgerContext';
 import { useMonthlyData } from '../../hooks/useMonthlyData';
@@ -53,30 +51,11 @@ export default function HomeScreen() {
   const userName =
     user?.user_metadata?.full_name || user?.email?.split('@')[0] || '사용자';
 
-  const formatMonth = (date: Date) => {
-    return `${date.getFullYear()}년 ${date.getMonth() + 1}월`;
-  };
-
-  const goToPreviousMonth = () => {
-    setCurrentMonth(
-      new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1)
-    );
-  };
-
-  const goToNextMonth = () => {
-    setCurrentMonth(
-      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1)
-    );
-  };
-
   // Refresh handler
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      await Promise.all([
-        refreshLedgers(),
-        refetchData(),
-      ]);
+      await Promise.all([refreshLedgers(), refetchData()]);
     } finally {
       setIsRefreshing(false);
     }
@@ -137,8 +116,12 @@ export default function HomeScreen() {
   }
 
   return (
-    <ThemedView style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -223,7 +206,7 @@ export default function HomeScreen() {
           빠른 입력
         </Button>
       </ScrollView>
-    </ThemedView>
+    </SafeAreaView>
   );
 }
 
@@ -231,49 +214,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 16, // 좌우 일관된 패딩
+    paddingBottom: Platform.select({
+      ios: 100, // 탭바 80px + 여유 20px
+      android: 80, // 탭바 60px + 여유 20px
+    }),
+  },
   header: {
-    paddingTop: 60,
+    paddingTop: Platform.select({
+      ios: 8, // SafeAreaView가 처리하므로 최소 여백만
+      android: 16, // Android는 SafeAreaView가 status bar를 처리 안 함
+    }),
     paddingHorizontal: 24,
-  },
-  greeting: {
-    fontSize: 24,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-  },
-  monthSelector: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F2F4F6',
-  },
-  monthButton: {
-    padding: 8,
-  },
-  monthText: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginHorizontal: 24,
-    letterSpacing: -0.3,
+    paddingBottom: 8,
   },
   calendarContainer: {
-    marginHorizontal: 16,
     marginTop: 8,
     marginBottom: 16,
-    minHeight: 460,
-  },
-  placeholderText: {
-    fontSize: 14,
+    minHeight: 380, // 460에서 축소
   },
   summaryCard: {
-    marginHorizontal: 16,
-  },
-  summaryTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 20,
-    letterSpacing: -0.3,
+    // marginHorizontal 제거
   },
   summaryRow: {
     flexDirection: 'row',
@@ -281,28 +246,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  summaryLabel: {
-    fontSize: 15,
-    letterSpacing: -0.2,
-  },
-  summaryAmount: {
-    fontSize: 17,
-    fontWeight: '600',
-    letterSpacing: -0.3,
-  },
   summaryTotal: {
     marginTop: 8,
     paddingTop: 16,
     borderTopWidth: 1,
     marginBottom: 0,
   },
-  summaryTotalAmount: {
-    fontSize: 18,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-  },
   quickAddButton: {
-    marginHorizontal: 16,
-    marginVertical: 20,
+    marginTop: 20,
+    marginBottom: 10, // 20에서 축소
   },
 });
