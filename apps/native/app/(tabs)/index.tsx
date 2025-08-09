@@ -1,105 +1,242 @@
-import { StyleSheet, View, TouchableOpacity } from 'react-native';
-import { useState } from 'react';
+import {
+  StyleSheet,
+  View,
+  ScrollView,
+  RefreshControl,
+  Platform,
+  SafeAreaView,
+} from 'react-native';
+import { useState, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import { Typography, Card, Button, AmountDisplay } from '@/components/ui';
+import { Typography, Card, AmountDisplay } from '@/components/ui';
+import { Calendar } from '@/components/shared/calendar';
+import { useLedger } from '../../contexts/LedgerContext';
+import { useMonthlyData } from '../../hooks/useMonthlyData';
+import { LoadingState } from '../../components/shared/LoadingState';
+import { ErrorState } from '../../components/shared/ErrorState';
+import { EmptyState } from '../../components/shared/EmptyState';
+import { LedgerSelector } from '../../components/shared/LedgerSelector';
+
+// Constants
+const CONSTANTS = {
+  PADDING: {
+    HORIZONTAL: 16,
+    HEADER_HORIZONTAL: 16,
+    HEADER_TOP_IOS: 8,
+    HEADER_TOP_ANDROID: 16,
+    HEADER_BOTTOM: 8,
+    BOTTOM_IOS: 100,
+    BOTTOM_ANDROID: 80,
+  },
+  SPACING: {
+    SUMMARY_ROW: 16,
+    SUMMARY_TOTAL_TOP: 8,
+    SUMMARY_CARD_TITLE: 20,
+    CALENDAR_TOP: 8,
+    CALENDAR_BOTTOM: 16,
+  },
+  DEFAULTS: {
+    USERNAME: '사용자',
+  },
+} as const;
+
+// Utility functions
+// 날짜를 YYYY-MM-DD 형식으로 변환 (추후 거래 목록 화면에서 사용 예정)
+// const formatDateKey = (date: Date): string => {
+//   const year = date.getFullYear();
+//   const month = String(date.getMonth() + 1).padStart(2, '0');
+//   const day = String(date.getDate()).padStart(2, '0');
+//   return `${year}-${month}-${day}`;
+// };
+
+const extractUserName = (
+  user: { user_metadata?: { full_name?: string }; email?: string } | null
+): string => {
+  return (
+    user?.user_metadata?.full_name ||
+    user?.email?.split('@')[0] ||
+    CONSTANTS.DEFAULTS.USERNAME
+  );
+};
 
 export default function HomeScreen() {
   const { user } = useAuth();
   const colorScheme = useColorScheme();
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const colors = Colors[colorScheme ?? 'light'];
 
-  const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || '사용자';
+  const {
+    currentLedger,
+    ledgers,
+    loading: ledgerLoading,
+    error: ledgerError,
+    refreshLedgers,
+  } = useLedger();
 
-  const formatMonth = (date: Date) => {
-    return `${date.getFullYear()}년 ${date.getMonth() + 1}월`;
+  // Extract year and month for API calls
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth() + 1;
+
+  // Fetch monthly data (calendar + summary)
+  const {
+    calendarData,
+    monthlySummary,
+    loading: dataLoading,
+    error: dataError,
+    refetch: refetchData,
+  } = useMonthlyData(year, month);
+
+  const userName = extractUserName(user);
+
+  // Refresh handler
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([refreshLedgers(), refetchData()]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refreshLedgers, refetchData]);
+
+  // 날짜 선택 핸들러
+  const handleDateSelect = (date: Date) => {
+    if (!calendarData) return;
+
+    const dayTransactions = calendarData[date.getDate()];
+    const hasTransactions =
+      dayTransactions &&
+      (dayTransactions.income > 0 || dayTransactions.expense > 0);
+
+    if (hasTransactions) {
+      // TODO: 거래 목록 화면으로 네비게이션
+      // router.push(`/transactions?date=${dateKey}`);
+      console.log('Navigate to transactions');
+    }
   };
 
-  const goToPreviousMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
+  // 월 변경 핸들러
+  const handleMonthChange = (year: number, month: number) => {
+    setCurrentMonth(new Date(year, month));
   };
 
-  const goToNextMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
-  };
+  // Show loading state
+  if (ledgerLoading || (currentLedger && dataLoading)) {
+    return <LoadingState message="데이터를 불러오는 중..." />;
+  }
 
+  // Show error state
+  if (ledgerError || dataError) {
+    return (
+      <ErrorState
+        message="데이터를 불러올 수 없습니다"
+        onRetry={handleRefresh}
+      />
+    );
+  }
+
+  // Show empty state if no ledgers
+  if (!currentLedger || ledgers.length === 0) {
+    return (
+      <EmptyState
+        icon="wallet-outline"
+        title="가계부가 없습니다"
+        message="새로운 가계부를 만들어 재무 관리를 시작해보세요"
+        actionLabel="가계부 만들기"
+        onAction={() => {
+          // TODO: 가계부 생성 화면으로 이동
+          console.log('Create ledger');
+        }}
+      />
+    );
+  }
 
   return (
-    <ThemedView style={styles.container}>
-      {/* 헤더 */}
-      <View style={[styles.header, { backgroundColor: colors.background }]}>
-        <Typography variant="h3" color="secondary">
-          안녕하세요, {userName}님
-        </Typography>
-      </View>
-
-      {/* 월 선택 */}
-      <View style={[styles.monthSelector, { backgroundColor: colors.background }]}>
-        <TouchableOpacity onPress={goToPreviousMonth} style={styles.monthButton}>
-          <IconSymbol name="chevron.left" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Typography variant="h4">{formatMonth(currentMonth)}</Typography>
-        <TouchableOpacity onPress={goToNextMonth} style={styles.monthButton}>
-          <IconSymbol name="chevron.right" size={24} color={colors.text} />
-        </TouchableOpacity>
-      </View>
-
-      {/* 캘린더 (임시) */}
-      <Card variant="filled" style={[styles.calendar, { backgroundColor: colors.backgroundSecondary }]}>
-        <Typography variant="body2" color="secondary" align="center">
-          캘린더 컴포넌트 (구현 예정)
-        </Typography>
-      </Card>
-
-      {/* 월간 요약 */}
-      <Card variant="elevated" style={styles.summaryCard}>
-        <Typography variant="body1" weight="600" style={{ marginBottom: 20 }}>
-          이번 달 요약
-        </Typography>
-        
-        <View style={styles.summaryRow}>
-          <Typography variant="body1" color="secondary">수입</Typography>
-          <AmountDisplay
-            amount={0}
-            type="income"
-            size="medium"
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.tint}
           />
-        </View>
-        
-        <View style={styles.summaryRow}>
-          <Typography variant="body1" color="secondary">지출</Typography>
-          <AmountDisplay
-            amount={0}
-            type="expense"
-            size="medium"
-          />
-        </View>
-        
-        <View style={[styles.summaryRow, styles.summaryTotal, { borderTopColor: colors.border }]}>
-          <Typography variant="body1">잔액</Typography>
-          <AmountDisplay
-            amount={0}
-            type="neutral"
-            size="large"
-          />
-        </View>
-      </Card>
-
-      {/* 빠른 입력 버튼 */}
-      <Button
-        variant="primary"
-        size="large"
-        icon="plus"
-        fullWidth
-        style={styles.quickAddButton}
+        }
       >
-        빠른 입력
-      </Button>
-    </ThemedView>
+        {/* 헤더 */}
+        <View style={styles.header}>
+          <Typography variant="h3" color="secondary">
+            안녕하세요, {userName}님
+          </Typography>
+          <LedgerSelector />
+        </View>
+
+        {/* 캘린더 */}
+        <Calendar
+          mode="static"
+          viewType="month"
+          selectedDate={currentMonth}
+          transactions={calendarData || {}}
+          onDateSelect={handleDateSelect}
+          onMonthChange={handleMonthChange}
+          containerStyle={styles.calendarContainer}
+        />
+
+        {/* 월간 요약 */}
+        <Card variant="elevated" padding="large">
+          <Typography
+            variant="body1"
+            weight="600"
+            style={{ marginBottom: CONSTANTS.SPACING.SUMMARY_CARD_TITLE }}
+          >
+            이번 달 요약
+          </Typography>
+
+          <View style={styles.summaryRow}>
+            <Typography variant="body1" color="secondary">
+              수입
+            </Typography>
+            <AmountDisplay
+              amount={monthlySummary?.income || 0}
+              type="income"
+              size="medium"
+            />
+          </View>
+
+          <View style={styles.summaryRow}>
+            <Typography variant="body1" color="secondary">
+              지출
+            </Typography>
+            <AmountDisplay
+              amount={monthlySummary?.expense || 0}
+              type="expense"
+              size="medium"
+            />
+          </View>
+
+          <View
+            style={[
+              styles.summaryRow,
+              styles.summaryTotal,
+              { borderTopColor: colors.border },
+            ]}
+          >
+            <Typography variant="body1">잔액</Typography>
+            <AmountDisplay
+              amount={monthlySummary?.balance || 0}
+              type="neutral"
+              size="large"
+            />
+          </View>
+        </Card>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -107,81 +244,38 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    paddingTop: 60,
-    paddingHorizontal: 24,
-    paddingBottom: 20,
-  },
-  greeting: {
-    fontSize: 24,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-  },
-  monthSelector: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F2F4F6',
-  },
-  monthButton: {
-    padding: 8,
-  },
-  monthText: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginHorizontal: 24,
-    letterSpacing: -0.3,
-  },
-  calendar: {
+  scrollView: {
     flex: 1,
-    margin: 24,
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  placeholderText: {
-    fontSize: 14,
+  scrollContent: {
+    paddingHorizontal: CONSTANTS.PADDING.HORIZONTAL,
+    paddingBottom: Platform.select({
+      ios: CONSTANTS.PADDING.BOTTOM_IOS,
+      android: CONSTANTS.PADDING.BOTTOM_ANDROID,
+    }),
   },
-  summaryCard: {
-    marginHorizontal: 24,
+  header: {
+    paddingTop: Platform.select({
+      ios: CONSTANTS.PADDING.HEADER_TOP_IOS,
+      android: CONSTANTS.PADDING.HEADER_TOP_ANDROID,
+    }),
+    paddingHorizontal: CONSTANTS.PADDING.HEADER_HORIZONTAL,
+    paddingBottom: CONSTANTS.PADDING.HEADER_BOTTOM,
   },
-  summaryTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 20,
-    letterSpacing: -0.3,
+  calendarContainer: {
+    marginTop: CONSTANTS.SPACING.CALENDAR_TOP,
+    marginBottom: CONSTANTS.SPACING.CALENDAR_BOTTOM,
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  summaryLabel: {
-    fontSize: 15,
-    letterSpacing: -0.2,
-  },
-  summaryAmount: {
-    fontSize: 17,
-    fontWeight: '600',
-    letterSpacing: -0.3,
+    marginBottom: CONSTANTS.SPACING.SUMMARY_ROW,
   },
   summaryTotal: {
-    marginTop: 8,
-    paddingTop: 16,
+    marginTop: CONSTANTS.SPACING.SUMMARY_TOTAL_TOP,
+    paddingTop: CONSTANTS.SPACING.SUMMARY_ROW,
     borderTopWidth: 1,
     marginBottom: 0,
-  },
-  summaryTotalAmount: {
-    fontSize: 18,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-  },
-  quickAddButton: {
-    marginHorizontal: 24,
-    marginVertical: 20,
   },
 });

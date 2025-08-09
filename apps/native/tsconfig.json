@@ -4,7 +4,8 @@
     "strict": true,
     "paths": {
       "@/*": ["./*"],
-      "@repo/types": ["../../packages/types/src/index.ts"]
+      "@repo/types": ["../../packages/types/src/index.ts"],
+      "@repo/core": ["../../packages/core/src/index.ts"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]

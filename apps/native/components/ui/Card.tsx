@@ -1,9 +1,4 @@
-import {
-  View,
-  ViewProps,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native';
+import { View, ViewProps, StyleSheet, Pressable, Platform } from 'react-native';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
@@ -39,7 +34,7 @@ export function Card({
 
     const variantStyles = {
       filled: {
-        backgroundColor: colors.background,
+        backgroundColor: colors.backgroundSecondary,
       },
       outlined: {
         backgroundColor: colors.background,
@@ -47,14 +42,18 @@ export function Card({
         borderColor: colors.border,
       },
       elevated: {
-        backgroundColor: colors.background,
+        backgroundColor: colors.backgroundSecondary,
         ...styles.elevated,
       },
     };
 
-    return [baseStyle, paddingStyles[padding], variantStyles[variant], style];
+    return [
+      baseStyle,
+      paddingStyles[padding],
+      variantStyles[variant],
+      ...(style ? [style] : []),
+    ];
   };
-
   const content = (
     <View {...props} style={getCardStyle()}>
       {children}
@@ -63,13 +62,16 @@ export function Card({
 
   if (pressable || onPress) {
     return (
-      <TouchableOpacity
+      <Pressable
         onPress={onPress}
-        activeOpacity={0.7}
-        style={styles.touchable}
+        style={({ pressed }) => [styles.touchable, pressed && styles.pressed]}
+        android_ripple={{
+          color: colors.tint + '20', // 20% opacity
+          borderless: false,
+        }}
       >
         {content}
-      </TouchableOpacity>
+      </Pressable>
     );
   }
 
@@ -100,10 +102,13 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 1,
+      height: 2,
     },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  pressed: {
+    opacity: Platform.OS === 'ios' ? 0.8 : 1, // iOS에서는 opacity 효과
   },
 });

@@ -22,7 +22,6 @@ export default function TabLayout() {
         tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
           ios: {
-            position: 'absolute',
             backgroundColor: Colors[colorScheme ?? 'light'].background,
             borderTopWidth: 1,
             borderTopColor: Colors[colorScheme ?? 'light'].border,
@@ -84,12 +83,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="ellipsis" color={color} />
           ),
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          href: null, // Hide this tab
         }}
       />
     </Tabs>
