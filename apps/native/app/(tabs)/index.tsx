@@ -192,7 +192,7 @@ export default function HomeScreen() {
         />
 
         {/* 월간 요약 */}
-        <Card variant="elevated">
+        <Card variant="elevated" padding="large">
           <Typography
             variant="body1"
             weight="600"
