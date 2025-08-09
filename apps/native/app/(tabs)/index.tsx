@@ -37,9 +37,6 @@ const CONSTANTS = {
     CALENDAR_TOP: 8,
     CALENDAR_BOTTOM: 16,
   },
-  SIZES: {
-    CALENDAR_MIN_HEIGHT: 380,
-  },
   DEFAULTS: {
     USERNAME: '사용자',
   },
@@ -268,7 +265,6 @@ const styles = StyleSheet.create({
   calendarContainer: {
     marginTop: CONSTANTS.SPACING.CALENDAR_TOP,
     marginBottom: CONSTANTS.SPACING.CALENDAR_BOTTOM,
-    minHeight: CONSTANTS.SIZES.CALENDAR_MIN_HEIGHT,
   },
   summaryRow: {
     flexDirection: 'row',

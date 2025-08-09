@@ -30,19 +30,20 @@ export function useCalendarAnimation(
 
   useEffect(() => {
     if (mode !== 'scrollable' || !scrollY) return;
-
-    // Note: In a real implementation, we would use useAnimatedReaction or
-    // pass scrollY value updates through props/context.
-    // For now, we'll handle scroll updates externally.
-  }, [mode, scrollY, mergedConfig.threshold, mergedConfig.duration, setViewType]);
+  }, [
+    mode,
+    scrollY,
+    mergedConfig.threshold,
+    mergedConfig.duration,
+    setViewType,
+  ]);
 
   const animatedContainerStyle = useAnimatedStyle(() => {
     if (mode !== 'scrollable') {
-      return {
-        height: monthViewHeight,
-      };
+      return {};
     }
 
+    // Scrollable 모드에서만 애니메이션 높이 적용
     const height = interpolate(
       isExpanded.value,
       [0, 1],
@@ -64,11 +65,7 @@ export function useCalendarAnimation(
 
     // 주간 뷰로 전환될 때 선택된 주만 보이도록
     return {
-      opacity: interpolate(
-        isExpanded.value,
-        [0, 0.5, 1],
-        [1, 0.8, 1]
-      ),
+      opacity: interpolate(isExpanded.value, [0, 0.5, 1], [1, 0.8, 1]),
     };
   });
 
@@ -81,17 +78,9 @@ export function useCalendarAnimation(
     }
 
     // 헤더 축소 애니메이션
-    const opacity = interpolate(
-      isExpanded.value,
-      [0, 1],
-      [0.8, 1]
-    );
+    const opacity = interpolate(isExpanded.value, [0, 1], [0.8, 1]);
 
-    const height = interpolate(
-      isExpanded.value,
-      [0, 1],
-      [30, 40]
-    );
+    const height = interpolate(isExpanded.value, [0, 1], [30, 40]);
 
     return {
       opacity,
