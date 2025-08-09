@@ -20,6 +20,53 @@ import { ErrorState } from '../../components/shared/ErrorState';
 import { EmptyState } from '../../components/shared/EmptyState';
 import { LedgerSelector } from '../../components/shared/LedgerSelector';
 
+// Constants
+const CONSTANTS = {
+  PADDING: {
+    HORIZONTAL: 16,
+    HEADER_HORIZONTAL: 24,
+    HEADER_TOP_IOS: 8,
+    HEADER_TOP_ANDROID: 16,
+    HEADER_BOTTOM: 8,
+    BOTTOM_IOS: 100,
+    BOTTOM_ANDROID: 80,
+  },
+  SPACING: {
+    SUMMARY_ROW: 16,
+    SUMMARY_TOTAL_TOP: 8,
+    SUMMARY_CARD_TITLE: 20,
+    CALENDAR_TOP: 8,
+    CALENDAR_BOTTOM: 16,
+    QUICK_ADD_TOP: 20,
+    QUICK_ADD_BOTTOM: 10,
+  },
+  SIZES: {
+    CALENDAR_MIN_HEIGHT: 380,
+  },
+  DEFAULTS: {
+    USERNAME: '사용자',
+  },
+} as const;
+
+// Utility functions
+// 날짜를 YYYY-MM-DD 형식으로 변환 (추후 거래 목록 화면에서 사용 예정)
+// const formatDateKey = (date: Date): string => {
+//   const year = date.getFullYear();
+//   const month = String(date.getMonth() + 1).padStart(2, '0');
+//   const day = String(date.getDate()).padStart(2, '0');
+//   return `${year}-${month}-${day}`;
+// };
+
+const extractUserName = (
+  user: { user_metadata?: { full_name?: string }; email?: string } | null
+): string => {
+  return (
+    user?.user_metadata?.full_name ||
+    user?.email?.split('@')[0] ||
+    CONSTANTS.DEFAULTS.USERNAME
+  );
+};
+
 export default function HomeScreen() {
   const { user } = useAuth();
   const colorScheme = useColorScheme();
@@ -48,8 +95,7 @@ export default function HomeScreen() {
     refetch: refetchData,
   } = useMonthlyData(year, month);
 
-  const userName =
-    user?.user_metadata?.full_name || user?.email?.split('@')[0] || '사용자';
+  const userName = extractUserName(user);
 
   // Refresh handler
   const handleRefresh = useCallback(async () => {
@@ -63,19 +109,17 @@ export default function HomeScreen() {
 
   // 날짜 선택 핸들러
   const handleDateSelect = (date: Date) => {
-    // 해당 날짜의 거래 목록으로 이동
-    const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    if (!calendarData) return;
 
-    if (calendarData) {
-      const dayTransactions = calendarData[date.getDate()];
-      if (
-        dayTransactions &&
-        (dayTransactions.income > 0 || dayTransactions.expense > 0)
-      ) {
-        // TODO: 거래 목록 화면으로 네비게이션
-        // router.push(`/transactions?date=${dateKey}`);
-        console.log('Navigate to transactions for:', dateKey);
-      }
+    const dayTransactions = calendarData[date.getDate()];
+    const hasTransactions =
+      dayTransactions &&
+      (dayTransactions.income > 0 || dayTransactions.expense > 0);
+
+    if (hasTransactions) {
+      // TODO: 거래 목록 화면으로 네비게이션
+      // router.push(`/transactions?date=${dateKey}`);
+      console.log('Navigate to transactions');
     }
   };
 
@@ -108,7 +152,7 @@ export default function HomeScreen() {
         message="새로운 가계부를 만들어 재무 관리를 시작해보세요"
         actionLabel="가계부 만들기"
         onAction={() => {
-          // TODO: Navigate to create ledger
+          // TODO: 가계부 생성 화면으로 이동
           console.log('Create ledger');
         }}
       />
@@ -132,7 +176,7 @@ export default function HomeScreen() {
         }
       >
         {/* 헤더 */}
-        <View style={[styles.header, { backgroundColor: colors.background }]}>
+        <View style={styles.header}>
           <Typography variant="h3" color="secondary">
             안녕하세요, {userName}님
           </Typography>
@@ -151,8 +195,12 @@ export default function HomeScreen() {
         />
 
         {/* 월간 요약 */}
-        <Card variant="elevated" style={styles.summaryCard}>
-          <Typography variant="body1" weight="600" style={{ marginBottom: 20 }}>
+        <Card variant="elevated">
+          <Typography
+            variant="body1"
+            weight="600"
+            style={{ marginBottom: CONSTANTS.SPACING.SUMMARY_CARD_TITLE }}
+          >
             이번 달 요약
           </Typography>
 
@@ -218,42 +266,39 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 16, // 좌우 일관된 패딩
+    paddingHorizontal: CONSTANTS.PADDING.HORIZONTAL,
     paddingBottom: Platform.select({
-      ios: 100, // 탭바 80px + 여유 20px
-      android: 80, // 탭바 60px + 여유 20px
+      ios: CONSTANTS.PADDING.BOTTOM_IOS,
+      android: CONSTANTS.PADDING.BOTTOM_ANDROID,
     }),
   },
   header: {
     paddingTop: Platform.select({
-      ios: 8, // SafeAreaView가 처리하므로 최소 여백만
-      android: 16, // Android는 SafeAreaView가 status bar를 처리 안 함
+      ios: CONSTANTS.PADDING.HEADER_TOP_IOS,
+      android: CONSTANTS.PADDING.HEADER_TOP_ANDROID,
     }),
-    paddingHorizontal: 24,
-    paddingBottom: 8,
+    paddingHorizontal: CONSTANTS.PADDING.HEADER_HORIZONTAL,
+    paddingBottom: CONSTANTS.PADDING.HEADER_BOTTOM,
   },
   calendarContainer: {
-    marginTop: 8,
-    marginBottom: 16,
-    minHeight: 380, // 460에서 축소
-  },
-  summaryCard: {
-    // marginHorizontal 제거
+    marginTop: CONSTANTS.SPACING.CALENDAR_TOP,
+    marginBottom: CONSTANTS.SPACING.CALENDAR_BOTTOM,
+    minHeight: CONSTANTS.SIZES.CALENDAR_MIN_HEIGHT,
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: CONSTANTS.SPACING.SUMMARY_ROW,
   },
   summaryTotal: {
-    marginTop: 8,
-    paddingTop: 16,
+    marginTop: CONSTANTS.SPACING.SUMMARY_TOTAL_TOP,
+    paddingTop: CONSTANTS.SPACING.SUMMARY_ROW,
     borderTopWidth: 1,
     marginBottom: 0,
   },
   quickAddButton: {
-    marginTop: 20,
-    marginBottom: 10, // 20에서 축소
+    marginTop: CONSTANTS.SPACING.QUICK_ADD_TOP,
+    marginBottom: CONSTANTS.SPACING.QUICK_ADD_BOTTOM,
   },
 });
