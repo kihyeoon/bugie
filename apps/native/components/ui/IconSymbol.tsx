@@ -17,12 +17,15 @@ const MAPPING = {
   'chevron.right': 'chevron-right',
   'chevron.left': 'chevron-left',
   'chart.pie.fill': 'pie-chart',
-  'plus': 'add',
-  'ellipsis': 'more-horiz',
-  'list': 'list',
-  'folder': 'folder',
-  'person': 'person',
-  'settings': 'settings',
+  plus: 'add',
+  ellipsis: 'more-horiz',
+  // 더보기 탭 아이콘들 (iOS SF Symbols → Material Icons)
+  'list.bullet': 'list',
+  'folder.fill': 'folder',
+  'person.fill': 'person',
+  'gearshape.fill': 'settings',
+  // 로그아웃 아이콘
+  'rectangle.portrait.and.arrow.right': 'exit-to-app',
 } as const;
 
 type IconSymbolName = keyof typeof MAPPING;

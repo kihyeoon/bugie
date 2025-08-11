@@ -63,7 +63,7 @@ export function ListItem({
             <IconSymbol
               name={leftIcon}
               size={24}
-              color={getTextColor()}
+              color={variant === 'danger' ? colors.expense : colors.textSecondary}
             />
           </View>
         )}
