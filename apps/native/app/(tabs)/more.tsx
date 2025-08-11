@@ -1,9 +1,11 @@
-import { StyleSheet, View, ScrollView } from 'react-native';
+import { StyleSheet, View, ScrollView, Alert } from 'react-native';
 import { ComponentProps } from 'react';
+import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography, ListItem, Card } from '@/components/ui';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { useAuth } from '@/contexts/AuthContext';
 
 type IconSymbolName = ComponentProps<typeof IconSymbol>['name'];
 
@@ -16,11 +18,34 @@ interface MenuItem {
 export default function MoreScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+  const { signOut } = useAuth();
+
+  const handleSignOut = () => {
+    Alert.alert('로그아웃', '정말 로그아웃 하시겠습니까?', [
+      {
+        text: '취소',
+        style: 'cancel',
+      },
+      {
+        text: '로그아웃',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await signOut();
+            router.replace('/(auth)/login');
+          } catch (error) {
+            console.error('로그아웃 실패:', error);
+            Alert.alert('오류', '로그아웃 중 문제가 발생했습니다.');
+          }
+        },
+      },
+    ]);
+  };
 
   const menuItems: MenuItem[] = [
     {
       title: '전체 거래 내역',
-      icon: 'list',
+      icon: 'list.bullet',
       onPress: () => {
         // TODO: 거래 목록 화면으로 이동
         console.log('거래 내역');
@@ -28,7 +53,7 @@ export default function MoreScreen() {
     },
     {
       title: '가계부 관리',
-      icon: 'folder',
+      icon: 'folder.fill',
       onPress: () => {
         // TODO: 가계부 관리 웹뷰로 이동
         console.log('가계부 관리');
@@ -36,7 +61,7 @@ export default function MoreScreen() {
     },
     {
       title: '프로필 설정',
-      icon: 'person',
+      icon: 'person.fill',
       onPress: () => {
         // TODO: 프로필 설정 웹뷰로 이동
         console.log('프로필 설정');
@@ -44,7 +69,7 @@ export default function MoreScreen() {
     },
     {
       title: '앱 설정',
-      icon: 'settings',
+      icon: 'gearshape.fill',
       onPress: () => {
         // TODO: 앱 설정 화면으로 이동
         console.log('앱 설정');
@@ -53,15 +78,20 @@ export default function MoreScreen() {
   ];
 
   return (
-    <ScrollView 
-      style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}
+    <ScrollView
+      style={[
+        styles.container,
+        { backgroundColor: colors.backgroundSecondary },
+      ]}
       showsVerticalScrollIndicator={false}
     >
-      <View style={[styles.header, { backgroundColor: colors.backgroundSecondary }]}>
+      <View
+        style={[styles.header, { backgroundColor: colors.backgroundSecondary }]}
+      >
         <Typography variant="h2">더보기</Typography>
       </View>
 
-      <Card variant="filled" padding="none" style={styles.menuSection}>
+      <Card variant="outlined" padding="none" style={styles.menuSection}>
         {menuItems.map((item, index) => (
           <ListItem
             key={index}
@@ -70,6 +100,15 @@ export default function MoreScreen() {
             onPress={item.onPress}
           />
         ))}
+      </Card>
+
+      <Card variant="outlined" padding="none" style={styles.signOutSection}>
+        <ListItem
+          title="로그아웃"
+          leftIcon="rectangle.portrait.and.arrow.right"
+          onPress={handleSignOut}
+          variant="danger"
+        />
       </Card>
 
       <View style={styles.footer}>
@@ -96,6 +135,10 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   menuSection: {
+    marginHorizontal: 16,
+  },
+  signOutSection: {
+    marginTop: 20,
     marginHorizontal: 16,
   },
   footer: {

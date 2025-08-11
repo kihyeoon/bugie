@@ -14,6 +14,7 @@ import type {
 } from '@repo/types';
 import { supabase } from '../utils/supabase';
 import { signInWithOAuth as authSignInWithOAuth } from '../services/auth';
+import { signOutFromGoogle } from '../services/auth/googleAuth';
 
 interface AuthContextValue extends AuthState {
   signOut: () => Promise<void>;
@@ -153,6 +154,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // 로그아웃
   const signOut = useCallback(async () => {
     try {
+      // Google Sign-In SDK에서도 로그아웃
+      await signOutFromGoogle();
+      // Supabase 로그아웃
       await supabase.auth.signOut();
     } catch (err) {
       // AuthSessionMissingError는 이미 로그아웃된 상태이므로 정상으로 처리

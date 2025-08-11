@@ -9,6 +9,23 @@ export interface GoogleAuthError {
   message: string;
 }
 
+// 초기화 상태 플래그
+let isConfigured = false;
+
+/**
+ * Google Sign-In 초기화 (한 번만 실행)
+ */
+const ensureGoogleSignInConfigured = (): void => {
+  if (!isConfigured) {
+    GoogleSignin.configure({
+      webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID!,
+      iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+      offlineAccess: false,
+    });
+    isConfigured = true;
+  }
+};
+
 /**
  * Google Play Services 사용 가능 여부 확인
  */
@@ -26,6 +43,7 @@ const checkPlayServices = async (): Promise<boolean> => {
  */
 export const signInWithGoogle = async (): Promise<SignInSuccessResponse> => {
   try {
+    ensureGoogleSignInConfigured(); // 초기화 보장
     await checkPlayServices();
     const userInfo = await GoogleSignin.signIn();
 
@@ -36,6 +54,19 @@ export const signInWithGoogle = async (): Promise<SignInSuccessResponse> => {
     return userInfo;
   } catch (error) {
     throw handleGoogleSignInError(error);
+  }
+};
+
+/**
+ * Google 로그아웃 수행
+ */
+export const signOutFromGoogle = async (): Promise<void> => {
+  try {
+    ensureGoogleSignInConfigured(); // 초기화 보장
+    await GoogleSignin.signOut();
+  } catch (error) {
+    console.error('Google Sign-Out Error:', error);
+    // 로그아웃은 실패해도 계속 진행
   }
 };
 
