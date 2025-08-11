@@ -130,16 +130,15 @@ pnpm install                       # 모든 workspace 의존성 설치
 - 네이티브 전용 패키지는 `apps/native`에만 설치
 - 공통 dev 도구는 루트 package.json에 설치
 
-### 빌드 순서
-
-Turborepo가 자동 관리하지만 수동 시에는:
-
-1. `packages/ui` 빌드
-2. `apps/web`, `apps/native` 빌드
-
 ### Expo Router 구조 (Native)
 
 - `app/(tabs)/`: 탭 네비게이션 그룹
 - `app/+not-found.tsx`: 404 페이지
 - `@/` alias는 앱 루트를 가리킴
 - 파일 기반 라우팅 사용
+
+### React Native 컴포넌트 사용 규칙
+
+- 터치 인터랙션에는 `TouchableOpacity` 대신 `Pressable` 사용
+  - 더 나은 성능과 유연한 press state 처리
+  - Ripple 효과 및 press 상태 스타일링 지원
