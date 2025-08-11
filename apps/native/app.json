@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "native",
+    "name": "bugie",
     "slug": "native",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -30,6 +30,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-dev-client",
       [
         "expo-splash-screen",
         {
