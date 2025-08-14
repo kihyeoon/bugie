@@ -20,6 +20,7 @@ import {
   Button,
   AmountDisplay,
 } from '@/components/ui';
+import { CategorySelector } from '@/components/shared/CategorySelector';
 import { useCategories } from '@/hooks/useCategories';
 import { useLedger } from '@/contexts/LedgerContext';
 import { useServices } from '@/contexts/ServiceContext';
@@ -33,7 +34,9 @@ export default function AddTransactionScreen() {
   const { transactionService } = useServices();
 
   const [amount, setAmount] = useState('0');
-  const [isExpense, setIsExpense] = useState(true);
+  const [transactionType, setTransactionType] = useState<'income' | 'expense'>(
+    'expense'
+  );
   const [selectedCategory, setSelectedCategory] =
     useState<CategoryDetail | null>(null);
   const [title, setTitle] = useState('');
@@ -84,7 +87,7 @@ export default function AddTransactionScreen() {
         ledgerId: currentLedger.id,
         categoryId: selectedCategory.id,
         amount: parseFloat(amount),
-        type: (isExpense ? 'expense' : 'income') as 'expense' | 'income',
+        type: transactionType,
         title: title || selectedCategory.name, // 제목이 없으면 카테고리명 사용
         description: memo || undefined,
       };
@@ -106,12 +109,13 @@ export default function AddTransactionScreen() {
   };
 
   // 실제 DB에서 카테고리 가져오기
-  const { categories, loading: categoriesLoading } = useCategories(
-    isExpense ? 'expense' : 'income'
-  );
+  const { categories, loading: categoriesLoading } =
+    useCategories(transactionType);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -130,141 +134,110 @@ export default function AddTransactionScreen() {
               { label: '수입', value: 'income', color: colors.income },
               { label: '지출', value: 'expense', color: colors.expense },
             ]}
-            value={isExpense ? 'expense' : 'income'}
-            onChange={(value) => setIsExpense(value === 'expense')}
+            value={transactionType}
+            onChange={(value) =>
+              setTransactionType(value as 'income' | 'expense')
+            }
             fullWidth
           />
         </View>
 
         {/* 금액 표시 */}
         <View style={styles.amountContainer}>
-        <AmountDisplay
-          amount={parseInt(amount)}
-          type={isExpense ? 'expense' : 'income'}
-          size="xlarge"
-          showSign={false}
-        />
-      </View>
-
-      {/* 카테고리 선택 */}
-      <View style={styles.categorySection}>
-        <View style={styles.categoryContainer}>
-          {categoriesLoading ? (
-            <Text style={{ color: colors.textSecondary }}>
-              카테고리 로딩중...
-            </Text>
-          ) : categories.length === 0 ? (
-            <Text style={{ color: colors.textSecondary }}>
-              카테고리가 없습니다
-            </Text>
-          ) : (
-            categories.map((category) => (
-              <TouchableOpacity
-                key={category.id}
-                style={[
-                  styles.categoryButton,
-                  {
-                    backgroundColor:
-                      selectedCategory?.id === category.id
-                        ? colors.tint
-                        : colors.backgroundSecondary,
-                  },
-                ]}
-                onPress={() => setSelectedCategory(category)}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.categoryText,
-                    {
-                      color:
-                        selectedCategory?.id === category.id
-                          ? 'white'
-                          : colors.text,
-                    },
-                  ]}
-                >
-                  {category.name}
-                </Text>
-              </TouchableOpacity>
-            ))
-          )}
+          <AmountDisplay
+            amount={parseInt(amount)}
+            type={transactionType}
+            size="xlarge"
+            showSign={false}
+          />
         </View>
-      </View>
 
-      {/* 제목 입력 */}
-      <View style={styles.titleSection}>
-        <TextInput
-          style={[
-            styles.titleInput,
-            {
-              backgroundColor: colors.backgroundSecondary,
-              color: colors.text,
-            },
-          ]}
-          placeholder="거래 제목 (선택)"
-          placeholderTextColor={colors.textSecondary}
-          value={title}
-          onChangeText={setTitle}
-          returnKeyType="next"
-          maxLength={50}
-        />
-      </View>
+        {/* 카테고리 선택 */}
+        <View style={styles.categorySection}>
+          <CategorySelector
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onSelectCategory={setSelectedCategory}
+            transactionType={transactionType}
+            onTypeChange={setTransactionType}
+            loading={categoriesLoading}
+            placeholder="카테고리를 선택하세요"
+          />
+        </View>
 
-      {/* 메모 입력 */}
-      <View style={styles.memoSection}>
-        <TextInput
-          style={[
-            styles.memoInput,
-            {
-              backgroundColor: colors.backgroundSecondary,
-              color: colors.text,
-            },
-          ]}
-          placeholder="메모 입력 (선택)"
-          placeholderTextColor={colors.textSecondary}
-          value={memo}
-          onChangeText={setMemo}
-          returnKeyType="done"
-          onSubmitEditing={Keyboard.dismiss}
-          multiline
-          maxLength={200}
-        />
-      </View>
+        {/* 제목 입력 */}
+        <View style={styles.titleSection}>
+          <TextInput
+            style={[
+              styles.titleInput,
+              {
+                backgroundColor: colors.backgroundSecondary,
+                color: colors.text,
+              },
+            ]}
+            placeholder="거래 제목 (선택)"
+            placeholderTextColor={colors.textSecondary}
+            value={title}
+            onChangeText={setTitle}
+            returnKeyType="next"
+            maxLength={50}
+          />
+        </View>
 
-      {/* 숫자 키패드 */}
-      <View style={styles.keypad}>
-        {[
-          ['1', '2', '3'],
-          ['4', '5', '6'],
-          ['7', '8', '9'],
-          ['00', '0', '←'],
-        ].map((row, rowIndex) => (
-          <View key={rowIndex} style={styles.keypadRow}>
-            {row.map((key) => (
-              <TouchableOpacity
-                key={key}
-                style={[
-                  styles.keypadButton,
-                  { backgroundColor: colors.backgroundSecondary },
-                ]}
-                onPress={() => {
-                  if (key === '←') {
-                    handleDelete();
-                  } else {
-                    handleNumberPress(key);
-                  }
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.keypadText, { color: colors.text }]}>
-                  {key}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        ))}
-      </View>
+        {/* 메모 입력 */}
+        <View style={styles.memoSection}>
+          <TextInput
+            style={[
+              styles.memoInput,
+              {
+                backgroundColor: colors.backgroundSecondary,
+                color: colors.text,
+              },
+            ]}
+            placeholder="메모 입력 (선택)"
+            placeholderTextColor={colors.textSecondary}
+            value={memo}
+            onChangeText={setMemo}
+            returnKeyType="done"
+            onSubmitEditing={Keyboard.dismiss}
+            multiline
+            maxLength={200}
+          />
+        </View>
+
+        {/* 숫자 키패드 */}
+        <View style={styles.keypad}>
+          {[
+            ['1', '2', '3'],
+            ['4', '5', '6'],
+            ['7', '8', '9'],
+            ['00', '0', '←'],
+          ].map((row, rowIndex) => (
+            <View key={rowIndex} style={styles.keypadRow}>
+              {row.map((key) => (
+                <TouchableOpacity
+                  key={key}
+                  style={[
+                    styles.keypadButton,
+                    { backgroundColor: colors.backgroundSecondary },
+                  ]}
+                  onPress={() => {
+                    if (key === '←') {
+                      handleDelete();
+                    } else {
+                      handleNumberPress(key);
+                    }
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.keypadText, { color: colors.text }]}>
+                    {key}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ))}
+        </View>
 
         {/* 저장 버튼 */}
         <Button
@@ -334,22 +307,7 @@ const styles = StyleSheet.create({
   },
   categorySection: {
     paddingHorizontal: 24,
-    marginBottom: 20,
-  },
-  categoryContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  categoryButton: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  categoryText: {
-    fontSize: 14,
-    fontWeight: '500',
-    letterSpacing: -0.2,
+    marginBottom: 4,
   },
   titleSection: {
     paddingHorizontal: 24,

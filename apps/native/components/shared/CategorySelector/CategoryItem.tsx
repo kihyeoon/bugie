@@ -1,0 +1,129 @@
+import React from 'react';
+import { Pressable, Text, View, StyleSheet, Dimensions } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors } from '@/constants/Colors';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import type { CategoryDetail } from '@repo/core';
+
+interface CategoryItemProps {
+  category: CategoryDetail;
+  isSelected: boolean;
+  onPress: () => void;
+  columns?: 3 | 4;
+}
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const PADDING = 24;
+
+export function CategoryItem({
+  category,
+  isSelected,
+  onPress,
+  columns = 4,
+}: CategoryItemProps) {
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? 'light'];
+
+  const itemWidth = (SCREEN_WIDTH - PADDING * 2 - (columns - 1) * 12) / columns;
+
+  // 카테고리 아이콘 매핑 (간단한 예시)
+  const getIconName = (icon: string): keyof typeof Ionicons.glyphMap => {
+    const iconMap: Record<string, keyof typeof Ionicons.glyphMap> = {
+      utensils: 'restaurant',
+      car: 'car',
+      'shopping-bag': 'cart',
+      film: 'film',
+      heart: 'heart',
+      home: 'home',
+      book: 'book',
+      'more-horizontal': 'ellipsis-horizontal',
+      briefcase: 'briefcase',
+      'trending-up': 'trending-up',
+      'bar-chart': 'bar-chart',
+      gift: 'gift',
+      'plus-circle': 'add-circle',
+      tag: 'pricetag',
+      receipt: 'receipt',
+    };
+    return iconMap[icon] || 'pricetag';
+  };
+
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        styles.container,
+        {
+          width: itemWidth,
+          backgroundColor: isSelected
+            ? colors.tint
+            : pressed
+              ? colors.backgroundSecondary
+              : 'transparent',
+        },
+      ]}
+      onPress={onPress}
+    >
+      <View
+        style={[
+          styles.iconContainer,
+          {
+            backgroundColor: isSelected
+              ? 'rgba(255, 255, 255, 0.2)'
+              : colors.backgroundSecondary,
+          },
+        ]}
+      >
+        <Ionicons
+          name={getIconName(category.icon)}
+          size={24}
+          color={isSelected ? 'white' : category.color}
+        />
+      </View>
+      <Text
+        style={[
+          styles.label,
+          {
+            color: isSelected ? 'white' : colors.text,
+            fontWeight: isSelected ? '600' : '500',
+          },
+        ]}
+        numberOfLines={1}
+      >
+        {category.name}
+      </Text>
+      {isSelected && (
+        <View style={styles.checkmark}>
+          <Ionicons name="checkmark-circle" size={16} color="white" />
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  label: {
+    fontSize: 13,
+    letterSpacing: -0.2,
+    textAlign: 'center',
+  },
+  checkmark: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+});

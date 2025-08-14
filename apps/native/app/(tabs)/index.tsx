@@ -5,7 +5,6 @@ import {
   RefreshControl,
   Platform,
   SafeAreaView,
-  Text,
 } from 'react-native';
 import { useState, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
