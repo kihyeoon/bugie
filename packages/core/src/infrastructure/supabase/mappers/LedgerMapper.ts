@@ -31,7 +31,7 @@ export class LedgerMapper {
   }
 
   /**
-   * Domain → DB 변환
+   * Domain → DB 변환 (업데이트용)
    */
   static toDb(domain: LedgerEntity): Partial<DbLedger> {
     return {
@@ -43,6 +43,20 @@ export class LedgerMapper {
       updated_at: new Date().toISOString(),
       // deleted_at은 soft delete 시에만 설정
       ...(domain.isDeleted && { deleted_at: new Date().toISOString() })
+    };
+  }
+
+  /**
+   * Domain → DB 변환 (생성용, ID 제외)
+   */
+  static toDbForCreate(domain: Omit<LedgerEntity, 'id'>): Partial<DbLedger> {
+    return {
+      name: domain.name,
+      description: domain.description ?? undefined,
+      currency: domain.currency,
+      created_by: domain.createdBy,
+      created_at: domain.createdAt.toISOString(),
+      updated_at: domain.updatedAt.toISOString()
     };
   }
 }

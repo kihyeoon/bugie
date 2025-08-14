@@ -84,9 +84,9 @@ export const TransactionRules = {
   },
 
   /**
-   * 거래 생성
+   * 거래 생성 (ID는 DB에서 자동 생성)
    */
-  createTransaction(command: CreateTransactionCommand): TransactionEntity {
+  createTransaction(command: CreateTransactionCommand): Omit<TransactionEntity, 'id'> {
     this.validateAmount(command.amount);
     this.validateTitle(command.title);
     this.validateDescription(command.description);
@@ -95,7 +95,6 @@ export const TransactionRules = {
     this.validateTransactionDate(transactionDate);
     
     return {
-      id: this.generateId(),
       ledgerId: command.ledgerId,
       categoryId: command.categoryId,
       createdBy: command.createdBy,
@@ -222,12 +221,5 @@ export const TransactionRules = {
       transactionCount,
       dailySummaries
     };
-  },
-
-  /**
-   * ID 생성
-   */
-  generateId(): EntityId {
-    return `transaction_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   }
 };

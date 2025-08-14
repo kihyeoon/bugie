@@ -97,7 +97,8 @@ export interface LedgerRepository {
       profile: { id: string; email: string; fullName?: string; avatarUrl?: string };
     }>;
   } | null>;
-  save(ledger: LedgerEntity): Promise<EntityId>;
+  create(ledger: Omit<LedgerEntity, 'id'>): Promise<EntityId>;
+  update(ledger: LedgerEntity): Promise<void>;
   delete(id: EntityId): Promise<void>;
 }
 
@@ -112,7 +113,8 @@ export interface LedgerMemberRepository {
 export interface CategoryRepository {
   findByLedger(ledgerId: EntityId): Promise<CategoryEntity[]>;
   findById(id: EntityId): Promise<CategoryEntity | null>;
-  save(category: CategoryEntity): Promise<EntityId>;
+  create(category: Omit<CategoryEntity, 'id'>): Promise<EntityId>;
+  update(category: CategoryEntity): Promise<void>;
   delete(id: EntityId): Promise<void>;
   getTemplates(): Promise<CategoryEntity[]>;
   activateDefaultCategories(ledgerId: EntityId): Promise<void>;

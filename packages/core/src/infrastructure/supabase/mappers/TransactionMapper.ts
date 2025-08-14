@@ -1,10 +1,8 @@
-import type { 
+import type {
   Transaction as DbTransaction,
-  CategoryType as DbCategoryType 
+  CategoryType as DbCategoryType,
 } from '@repo/types';
-import type { 
-  TransactionEntity 
-} from '../../../domain/transaction/types';
+import type { TransactionEntity } from '../../../domain/transaction/types';
 import type { CategoryType } from '../../../domain/ledger/types';
 
 /**
@@ -27,12 +25,12 @@ export class TransactionMapper {
       transactionDate: new Date(db.transaction_date),
       createdAt: new Date(db.created_at),
       updatedAt: new Date(db.updated_at),
-      isDeleted: db.deleted_at !== null
+      isDeleted: db.deleted_at !== null,
     };
   }
 
   /**
-   * Domain → DB 변환
+   * Domain → DB 변환 (업데이트용)
    */
   static toDb(domain: TransactionEntity): Partial<DbTransaction> {
     return {
@@ -47,7 +45,28 @@ export class TransactionMapper {
       transaction_date: domain.transactionDate.toISOString().split('T')[0], // YYYY-MM-DD format
       created_at: domain.createdAt.toISOString(),
       updated_at: domain.updatedAt.toISOString(),
-      ...(domain.isDeleted && { deleted_at: new Date().toISOString() })
+      ...(domain.isDeleted && { deleted_at: new Date().toISOString() }),
+    };
+  }
+
+  /**
+   * Domain → DB 변환 (생성용, ID 제외)
+   */
+  static toDbForCreate(
+    domain: Omit<TransactionEntity, 'id'>
+  ): Partial<DbTransaction> {
+    return {
+      ledger_id: domain.ledgerId,
+      category_id: domain.categoryId,
+      created_by: domain.createdBy,
+      amount: domain.amount,
+      type: domain.type as DbCategoryType,
+      title: domain.title,
+      description: domain.description ?? undefined,
+      transaction_date: domain.transactionDate.toISOString().split('T')[0], // YYYY-MM-DD format
+      created_at: domain.createdAt.toISOString(),
+      updated_at: domain.updatedAt.toISOString(),
+      ...(domain.isDeleted && { deleted_at: new Date().toISOString() }),
     };
   }
 }

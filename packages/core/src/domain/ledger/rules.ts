@@ -36,13 +36,12 @@ export const LedgerRules = {
   },
 
   /**
-   * 가계부 생성
+   * 가계부 생성 (ID는 DB에서 자동 생성)
    */
-  createLedger(command: CreateLedgerCommand): LedgerEntity {
+  createLedger(command: CreateLedgerCommand): Omit<LedgerEntity, 'id'> {
     this.validateName(command.name);
 
     return {
-      id: this.generateId(),
       name: command.name.trim(),
       description: command.description?.trim(),
       currency: command.currency || this.DEFAULT_CURRENCY,
@@ -108,12 +107,6 @@ export const LedgerRules = {
     };
   },
 
-  /**
-   * ID 생성 (실제로는 UUID 라이브러리 사용)
-   */
-  generateId(): EntityId {
-    return `ledger_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-  },
 };
 
 /**
@@ -223,13 +216,12 @@ export const CategoryRules = {
   },
 
   /**
-   * 커스텀 카테고리 생성
+   * 커스텀 카테고리 생성 (ID는 DB에서 자동 생성)
    */
-  createCustomCategory(command: CreateCategoryCommand): CategoryEntity {
+  createCustomCategory(command: CreateCategoryCommand): Omit<CategoryEntity, 'id'> {
     this.validateName(command.name);
 
     return {
-      id: this.generateId(),
       ledgerId: command.ledgerId,
       name: command.name.trim(),
       type: command.type,
@@ -242,14 +234,13 @@ export const CategoryRules = {
   },
 
   /**
-   * 템플릿 기반 카테고리 생성
+   * 템플릿 기반 카테고리 생성 (ID는 DB에서 자동 생성)
    */
   createFromTemplate(
     ledgerId: EntityId,
     template: CategoryEntity
-  ): CategoryEntity {
+  ): Omit<CategoryEntity, 'id'> {
     return {
-      id: this.generateId(),
       ledgerId,
       name: template.name,
       type: template.type,
@@ -262,10 +253,4 @@ export const CategoryRules = {
     };
   },
 
-  /**
-   * ID 생성
-   */
-  generateId(): EntityId {
-    return `category_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-  },
 };

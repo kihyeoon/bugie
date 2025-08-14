@@ -117,7 +117,7 @@ export class TransactionService {
       throw new UnauthorizedError('거래를 생성할 권한이 없습니다.');
     }
 
-    // 도메인 규칙으로 거래 생성
+    // 도메인 규칙으로 거래 생성 (ID 없이)
     const transaction = TransactionRules.createTransaction({
       ledgerId: input.ledgerId,
       categoryId: input.categoryId,
@@ -131,11 +131,11 @@ export class TransactionService {
         : undefined,
     });
 
-    // 저장
-    await this.transactionRepo.save(transaction);
+    // DB에서 ID 자동 생성하여 저장
+    const transactionId = await this.transactionRepo.create(transaction);
 
-    // Return transaction ID
-    return transaction.id;
+    // Return generated transaction ID
+    return transactionId;
   }
 
   /**
@@ -181,7 +181,7 @@ export class TransactionService {
         : undefined,
     });
 
-    await this.transactionRepo.save(updatedTransaction);
+    await this.transactionRepo.update(updatedTransaction);
   }
 
   /**

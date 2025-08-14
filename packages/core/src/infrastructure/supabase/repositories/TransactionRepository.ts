@@ -79,12 +79,26 @@ export class TransactionRepository implements ITransactionRepository {
     };
   }
 
-  async save(transaction: TransactionEntity): Promise<void> {
+  async create(transaction: Omit<TransactionEntity, 'id'>): Promise<EntityId> {
+    const dbData = TransactionMapper.toDbForCreate(transaction);
+    
+    const { data, error } = await this.supabase
+      .from('transactions')
+      .insert(dbData)
+      .select('id')
+      .single();
+
+    if (error) throw error;
+    return data.id;
+  }
+
+  async update(transaction: TransactionEntity): Promise<void> {
     const dbData = TransactionMapper.toDb(transaction);
     
     const { error } = await this.supabase
       .from('transactions')
-      .upsert(dbData);
+      .update(dbData)
+      .eq('id', transaction.id);
 
     if (error) throw error;
   }

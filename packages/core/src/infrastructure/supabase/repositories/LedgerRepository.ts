@@ -115,17 +115,28 @@ export class LedgerRepository implements ILedgerRepository {
     };
   }
 
-  async save(ledger: LedgerEntity): Promise<EntityId> {
-    const dbData = LedgerMapper.toDb(ledger);
+  async create(ledger: Omit<LedgerEntity, 'id'>): Promise<EntityId> {
+    const dbData = LedgerMapper.toDbForCreate(ledger);
     
     const { data, error } = await this.supabase
       .from('ledgers')
-      .upsert(dbData)
+      .insert(dbData)
       .select('id')
       .single();
 
     if (error) throw error;
     return data.id;
+  }
+
+  async update(ledger: LedgerEntity): Promise<void> {
+    const dbData = LedgerMapper.toDb(ledger);
+    
+    const { error } = await this.supabase
+      .from('ledgers')
+      .update(dbData)
+      .eq('id', ledger.id);
+
+    if (error) throw error;
   }
 
   async delete(id: EntityId): Promise<void> {
@@ -234,17 +245,28 @@ export class CategoryRepository implements ICategoryRepository {
     return CategoryMapper.toDomain(data);
   }
 
-  async save(category: CategoryEntity): Promise<EntityId> {
-    const dbData = CategoryMapper.toDb(category);
+  async create(category: Omit<CategoryEntity, 'id'>): Promise<EntityId> {
+    const dbData = CategoryMapper.toDbForCreate(category);
     
     const { data, error } = await this.supabase
       .from('categories')
-      .upsert(dbData)
+      .insert(dbData)
       .select('id')
       .single();
 
     if (error) throw error;
     return data.id;
+  }
+
+  async update(category: CategoryEntity): Promise<void> {
+    const dbData = CategoryMapper.toDb(category);
+    
+    const { error } = await this.supabase
+      .from('categories')
+      .update(dbData)
+      .eq('id', category.id);
+
+    if (error) throw error;
   }
 
   async delete(id: EntityId): Promise<void> {

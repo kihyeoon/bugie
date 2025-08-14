@@ -85,7 +85,8 @@ export interface CategorySummary {
 export interface TransactionRepository {
   findById(id: EntityId): Promise<TransactionEntity | null>;
   findByFilter(filter: TransactionFilter): Promise<{ data: TransactionEntity[]; total: number }>;
-  save(transaction: TransactionEntity): Promise<void>;
+  create(transaction: Omit<TransactionEntity, 'id'>): Promise<EntityId>;
+  update(transaction: TransactionEntity): Promise<void>;
   delete(id: EntityId): Promise<void>;
   
   // 집계 메서드

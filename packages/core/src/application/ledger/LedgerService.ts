@@ -117,7 +117,7 @@ export class LedgerService {
     const currentUser = await this.authService.getCurrentUser();
     if (!currentUser) throw new UnauthorizedError('인증이 필요합니다.');
 
-    // 도메인 규칙으로 가계부 생성
+    // 도메인 규츑9으로 가계부 생성 (ID 없이)
     const ledgerEntity = LedgerRules.createLedger({
       name: input.name,
       description: input.description,
@@ -125,8 +125,8 @@ export class LedgerService {
       createdBy: currentUser.id,
     });
 
-    // 저장
-    const ledgerId = await this.ledgerRepo.save(ledgerEntity);
+    // DB에서 ID 자동 생성하여 저장
+    const ledgerId = await this.ledgerRepo.create(ledgerEntity);
 
     // 생성자를 owner로 추가
     const memberEntity = LedgerMemberRules.createMember(
@@ -181,7 +181,7 @@ export class LedgerService {
       currency: input.currency as any,
     });
 
-    await this.ledgerRepo.save(updatedLedger);
+    await this.ledgerRepo.update(updatedLedger);
   }
 
   /**
@@ -429,7 +429,7 @@ export class LedgerService {
       sortOrder: 999,
     });
 
-    const categoryId = await this.categoryRepo.save(category);
+    const categoryId = await this.categoryRepo.create(category);
     return categoryId;
   }
 }

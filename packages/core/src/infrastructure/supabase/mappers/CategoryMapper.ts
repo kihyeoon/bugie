@@ -31,7 +31,7 @@ export class CategoryMapper {
   }
 
   /**
-   * Domain → DB 변환
+   * Domain → DB 변환 (업데이트용)
    */
   static toDb(domain: CategoryEntity): Partial<DbCategory> {
     return {
@@ -45,6 +45,22 @@ export class CategoryMapper {
       template_id: domain.templateId ?? undefined,
       is_active: domain.isActive,
       ...(domain.isActive === false && { deleted_at: new Date().toISOString() })
+    };
+  }
+
+  /**
+   * Domain → DB 변환 (생성용, ID 제외)
+   */
+  static toDbForCreate(domain: Omit<CategoryEntity, 'id'>): Partial<DbCategory> {
+    return {
+      ledger_id: domain.ledgerId,
+      name: domain.isTemplate ? undefined : domain.name,
+      type: domain.type as DbCategoryType,
+      color: domain.color,
+      icon: domain.icon,
+      sort_order: domain.sortOrder,
+      template_id: domain.templateId ?? undefined,
+      is_active: domain.isActive
     };
   }
 
