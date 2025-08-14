@@ -48,6 +48,7 @@ import { TransactionService } from './application/transaction/TransactionService
 // Infrastructure imports
 import { LedgerRepository, LedgerMemberRepository, CategoryRepository } from './infrastructure/supabase/repositories/LedgerRepository';
 import { TransactionRepository } from './infrastructure/supabase/repositories/TransactionRepository';
+import { TransactionViewRepository } from './infrastructure/supabase/repositories/TransactionViewRepository';
 import { SupabaseAuthService } from './infrastructure/supabase/auth/SupabaseAuthService';
 
 export function createLedgerService(supabase: SupabaseClient): LedgerService {
@@ -61,11 +62,11 @@ export function createLedgerService(supabase: SupabaseClient): LedgerService {
 
 export function createTransactionService(supabase: SupabaseClient): TransactionService {
   const transactionRepo = new TransactionRepository(supabase);
+  const transactionViewRepo = new TransactionViewRepository(supabase);
   const memberRepo = new LedgerMemberRepository(supabase);
   const authService = new SupabaseAuthService(supabase);
-  const transactionRepoImpl = new TransactionRepository(supabase);
   
-  return new TransactionService(transactionRepo, memberRepo, authService, transactionRepoImpl);
+  return new TransactionService(transactionRepo, memberRepo, authService, transactionViewRepo);
 }
 
 // 서비스 클래스 Export (타입용)

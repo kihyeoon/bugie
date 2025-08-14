@@ -15,7 +15,7 @@ import type {
 import type { LedgerMemberRepository } from '../../domain/ledger/types';
 import type { AuthService } from '../../domain/auth/types';
 import { TransactionRules } from '../../domain/transaction/rules';
-import { TransactionRepository as TransactionRepoImpl } from '../../infrastructure/supabase/repositories/TransactionRepository';
+import { TransactionViewRepository } from '../../infrastructure/supabase/repositories/TransactionViewRepository';
 import { UnauthorizedError, NotFoundError } from '../../domain/shared/errors';
 
 export class TransactionService {
@@ -23,7 +23,7 @@ export class TransactionService {
     private transactionRepo: TransactionRepository,
     private memberRepo: LedgerMemberRepository,
     private authService: AuthService,
-    private transactionRepoImpl: TransactionRepoImpl // For view data access
+    private transactionViewRepo: TransactionViewRepository // For UI data access
   ) {}
 
   /**
@@ -56,7 +56,7 @@ export class TransactionService {
     };
 
     // Use view data for UI
-    const result = await this.transactionRepoImpl.findWithDetails(domainFilter);
+    const result = await this.transactionViewRepo.findWithDetails(domainFilter);
 
     return {
       data: result.data,
@@ -88,7 +88,7 @@ export class TransactionService {
 
     // Get detailed view data
     const detailed =
-      await this.transactionRepoImpl.findByIdWithDetails(transactionId);
+      await this.transactionViewRepo.findByIdWithDetails(transactionId);
     if (!detailed) {
       throw new NotFoundError('거래 상세 정보를 찾을 수 없습니다.');
     }
@@ -294,18 +294,19 @@ export class TransactionService {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0);
 
-    const categorySummaries = await this.transactionRepo.getCategorySummary(
+    // Use view repository for UI data
+    const categorySummaries = await this.transactionViewRepo.getCategorySummary(
       ledgerId,
       startDate,
       endDate
     );
 
-    // Transform to UI format
+    // Transform to UI format (already includes UI data from view)
     return categorySummaries.map((summary) => ({
       category_id: summary.categoryId,
       category_name: summary.categoryName,
-      category_color: '', // Not available in domain model
-      category_icon: '', // Not available in domain model
+      category_color: '', // TODO: Add color and icon to view
+      category_icon: '', // TODO: Add color and icon to view
       total_amount: summary.totalAmount,
       transaction_count: summary.transactionCount,
       percentage: summary.percentage,
