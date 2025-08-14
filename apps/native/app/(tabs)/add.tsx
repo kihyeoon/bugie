@@ -3,13 +3,15 @@ import { useState } from 'react';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography, ToggleSwitch, Button, AmountDisplay } from '@/components/ui';
+import { useCategories } from '@/hooks/useCategories';
+import type { CategoryDetail } from '@repo/core';
 
 export default function AddTransactionScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const [amount, setAmount] = useState('0');
   const [isExpense, setIsExpense] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<CategoryDetail | null>(null);
 
   const handleNumberPress = (num: string) => {
     if (amount === '0') {
@@ -27,10 +29,8 @@ export default function AddTransactionScreen() {
     }
   };
 
-
-  const categories = isExpense 
-    ? ['식비', '교통', '쇼핑', '문화']
-    : ['급여', '용돈', '투자', '기타'];
+  // 실제 DB에서 카테고리 가져오기
+  const { categories, loading: categoriesLoading } = useCategories(isExpense ? 'expense' : 'income');
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -63,32 +63,38 @@ export default function AddTransactionScreen() {
       {/* 카테고리 선택 */}
       <View style={styles.categorySection}>
         <View style={styles.categoryContainer}>
-          {categories.map((category) => (
-            <TouchableOpacity
-              key={category}
-              style={[
-                styles.categoryButton,
-                { 
-                  backgroundColor: selectedCategory === category 
-                    ? colors.tint 
-                    : colors.backgroundSecondary 
-                }
-              ]}
-              onPress={() => setSelectedCategory(category)}
-              activeOpacity={0.7}
-            >
-              <Text style={[
-                styles.categoryText,
-                { 
-                  color: selectedCategory === category 
-                    ? 'white' 
-                    : colors.text 
-                }
-              ]}>
-                {category}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {categoriesLoading ? (
+            <Text style={{ color: colors.textSecondary }}>카테고리 로딩중...</Text>
+          ) : categories.length === 0 ? (
+            <Text style={{ color: colors.textSecondary }}>카테고리가 없습니다</Text>
+          ) : (
+            categories.map((category) => (
+              <TouchableOpacity
+                key={category.id}
+                style={[
+                  styles.categoryButton,
+                  { 
+                    backgroundColor: selectedCategory?.id === category.id 
+                      ? colors.tint 
+                      : colors.backgroundSecondary 
+                  }
+                ]}
+                onPress={() => setSelectedCategory(category)}
+                activeOpacity={0.7}
+              >
+                <Text style={[
+                  styles.categoryText,
+                  { 
+                    color: selectedCategory?.id === category.id 
+                      ? 'white' 
+                      : colors.text 
+                  }
+                ]}>
+                  {category.name}
+                </Text>
+              </TouchableOpacity>
+            ))
+          )}
         </View>
       </View>
 
