@@ -11,6 +11,7 @@ import { CategoryBottomSheet } from './CategoryBottomSheet';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import type { CategoryDetail } from '@repo/core';
+import { getIoniconName } from '@/constants/categories';
 
 interface CategorySelectorProps {
   categories: CategoryDetail[];
@@ -19,6 +20,7 @@ interface CategorySelectorProps {
   transactionType: 'income' | 'expense';
   loading?: boolean;
   placeholder?: string;
+  onCategoriesRefresh?: () => Promise<void>;
 }
 
 export function CategorySelector({
@@ -28,6 +30,7 @@ export function CategorySelector({
   transactionType,
   loading = false,
   placeholder = '카테고리 선택',
+  onCategoriesRefresh,
 }: CategorySelectorProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -44,30 +47,6 @@ export function CategorySelector({
   const handleSelectCategory = (category: CategoryDetail) => {
     onSelectCategory(category);
     handleCloseBottomSheet();
-  };
-
-  // 카테고리 아이콘 매핑 (간단한 예시)
-  const getIconName = (icon?: string): keyof typeof Ionicons.glyphMap => {
-    if (!icon) return 'pricetag-outline';
-
-    const iconMap: Record<string, keyof typeof Ionicons.glyphMap> = {
-      utensils: 'restaurant-outline',
-      car: 'car-outline',
-      'shopping-bag': 'cart-outline',
-      film: 'film-outline',
-      heart: 'heart-outline',
-      home: 'home-outline',
-      book: 'book-outline',
-      'more-horizontal': 'ellipsis-horizontal',
-      briefcase: 'briefcase-outline',
-      'trending-up': 'trending-up-outline',
-      'bar-chart': 'bar-chart-outline',
-      gift: 'gift-outline',
-      'plus-circle': 'add-circle-outline',
-      tag: 'pricetag-outline',
-      receipt: 'receipt-outline',
-    };
-    return iconMap[icon] || 'pricetag-outline';
   };
 
   return (
@@ -89,7 +68,7 @@ export function CategorySelector({
           ) : selectedCategory ? (
             <>
               <Ionicons
-                name={getIconName(selectedCategory.icon)}
+                name={getIoniconName(selectedCategory.icon, true)}
                 size={20}
                 color={selectedCategory.color}
               />
@@ -116,6 +95,7 @@ export function CategorySelector({
         onSelectCategory={handleSelectCategory}
         transactionType={transactionType}
         loading={loading}
+        onCategoriesRefresh={onCategoriesRefresh}
       />
     </>
   );

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import type { CategoryDetail } from '@repo/core';
+import { getIoniconName } from '@/constants/categories';
 
 interface CategoryItemProps {
   category: CategoryDetail;
@@ -25,28 +26,6 @@ export function CategoryItem({
   const colors = Colors[colorScheme ?? 'light'];
 
   const itemWidth = (SCREEN_WIDTH - PADDING * 2 - (columns - 1) * 12) / columns;
-
-  // 카테고리 아이콘 매핑 (간단한 예시)
-  const getIconName = (icon: string): keyof typeof Ionicons.glyphMap => {
-    const iconMap: Record<string, keyof typeof Ionicons.glyphMap> = {
-      utensils: 'restaurant',
-      car: 'car',
-      'shopping-bag': 'cart',
-      film: 'film',
-      heart: 'heart',
-      home: 'home',
-      book: 'book',
-      'more-horizontal': 'ellipsis-horizontal',
-      briefcase: 'briefcase',
-      'trending-up': 'trending-up',
-      'bar-chart': 'bar-chart',
-      gift: 'gift',
-      'plus-circle': 'add-circle',
-      tag: 'pricetag',
-      receipt: 'receipt',
-    };
-    return iconMap[icon] || 'pricetag';
-  };
 
   return (
     <Pressable
@@ -74,7 +53,7 @@ export function CategoryItem({
         ]}
       >
         <Ionicons
-          name={getIconName(category.icon)}
+          name={getIoniconName(category.icon, false)}
           size={24}
           color={isSelected ? 'white' : category.color}
         />

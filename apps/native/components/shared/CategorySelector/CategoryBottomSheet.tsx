@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Modal,
   View,
@@ -9,13 +9,17 @@ import {
   Dimensions,
   TouchableOpacity,
   PanResponder,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CategoryGrid } from './CategoryGrid';
+import { AddCategoryModal } from './AddCategoryModal';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import type { CategoryDetail } from '@repo/core';
+import { useServices } from '@/contexts/ServiceContext';
+import { useLedger } from '@/contexts/LedgerContext';
+import type { CategoryDetail, CategoryType } from '@repo/core';
 
 interface CategoryBottomSheetProps {
   visible: boolean;
@@ -25,6 +29,7 @@ interface CategoryBottomSheetProps {
   onSelectCategory: (category: CategoryDetail) => void;
   transactionType: 'income' | 'expense';
   loading?: boolean;
+  onCategoriesRefresh?: () => Promise<void>;
 }
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -39,10 +44,15 @@ export function CategoryBottomSheet({
   onSelectCategory,
   transactionType,
   loading = false,
+  onCategoriesRefresh,
 }: CategoryBottomSheetProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const insets = useSafeAreaInsets();
+  const { ledgerService } = useServices();
+  const { currentLedger } = useLedger();
+
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -115,6 +125,44 @@ export function CategoryBottomSheet({
   const handleSelectCategory = (category: CategoryDetail) => {
     onSelectCategory(category);
     handleClose();
+  };
+
+  const handleAddCategory = async (category: {
+    name: string;
+    type: CategoryType;
+    color: string;
+    icon: string;
+  }) => {
+    if (!currentLedger) {
+      Alert.alert('오류', '가계부를 선택해주세요.');
+      return;
+    }
+
+    try {
+      const categoryId = await ledgerService.addCustomCategory(
+        currentLedger.id,
+        category.name,
+        category.type,
+        category.color,
+        category.icon
+      );
+
+      // 카테고리 목록 새로고침
+      if (onCategoriesRefresh) {
+        await onCategoriesRefresh();
+      }
+
+      // 새로 추가된 카테고리 자동 선택
+      const newCategory = categories.find((cat) => cat.id === categoryId);
+      if (newCategory) {
+        onSelectCategory(newCategory);
+      }
+
+      Alert.alert('성공', '카테고리가 추가되었습니다.');
+    } catch (error) {
+      console.error('Failed to add custom category:', error);
+      Alert.alert('오류', '카테고리 추가에 실패했습니다.');
+    }
   };
 
   return (
@@ -192,6 +240,7 @@ export function CategoryBottomSheet({
               },
             ]}
             activeOpacity={0.7}
+            onPress={() => setShowAddModal(true)}
           >
             <Ionicons name="add-circle-outline" size={20} color={colors.tint} />
             <Text style={[styles.addButtonText, { color: colors.tint }]}>
@@ -200,6 +249,14 @@ export function CategoryBottomSheet({
           </TouchableOpacity>
         </Animated.View>
       </View>
+
+      {/* 커스텀 카테고리 추가 모달 */}
+      <AddCategoryModal
+        visible={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSave={handleAddCategory}
+        initialType={transactionType}
+      />
     </Modal>
   );
 }
