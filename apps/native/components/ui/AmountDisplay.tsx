@@ -36,10 +36,17 @@ export function AmountDisplay({
   };
 
   const getColor = () => {
+    // type이 명시적으로 지정된 경우 우선 적용
     if (type === 'income') return colors.income;
     if (type === 'expense') return colors.expense;
-    if (amount > 0) return colors.income;
-    if (amount < 0) return colors.expense;
+    
+    // type이 neutral인 경우 amount 기준으로 판단
+    if (type === 'neutral') {
+      if (amount > 0) return colors.income;
+      if (amount < 0) return colors.expense;
+      return colors.text;
+    }
+    
     return colors.text;
   };
 

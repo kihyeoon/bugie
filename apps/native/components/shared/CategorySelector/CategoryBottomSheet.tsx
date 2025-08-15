@@ -13,7 +13,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CategoryGrid } from './CategoryGrid';
-import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import type { CategoryDetail } from '@repo/core';
@@ -25,7 +24,6 @@ interface CategoryBottomSheetProps {
   selectedCategory: CategoryDetail | null;
   onSelectCategory: (category: CategoryDetail) => void;
   transactionType: 'income' | 'expense';
-  onTypeChange: (type: 'income' | 'expense') => void;
   loading?: boolean;
 }
 
@@ -40,7 +38,6 @@ export function CategoryBottomSheet({
   selectedCategory,
   onSelectCategory,
   transactionType,
-  onTypeChange,
   loading = false,
 }: CategoryBottomSheetProps) {
   const colorScheme = useColorScheme();
@@ -175,18 +172,6 @@ export function CategoryBottomSheet({
             </TouchableOpacity>
           </View>
 
-          {/* 수입/지출 토글 */}
-          <View style={styles.toggleContainer}>
-            <ToggleSwitch
-              options={[
-                { label: '지출', value: 'expense' },
-                { label: '수입', value: 'income' },
-              ]}
-              value={transactionType}
-              onChange={(value) => onTypeChange(value as 'income' | 'expense')}
-            />
-          </View>
-
           {/* 카테고리 그리드 */}
           <CategoryGrid
             categories={categories}
@@ -266,10 +251,6 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     padding: 4,
-  },
-  toggleContainer: {
-    paddingHorizontal: 24,
-    paddingBottom: 16,
   },
   addButton: {
     flexDirection: 'row',

@@ -17,7 +17,6 @@ interface CategorySelectorProps {
   selectedCategory: CategoryDetail | null;
   onSelectCategory: (category: CategoryDetail | null) => void;
   transactionType: 'income' | 'expense';
-  onTypeChange?: (type: 'income' | 'expense') => void;
   loading?: boolean;
   placeholder?: string;
 }
@@ -27,7 +26,6 @@ export function CategorySelector({
   selectedCategory,
   onSelectCategory,
   transactionType,
-  onTypeChange,
   loading = false,
   placeholder = '카테고리 선택',
 }: CategorySelectorProps) {
@@ -46,14 +44,6 @@ export function CategorySelector({
   const handleSelectCategory = (category: CategoryDetail) => {
     onSelectCategory(category);
     handleCloseBottomSheet();
-  };
-
-  const handleTypeChange = (type: 'income' | 'expense') => {
-    onTypeChange?.(type);
-    // 타입이 변경되면 선택된 카테고리 초기화
-    if (selectedCategory && selectedCategory.type !== type) {
-      onSelectCategory(null);
-    }
   };
 
   // 카테고리 아이콘 매핑 (간단한 예시)
@@ -87,8 +77,6 @@ export function CategorySelector({
           styles.selector,
           {
             backgroundColor: colors.backgroundSecondary,
-            borderColor: selectedCategory ? colors.tint : 'transparent',
-            borderWidth: selectedCategory ? 1 : 0,
           },
         ]}
         onPress={handleOpenBottomSheet}
@@ -127,7 +115,6 @@ export function CategorySelector({
         selectedCategory={selectedCategory}
         onSelectCategory={handleSelectCategory}
         transactionType={transactionType}
-        onTypeChange={handleTypeChange}
         loading={loading}
       />
     </>
@@ -142,7 +129,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 12,
-    marginBottom: 16,
   },
   content: {
     flexDirection: 'row',

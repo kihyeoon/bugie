@@ -1,25 +1,18 @@
 import {
   StyleSheet,
   TextInput,
-  TouchableOpacity,
   View,
-  Text,
   Keyboard,
   Alert,
-  ScrollView,
   SafeAreaView,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import {
-  Typography,
-  ToggleSwitch,
-  Button,
-  AmountDisplay,
-} from '@/components/ui';
+import { Typography, ToggleSwitch, Button, AmountInput } from '@/components/ui';
 import { CategorySelector } from '@/components/shared/CategorySelector';
 import { useCategories } from '@/hooks/useCategories';
 import { useLedger } from '@/contexts/LedgerContext';
@@ -33,7 +26,7 @@ export default function AddTransactionScreen() {
   const { currentLedger } = useLedger();
   const { transactionService } = useServices();
 
-  const [amount, setAmount] = useState('0');
+  const [amount, setAmount] = useState(0);
   const [transactionType, setTransactionType] = useState<'income' | 'expense'>(
     'expense'
   );
@@ -42,30 +35,6 @@ export default function AddTransactionScreen() {
   const [title, setTitle] = useState('');
   const [memo, setMemo] = useState('');
   const [saving, setSaving] = useState(false);
-
-  // 카테고리 선택 시 제목 자동 채우기
-  useEffect(() => {
-    if (selectedCategory && !title) {
-      setTitle(selectedCategory.name);
-    }
-  }, [selectedCategory, title]);
-
-  const handleNumberPress = (num: string) => {
-    if (amount === '0') {
-      setAmount(num);
-    } else if (amount.length < 10) {
-      // 최대 자릿수 제한
-      setAmount(amount + num);
-    }
-  };
-
-  const handleDelete = () => {
-    if (amount.length > 1) {
-      setAmount(amount.slice(0, -1));
-    } else {
-      setAmount('0');
-    }
-  };
 
   const handleSave = async () => {
     // 유효성 검사
@@ -79,6 +48,11 @@ export default function AddTransactionScreen() {
       return;
     }
 
+    if (!title.trim()) {
+      Alert.alert('알림', '거래 제목을 입력해주세요.');
+      return;
+    }
+
     try {
       setSaving(true);
 
@@ -86,9 +60,9 @@ export default function AddTransactionScreen() {
       const transactionInput = {
         ledgerId: currentLedger.id,
         categoryId: selectedCategory.id,
-        amount: parseFloat(amount),
+        amount: amount,
         type: transactionType,
-        title: title || selectedCategory.name, // 제목이 없으면 카테고리명 사용
+        title: title.trim(),
         description: memo || undefined,
       };
 
@@ -112,145 +86,119 @@ export default function AddTransactionScreen() {
   const { categories, loading: categoriesLoading } =
     useCategories(transactionType);
 
+  // 저장 버튼 활성화 여부
+  const isSaveDisabled =
+    amount === 0 || !selectedCategory || !title.trim() || saving;
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
-        {/* 헤더 */}
-        <View style={styles.header}>
-          <Typography variant="h2" style={{ marginBottom: 20 }}>
-            빠른 입력
-          </Typography>
+        <View style={styles.content}>
+          {/* 헤더 */}
+          <View style={styles.header}>
+            <Typography variant="h2" style={{ marginBottom: 20 }}>
+              빠른 입력
+            </Typography>
 
-          {/* 수입/지출 토글 */}
-          <ToggleSwitch
-            options={[
-              { label: '수입', value: 'income', color: colors.income },
-              { label: '지출', value: 'expense', color: colors.expense },
-            ]}
-            value={transactionType}
-            onChange={(value) =>
-              setTransactionType(value as 'income' | 'expense')
-            }
-            fullWidth
-          />
-        </View>
+            {/* 수입/지출 토글 */}
+            <ToggleSwitch
+              options={[
+                { label: '수입', value: 'income', color: colors.income },
+                { label: '지출', value: 'expense', color: colors.expense },
+              ]}
+              value={transactionType}
+              onChange={(value) => {
+                const newType = value as 'income' | 'expense';
+                setTransactionType(newType);
+                // 타입이 변경되면 선택된 카테고리 초기화
+                if (selectedCategory && selectedCategory.type !== newType) {
+                  setSelectedCategory(null);
+                }
+              }}
+              fullWidth
+            />
+          </View>
 
-        {/* 금액 표시 */}
-        <View style={styles.amountContainer}>
-          <AmountDisplay
-            amount={parseInt(amount)}
+          {/* 금액 표시 및 편집 */}
+          <AmountInput
+            value={amount}
+            onChange={setAmount}
             type={transactionType}
-            size="xlarge"
-            showSign={false}
+            style={styles.amountContainer}
           />
-        </View>
 
-        {/* 카테고리 선택 */}
-        <View style={styles.categorySection}>
-          <CategorySelector
-            categories={categories}
-            selectedCategory={selectedCategory}
-            onSelectCategory={setSelectedCategory}
-            transactionType={transactionType}
-            onTypeChange={setTransactionType}
-            loading={categoriesLoading}
-            placeholder="카테고리를 선택하세요"
-          />
-        </View>
+          {/* 카테고리 선택 */}
+          <View style={styles.categorySection}>
+            <CategorySelector
+              categories={categories}
+              selectedCategory={selectedCategory}
+              onSelectCategory={setSelectedCategory}
+              transactionType={transactionType}
+              loading={categoriesLoading}
+              placeholder="카테고리를 선택하세요"
+            />
+          </View>
 
-        {/* 제목 입력 */}
-        <View style={styles.titleSection}>
-          <TextInput
-            style={[
-              styles.titleInput,
-              {
-                backgroundColor: colors.backgroundSecondary,
-                color: colors.text,
-              },
-            ]}
-            placeholder="거래 제목 (선택)"
-            placeholderTextColor={colors.textSecondary}
-            value={title}
-            onChangeText={setTitle}
-            returnKeyType="next"
-            maxLength={50}
-          />
-        </View>
+          {/* 제목 입력 */}
+          <View style={styles.titleSection}>
+            <TextInput
+              style={[
+                styles.titleInput,
+                {
+                  backgroundColor: colors.backgroundSecondary,
+                  color: colors.text,
+                },
+              ]}
+              placeholder="거래 제목 (필수)"
+              placeholderTextColor={colors.textSecondary}
+              value={title}
+              onChangeText={setTitle}
+              returnKeyType="next"
+              maxLength={50}
+            />
+          </View>
 
-        {/* 메모 입력 */}
-        <View style={styles.memoSection}>
-          <TextInput
-            style={[
-              styles.memoInput,
-              {
-                backgroundColor: colors.backgroundSecondary,
-                color: colors.text,
-              },
-            ]}
-            placeholder="메모 입력 (선택)"
-            placeholderTextColor={colors.textSecondary}
-            value={memo}
-            onChangeText={setMemo}
-            returnKeyType="done"
-            onSubmitEditing={Keyboard.dismiss}
-            multiline
-            maxLength={200}
-          />
-        </View>
+          {/* 메모 입력 */}
+          <View style={styles.memoSection}>
+            <TextInput
+              style={[
+                styles.memoInput,
+                {
+                  backgroundColor: colors.backgroundSecondary,
+                  color: colors.text,
+                },
+              ]}
+              placeholder="메모 입력 (선택)"
+              placeholderTextColor={colors.textSecondary}
+              value={memo}
+              onChangeText={setMemo}
+              returnKeyType="done"
+              onSubmitEditing={Keyboard.dismiss}
+              multiline
+              maxLength={200}
+            />
+          </View>
 
-        {/* 숫자 키패드 */}
-        <View style={styles.keypad}>
-          {[
-            ['1', '2', '3'],
-            ['4', '5', '6'],
-            ['7', '8', '9'],
-            ['00', '0', '←'],
-          ].map((row, rowIndex) => (
-            <View key={rowIndex} style={styles.keypadRow}>
-              {row.map((key) => (
-                <TouchableOpacity
-                  key={key}
-                  style={[
-                    styles.keypadButton,
-                    { backgroundColor: colors.backgroundSecondary },
-                  ]}
-                  onPress={() => {
-                    if (key === '←') {
-                      handleDelete();
-                    } else {
-                      handleNumberPress(key);
-                    }
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.keypadText, { color: colors.text }]}>
-                    {key}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          ))}
+          {/* 저장 버튼 */}
+          <View style={styles.saveButtonContainer}>
+            <Button
+              variant="primary"
+              size="large"
+              fullWidth
+              disabled={isSaveDisabled}
+              onPress={handleSave}
+            >
+              {saving ? '저장 중...' : '저장하기'}
+            </Button>
+          </View>
         </View>
-
-        {/* 저장 버튼 */}
-        <Button
-          variant="primary"
-          size="large"
-          fullWidth
-          disabled={amount === '0' || !selectedCategory || saving}
-          onPress={handleSave}
-          style={styles.saveButton}
-        >
-          {saving ? '저장 중...' : '저장하기'}
-        </Button>
-      </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -259,20 +207,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollView: {
+  keyboardAvoidingView: {
     flex: 1,
   },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: Platform.select({
-      ios: 100,
-      android: 80,
-    }),
+  content: {
+    flex: 1,
   },
   header: {
-    paddingTop: 60,
+    paddingTop: Platform.select({
+      ios: 10,
+      android: 20,
+    }),
     paddingHorizontal: 24,
-    paddingBottom: 20,
+    paddingBottom: 12,
   },
   headerTitle: {
     fontSize: 28,
@@ -297,8 +244,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   amountContainer: {
-    paddingVertical: 40,
-    alignItems: 'center',
+    paddingVertical: 8,
   },
   amount: {
     fontSize: 48,
@@ -307,11 +253,11 @@ const styles = StyleSheet.create({
   },
   categorySection: {
     paddingHorizontal: 24,
-    marginBottom: 4,
+    marginBottom: 12,
   },
   titleSection: {
     paddingHorizontal: 24,
-    marginBottom: 20,
+    marginBottom: 12,
   },
   titleInput: {
     borderRadius: 12,
@@ -321,7 +267,8 @@ const styles = StyleSheet.create({
   },
   memoSection: {
     paddingHorizontal: 24,
-    marginBottom: 30,
+    marginBottom: 20,
+    minHeight: 60,
   },
   memoInput: {
     borderRadius: 12,
@@ -329,39 +276,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     letterSpacing: -0.3,
     minHeight: 60,
+    maxHeight: 100,
   },
-  keypad: {
+  saveButtonContainer: {
     paddingHorizontal: 24,
-    marginBottom: 20,
-  },
-  keypadRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
-  },
-  keypadButton: {
-    flex: 1,
-    aspectRatio: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 12,
-  },
-  keypadText: {
-    fontSize: 22,
-    fontWeight: '500',
-    letterSpacing: -0.5,
-  },
-  saveButton: {
-    marginHorizontal: 24,
-    marginBottom: 20,
-    paddingVertical: 18,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  saveButtonText: {
-    color: 'white',
-    fontSize: 17,
-    fontWeight: '600',
-    letterSpacing: -0.3,
+    paddingBottom: Platform.select({
+      ios: 24,
+      android: 20,
+    }),
   },
 });

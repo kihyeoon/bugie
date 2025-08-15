@@ -28,22 +28,29 @@ export function ToggleSwitch({
 }: ToggleSwitchProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const [selectedIndex, setSelectedIndex] = useState(
-    options.findIndex((opt) => opt.value === value)
-  );
-  const slideAnim = useRef(new Animated.Value(0)).current;
+  const initialIndex = options.findIndex((opt) => opt.value === value);
+  const [selectedIndex, setSelectedIndex] = useState(initialIndex);
+  const slideAnim = useRef(new Animated.Value(initialIndex)).current;
   const [containerWidth, setContainerWidth] = useState(0);
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
     const index = options.findIndex((opt) => opt.value === value);
     setSelectedIndex(index);
 
-    Animated.spring(slideAnim, {
-      toValue: index,
-      useNativeDriver: false,
-      tension: 68,
-      friction: 10,
-    }).start();
+    // 초기 렌더링 시에는 애니메이션 없이 즉시 위치 설정
+    if (isInitialMount.current) {
+      slideAnim.setValue(index);
+      isInitialMount.current = false;
+    } else {
+      // 이후 변경 시에만 애니메이션 실행
+      Animated.spring(slideAnim, {
+        toValue: index,
+        useNativeDriver: false,
+        tension: 68,
+        friction: 10,
+      }).start();
+    }
   }, [value, options, slideAnim]);
 
   const handlePress = (index: number) => {
