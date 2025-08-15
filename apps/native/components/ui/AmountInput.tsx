@@ -4,7 +4,6 @@ import {
   Pressable,
   StyleSheet,
   ViewStyle,
-  Keyboard,
 } from 'react-native';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -17,6 +16,7 @@ interface AmountInputProps {
   maxValue?: number;
   minValue?: number;
   style?: ViewStyle;
+  onSubmitEditing?: () => void;
 }
 
 export function AmountInput({
@@ -26,6 +26,7 @@ export function AmountInput({
   maxValue = 9_999_999_999,
   minValue = 0,
   style,
+  onSubmitEditing,
 }: AmountInputProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -76,7 +77,12 @@ export function AmountInput({
     onChange(finalValue);
     
     setIsEditing(false);
-    Keyboard.dismiss();
+  };
+
+  // Submit 처리
+  const handleSubmit = () => {
+    handleEndEdit();
+    onSubmitEditing?.();
   };
 
   // 색상 결정
@@ -106,7 +112,7 @@ export function AmountInput({
           value={inputValue}
           onChangeText={handleTextChange}
           onBlur={handleEndEdit}
-          onSubmitEditing={handleEndEdit}
+          onSubmitEditing={handleSubmit}
           keyboardType="number-pad"
           returnKeyType="done"
           autoFocus

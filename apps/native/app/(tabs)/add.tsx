@@ -8,7 +8,7 @@ import {
   Platform,
   KeyboardAvoidingView,
 } from 'react-native';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -35,6 +35,10 @@ export default function AddTransactionScreen() {
   const [title, setTitle] = useState('');
   const [memo, setMemo] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Input refs for focus management
+  const titleInputRef = useRef<TextInput>(null);
+  const memoInputRef = useRef<TextInput>(null);
 
   const handleSave = async () => {
     // 유효성 검사
@@ -131,6 +135,12 @@ export default function AddTransactionScreen() {
             onChange={setAmount}
             type={transactionType}
             style={styles.amountContainer}
+            onSubmitEditing={() => {
+              // 금액 입력 후 카테고리가 선택되어 있으면 제목으로, 아니면 카테고리 선택
+              if (selectedCategory) {
+                titleInputRef.current?.focus();
+              }
+            }}
           />
 
           {/* 카테고리 선택 */}
@@ -138,7 +148,15 @@ export default function AddTransactionScreen() {
             <CategorySelector
               categories={categories}
               selectedCategory={selectedCategory}
-              onSelectCategory={setSelectedCategory}
+              onSelectCategory={(category) => {
+                setSelectedCategory(category);
+                // 카테고리 선택 후 자동으로 제목 필드로 포커스 이동
+                if (category) {
+                  setTimeout(() => {
+                    titleInputRef.current?.focus();
+                  }, 100);
+                }
+              }}
               transactionType={transactionType}
               loading={categoriesLoading}
               placeholder="카테고리를 선택하세요"
@@ -148,6 +166,7 @@ export default function AddTransactionScreen() {
           {/* 제목 입력 */}
           <View style={styles.titleSection}>
             <TextInput
+              ref={titleInputRef}
               style={[
                 styles.titleInput,
                 {
@@ -161,12 +180,16 @@ export default function AddTransactionScreen() {
               onChangeText={setTitle}
               returnKeyType="next"
               maxLength={50}
+              onSubmitEditing={() => {
+                memoInputRef.current?.focus();
+              }}
             />
           </View>
 
           {/* 메모 입력 */}
           <View style={styles.memoSection}>
             <TextInput
+              ref={memoInputRef}
               style={[
                 styles.memoInput,
                 {
@@ -180,7 +203,6 @@ export default function AddTransactionScreen() {
               onChangeText={setMemo}
               returnKeyType="done"
               onSubmitEditing={Keyboard.dismiss}
-              multiline
               maxLength={200}
             />
           </View>
@@ -275,8 +297,7 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 15,
     letterSpacing: -0.3,
-    minHeight: 60,
-    maxHeight: 100,
+    height: 52,
   },
   saveButtonContainer: {
     paddingHorizontal: 24,
