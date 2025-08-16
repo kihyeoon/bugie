@@ -602,6 +602,10 @@ export interface Database {
         Args: { user_uuid: string; user_email: string; user_name: string };
         Returns: string;
       };
+      soft_delete_category: {
+        Args: { category_id: string };
+        Returns: boolean;
+      };
     };
     Enums: {
       budget_period: 'monthly' | 'yearly';

@@ -10,6 +10,7 @@ interface CategoryItemProps {
   category: CategoryDetail;
   isSelected: boolean;
   onPress: () => void;
+  onLongPress?: () => void;
   columns?: 3 | 4;
 }
 
@@ -20,6 +21,7 @@ export function CategoryItem({
   category,
   isSelected,
   onPress,
+  onLongPress,
   columns = 4,
 }: CategoryItemProps) {
   const colorScheme = useColorScheme();
@@ -41,6 +43,8 @@ export function CategoryItem({
         },
       ]}
       onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={500}
     >
       <View
         style={[

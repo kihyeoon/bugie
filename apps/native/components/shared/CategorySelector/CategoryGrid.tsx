@@ -15,6 +15,7 @@ interface CategoryGridProps {
   categories: CategoryDetail[];
   selectedCategory: CategoryDetail | null;
   onSelectCategory: (category: CategoryDetail) => void;
+  onLongPress?: (category: CategoryDetail) => void;
   transactionType: 'income' | 'expense';
   loading?: boolean;
   columns?: 3 | 4;
@@ -24,6 +25,7 @@ export function CategoryGrid({
   categories,
   selectedCategory,
   onSelectCategory,
+  onLongPress,
   transactionType,
   loading = false,
   columns = 4,
@@ -80,6 +82,7 @@ export function CategoryGrid({
               category={category}
               isSelected={selectedCategory?.id === category.id}
               onPress={() => onSelectCategory(category)}
+              onLongPress={onLongPress ? () => onLongPress(category) : undefined}
               columns={columns}
             />
           ))}

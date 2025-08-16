@@ -15,11 +15,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CategoryGrid } from './CategoryGrid';
 import { AddCategoryModal } from './AddCategoryModal';
+import CategoryContextMenu from './CategoryContextMenu';
+import EditCategoryModal from './EditCategoryModal';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useServices } from '@/contexts/ServiceContext';
 import { useLedger } from '@/contexts/LedgerContext';
 import type { CategoryDetail, CategoryType } from '@repo/core';
+import type { Category } from '@repo/types';
 
 interface CategoryBottomSheetProps {
   visible: boolean;
@@ -53,6 +56,8 @@ export function CategoryBottomSheet({
   const { currentLedger } = useLedger();
 
   const [showAddModal, setShowAddModal] = useState(false);
+  const [contextMenuCategory, setContextMenuCategory] = useState<Category | null>(null);
+  const [editModalCategory, setEditModalCategory] = useState<Category | null>(null);
 
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -165,6 +170,95 @@ export function CategoryBottomSheet({
     }
   };
 
+  // 카테고리 롱프레스 핸들러
+  const handleLongPress = (category: CategoryDetail) => {
+    // CategoryDetail을 Category 타입으로 변환
+    const categoryForMenu: Category = {
+      id: category.id,
+      ledger_id: category.ledger_id,
+      template_id: category.template_id || undefined,
+      name: category.name || '',
+      type: category.type,
+      color: category.color,
+      icon: category.icon,
+      sort_order: category.sort_order || 0,
+      is_active: category.is_active,
+      created_at: category.created_at,
+      updated_at: category.updated_at,
+      deleted_at: undefined,
+    };
+    setContextMenuCategory(categoryForMenu);
+  };
+
+  // 카테고리 수정 핸들러
+  const handleEditCategory = () => {
+    if (contextMenuCategory) {
+      setEditModalCategory(contextMenuCategory);
+      setContextMenuCategory(null);
+    }
+  };
+
+  // 카테고리 삭제 핸들러
+  const handleDeleteCategory = async () => {
+    if (!contextMenuCategory) return;
+    
+    try {
+      const { supabase } = await import('@/utils/supabase');
+      
+      // RPC 함수를 사용하여 soft delete 수행
+      // (RLS 정책과 RETURNING 절 이슈를 우회)
+      const { error } = await supabase.rpc('soft_delete_category', {
+        category_id: contextMenuCategory.id
+      });
+      
+      if (error) throw error;
+      
+      // 카테고리 목록 새로고침
+      if (onCategoriesRefresh) {
+        await onCategoriesRefresh();
+      }
+      
+      Alert.alert('성공', '카테고리가 삭제되었습니다.');
+      setContextMenuCategory(null);
+    } catch (error) {
+      console.error('Failed to delete category:', error);
+      Alert.alert('오류', '카테고리 삭제에 실패했습니다.');
+    }
+  };
+
+  // 카테고리 수정 저장 핸들러
+  const handleSaveEditCategory = async (
+    categoryId: string,
+    updates: { name: string; color: string; icon: string }
+  ) => {
+    try {
+      const { supabase } = await import('@/utils/supabase');
+      const { error } = await supabase
+        .from('categories')
+        .update({
+          name: updates.name,
+          color: updates.color,
+          icon: updates.icon,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', categoryId);
+
+      if (error) throw error;
+      
+      // 카테고리 목록 새로고침
+      if (onCategoriesRefresh) {
+        await onCategoriesRefresh();
+      }
+      
+      Alert.alert('성공', '카테고리가 수정되었습니다.');
+      setEditModalCategory(null);
+    } catch (error) {
+      console.error('Failed to update category:', error);
+      Alert.alert('오류', '카테고리 수정에 실패했습니다.');
+      throw error;
+    }
+  };
+
   return (
     <Modal
       visible={visible}
@@ -225,6 +319,7 @@ export function CategoryBottomSheet({
             categories={categories}
             selectedCategory={selectedCategory}
             onSelectCategory={handleSelectCategory}
+            onLongPress={handleLongPress}
             transactionType={transactionType}
             loading={loading}
             columns={4}
@@ -256,6 +351,23 @@ export function CategoryBottomSheet({
         onClose={() => setShowAddModal(false)}
         onSave={handleAddCategory}
         initialType={transactionType}
+      />
+
+      {/* 카테고리 컨텍스트 메뉴 */}
+      <CategoryContextMenu
+        visible={!!contextMenuCategory}
+        category={contextMenuCategory}
+        onEdit={handleEditCategory}
+        onDelete={handleDeleteCategory}
+        onClose={() => setContextMenuCategory(null)}
+      />
+
+      {/* 카테고리 수정 모달 */}
+      <EditCategoryModal
+        visible={!!editModalCategory}
+        category={editModalCategory}
+        onSave={handleSaveEditCategory}
+        onClose={() => setEditModalCategory(null)}
       />
     </Modal>
   );
