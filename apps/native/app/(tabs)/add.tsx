@@ -87,8 +87,13 @@ export default function AddTransactionScreen() {
   };
 
   // 실제 DB에서 카테고리 가져오기
-  const { categories, loading: categoriesLoading, refresh: refreshCategories } =
-    useCategories(transactionType);
+  const { 
+    categories, 
+    loading: categoriesLoading, 
+    refresh: refreshCategories,
+    updateCategory,
+    deleteCategory,
+  } = useCategories(transactionType);
 
   // 저장 버튼 활성화 여부
   const isSaveDisabled =
@@ -161,6 +166,8 @@ export default function AddTransactionScreen() {
               loading={categoriesLoading}
               placeholder="카테고리를 선택하세요"
               onCategoriesRefresh={refreshCategories}
+              onUpdateCategory={updateCategory}
+              onDeleteCategory={deleteCategory}
             />
           </View>
 

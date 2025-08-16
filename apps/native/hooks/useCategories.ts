@@ -26,19 +26,21 @@ export function useCategories(type?: 'income' | 'expense') {
     try {
       setLoading(true);
       setError(null);
-      
+
       // LedgerService에서 카테고리 목록 가져오기
       const allCategories = await ledgerService.getCategories(currentLedger.id);
-      
+
       // 타입별 필터링
-      const filtered = type 
-        ? allCategories.filter(c => c.type === type)
+      const filtered = type
+        ? allCategories.filter((c) => c.type === type)
         : allCategories;
-      
+
       setCategories(filtered);
     } catch (err) {
       console.error('Failed to load categories:', err);
-      setError(err instanceof Error ? err : new Error('Failed to load categories'));
+      setError(
+        err instanceof Error ? err : new Error('Failed to load categories')
+      );
       setCategories([]);
     } finally {
       setLoading(false);
@@ -51,90 +53,55 @@ export function useCategories(type?: 'income' | 'expense') {
 
   /**
    * 커스텀 카테고리 수정
-   * TODO: CategoryService 구현 후 교체 필요
    */
-  const updateCategory = useCallback(async (
-    categoryId: string,
-    updates: { name: string; color: string; icon: string }
-  ) => {
-    if (!currentLedger) {
-      throw new Error('가계부가 선택되지 않았습니다.');
-    }
+  const updateCategory = useCallback(
+    async (
+      categoryId: string,
+      updates: { name: string; color: string; icon: string }
+    ) => {
+      try {
+        await ledgerService.updateCategory(categoryId, updates);
 
-    try {
-      // 임시로 직접 Supabase 호출
-      const { supabase } = await import('../utils/supabase');
-      const { error } = await supabase
-        .from('categories')
-        .update({
-          name: updates.name,
-          color: updates.color,
-          icon: updates.icon,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', categoryId);
-
-      if (error) throw error;
-      
-      await loadCategories(); // 목록 새로고침
-    } catch (err) {
-      console.error('Failed to update category:', err);
-      throw err;
-    }
-  }, [currentLedger, loadCategories]);
+        await loadCategories(); // 목록 새로고침
+        Alert.alert('성공', '카테고리가 수정되었습니다.');
+      } catch (err) {
+        console.error('Failed to update category:', err);
+        const errorMessage =
+          err instanceof Error ? err.message : '카테고리 수정에 실패했습니다.';
+        Alert.alert('오류', errorMessage);
+        throw err;
+      }
+    },
+    [ledgerService, loadCategories]
+  );
 
   /**
    * 카테고리 삭제 (Soft Delete)
-   * TODO: CategoryService 구현 후 교체 필요
    */
-  const deleteCategory = useCallback(async (categoryId: string) => {
-    if (!currentLedger) {
-      throw new Error('가계부가 선택되지 않았습니다.');
-    }
+  const deleteCategory = useCallback(
+    async (categoryId: string) => {
+      try {
+        await ledgerService.deleteCategory(categoryId);
 
-    try {
-      // 거래 존재 여부 확인
-      const { supabase } = await import('../utils/supabase');
-      const { data: transactions } = await supabase
-        .from('transactions')
-        .select('id')
-        .eq('ledger_id', currentLedger.id)
-        .eq('category_id', categoryId)
-        .is('deleted_at', null)
-        .limit(1);
+        // 목록에서 즉시 제거 (낙관적 업데이트)
+        setCategories((prev) => prev.filter((c) => c.id !== categoryId));
 
-      if (transactions && transactions.length > 0) {
-        Alert.alert(
-          '삭제 불가',
-          '이 카테고리를 사용하는 거래가 있습니다.\n거래를 먼저 삭제하거나 다른 카테고리로 변경해주세요.'
-        );
+        Alert.alert('성공', '카테고리가 삭제되었습니다.');
+        return true;
+      } catch (err) {
+        console.error('Failed to delete category:', err);
+        const errorMessage =
+          err instanceof Error ? err.message : '카테고리 삭제에 실패했습니다.';
+        Alert.alert('오류', errorMessage);
         return false;
       }
+    },
+    [ledgerService]
+  );
 
-      // 카테고리 삭제 (Soft Delete)
-      const { error } = await supabase
-        .from('categories')
-        .update({
-          is_active: false,
-          deleted_at: new Date().toISOString(),
-        })
-        .eq('id', categoryId);
-
-      if (error) throw error;
-      
-      // 목록에서 즉시 제거 (낙관적 업데이트)
-      setCategories(prev => prev.filter(c => c.id !== categoryId));
-      
-      return true;
-    } catch (err) {
-      console.error('Failed to delete category:', err);
-      throw err;
-    }
-  }, [currentLedger]);
-
-  return { 
-    categories, 
-    loading, 
+  return {
+    categories,
+    loading,
     error,
     refresh: loadCategories, // 새로고침 함수
     updateCategory, // 카테고리 수정 함수

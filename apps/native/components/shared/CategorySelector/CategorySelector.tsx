@@ -21,6 +21,8 @@ interface CategorySelectorProps {
   loading?: boolean;
   placeholder?: string;
   onCategoriesRefresh?: () => Promise<void>;
+  onUpdateCategory: (categoryId: string, updates: { name: string; color: string; icon: string }) => Promise<void>;
+  onDeleteCategory: (categoryId: string) => Promise<boolean>;
 }
 
 export function CategorySelector({
@@ -31,6 +33,8 @@ export function CategorySelector({
   loading = false,
   placeholder = '카테고리 선택',
   onCategoriesRefresh,
+  onUpdateCategory,
+  onDeleteCategory,
 }: CategorySelectorProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -96,6 +100,8 @@ export function CategorySelector({
         transactionType={transactionType}
         loading={loading}
         onCategoriesRefresh={onCategoriesRefresh}
+        onUpdateCategory={onUpdateCategory}
+        onDeleteCategory={onDeleteCategory}
       />
     </>
   );

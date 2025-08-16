@@ -33,6 +33,8 @@ interface CategoryBottomSheetProps {
   transactionType: 'income' | 'expense';
   loading?: boolean;
   onCategoriesRefresh?: () => Promise<void>;
+  onUpdateCategory: (categoryId: string, updates: { name: string; color: string; icon: string }) => Promise<void>;
+  onDeleteCategory: (categoryId: string) => Promise<boolean>;
 }
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -48,6 +50,8 @@ export function CategoryBottomSheet({
   transactionType,
   loading = false,
   onCategoriesRefresh,
+  onUpdateCategory,
+  onDeleteCategory,
 }: CategoryBottomSheetProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -203,26 +207,13 @@ export function CategoryBottomSheet({
     if (!contextMenuCategory) return;
     
     try {
-      const { supabase } = await import('@/utils/supabase');
-      
-      // RPC 함수를 사용하여 soft delete 수행
-      // (RLS 정책과 RETURNING 절 이슈를 우회)
-      const { error } = await supabase.rpc('soft_delete_category', {
-        category_id: contextMenuCategory.id
-      });
-      
-      if (error) throw error;
-      
-      // 카테고리 목록 새로고침
-      if (onCategoriesRefresh) {
-        await onCategoriesRefresh();
+      const success = await onDeleteCategory(contextMenuCategory.id);
+      if (success) {
+        setContextMenuCategory(null);
       }
-      
-      Alert.alert('성공', '카테고리가 삭제되었습니다.');
-      setContextMenuCategory(null);
     } catch (error) {
       console.error('Failed to delete category:', error);
-      Alert.alert('오류', '카테고리 삭제에 실패했습니다.');
+      // 에러는 useCategories 훅에서 처리되므로 여기서는 추가 처리 불필요
     }
   };
 
@@ -232,29 +223,16 @@ export function CategoryBottomSheet({
     updates: { name: string; color: string; icon: string }
   ) => {
     try {
-      const { supabase } = await import('@/utils/supabase');
-      const { error } = await supabase
-        .from('categories')
-        .update({
-          name: updates.name,
-          color: updates.color,
-          icon: updates.icon,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', categoryId);
-
-      if (error) throw error;
+      await onUpdateCategory(categoryId, updates);
+      setEditModalCategory(null);
       
       // 카테고리 목록 새로고침
       if (onCategoriesRefresh) {
         await onCategoriesRefresh();
       }
-      
-      Alert.alert('성공', '카테고리가 수정되었습니다.');
-      setEditModalCategory(null);
     } catch (error) {
       console.error('Failed to update category:', error);
-      Alert.alert('오류', '카테고리 수정에 실패했습니다.');
+      // 에러는 useCategories 훅에서 처리되므로 여기서는 추가 처리 불필요
       throw error;
     }
   };

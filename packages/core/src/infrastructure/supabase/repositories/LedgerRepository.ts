@@ -269,11 +269,39 @@ export class CategoryRepository implements ICategoryRepository {
     if (error) throw error;
   }
 
+  async updatePartial(id: EntityId, updates: Partial<CategoryEntity>): Promise<void> {
+    const updateData: any = {};
+    
+    if (updates.name !== undefined) updateData.name = updates.name;
+    if (updates.color !== undefined) updateData.color = updates.color;
+    if (updates.icon !== undefined) updateData.icon = updates.icon;
+    if (updates.sortOrder !== undefined) updateData.sort_order = updates.sortOrder;
+    if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
+    
+    updateData.updated_at = new Date().toISOString();
+    
+    const { error } = await this.supabase
+      .from('categories')
+      .update(updateData)
+      .eq('id', id);
+
+    if (error) throw error;
+  }
+
   async delete(id: EntityId): Promise<void> {
     const { error } = await this.supabase
       .from('categories')
       .update({ deleted_at: new Date().toISOString() })
       .eq('id', id);
+
+    if (error) throw error;
+  }
+
+  async softDelete(id: EntityId): Promise<void> {
+    // RPC 함수를 사용하여 soft delete 수행 (RLS 문제 우회)
+    const { error } = await this.supabase.rpc('soft_delete_category', {
+      category_id: id
+    });
 
     if (error) throw error;
   }

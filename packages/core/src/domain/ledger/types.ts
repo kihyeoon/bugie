@@ -115,7 +115,9 @@ export interface CategoryRepository {
   findById(id: EntityId): Promise<CategoryEntity | null>;
   create(category: Omit<CategoryEntity, 'id'>): Promise<EntityId>;
   update(category: CategoryEntity): Promise<void>;
+  updatePartial(id: EntityId, updates: Partial<CategoryEntity>): Promise<void>;
   delete(id: EntityId): Promise<void>;
+  softDelete(id: EntityId): Promise<void>;
   getTemplates(): Promise<CategoryEntity[]>;
   activateDefaultCategories(ledgerId: EntityId): Promise<void>;
 }

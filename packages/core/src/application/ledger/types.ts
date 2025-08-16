@@ -11,6 +11,7 @@ export interface CreateLedgerInput {
 }
 
 export interface UpdateLedgerInput {
+  ledgerId: string;
   name?: string;
   description?: string;
   currency?: string;
