@@ -111,6 +111,35 @@ const DateSectionHeader = ({ date }: { date: string }) => {
   );
 };
 
+// 헤더 타이틀 컴포넌트
+const HeaderTitle = ({
+  date,
+  onPrevMonth,
+  onNextMonth,
+}: {
+  date: Date;
+  onPrevMonth: () => void;
+  onNextMonth: () => void;
+}) => {
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? 'light'];
+
+  const monthText = `${date.getMonth() + 1}월`;
+
+  return (
+    <View style={styles.headerTitle}>
+      <TouchableOpacity onPress={onPrevMonth} style={styles.monthNavButton}>
+        <Ionicons name="caret-back" size={16} color={colors.text} />
+      </TouchableOpacity>
+      <Typography variant="h3" weight="600" style={{ marginHorizontal: 20 }}>
+        {monthText}
+      </Typography>
+      <TouchableOpacity onPress={onNextMonth} style={styles.monthNavButton}>
+        <Ionicons name="caret-forward" size={16} color={colors.text} />
+      </TouchableOpacity>
+    </View>
+  );
+};
 
 export default function TransactionsScreen() {
   const params = useLocalSearchParams();
@@ -209,6 +238,23 @@ export default function TransactionsScreen() {
   // 월 변경 처리
   const handleMonthChange = useCallback((year: number, month: number) => {
     setSelectedDate(new Date(year, month));
+  }, []);
+
+  // 이전/다음 월 네비게이션
+  const handlePrevMonth = useCallback(() => {
+    setSelectedDate((prev) => {
+      const newDate = new Date(prev);
+      newDate.setMonth(prev.getMonth() - 1);
+      return newDate;
+    });
+  }, []);
+
+  const handleNextMonth = useCallback(() => {
+    setSelectedDate((prev) => {
+      const newDate = new Date(prev);
+      newDate.setMonth(prev.getMonth() + 1);
+      return newDate;
+    });
   }, []);
 
   // 캘린더 컨테이너 애니메이션 스타일
@@ -323,8 +369,14 @@ export default function TransactionsScreen() {
     >
       <Stack.Screen
         options={{
-          title: '거래 내역',
-          headerBackTitle: '뒤로',
+          headerTitle: () => (
+            <HeaderTitle
+              date={selectedDate}
+              onPrevMonth={handlePrevMonth}
+              onNextMonth={handleNextMonth}
+            />
+          ),
+          headerBackButtonDisplayMode: 'minimal',
           headerRight: () => (
             <TouchableOpacity onPress={handleSearch} style={{ marginRight: 8 }}>
               <Ionicons name="search" size={24} color={colors.icon} />
@@ -404,6 +456,14 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  headerTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  monthNavButton: {
+    padding: 8,
   },
   listContent: {
     paddingBottom: 100,
