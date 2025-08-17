@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -14,7 +14,7 @@ export function LedgerSelector() {
   }
 
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.container}
       activeOpacity={0.7}
       onPress={() => {
@@ -22,14 +22,13 @@ export function LedgerSelector() {
         console.log('Show ledger selector');
       }}
     >
-      <Text style={[styles.ledgerName, { color: colors.text }]} numberOfLines={1}>
+      <Text
+        style={[styles.ledgerName, { color: colors.text }]}
+        numberOfLines={1}
+      >
         {currentLedger.name}
       </Text>
-      <Ionicons 
-        name="chevron-down" 
-        size={16} 
-        color={colors.textSecondary} 
-      />
+      <Ionicons name="chevron-down" size={16} color={colors.textSecondary} />
     </TouchableOpacity>
   );
 }

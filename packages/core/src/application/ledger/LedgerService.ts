@@ -1,37 +1,55 @@
-import type { MemberRole } from '../../domain/ledger/types';
 import type {
-  CreateLedgerInput,
-  UpdateLedgerInput,
-  InviteMemberInput,
-} from './types';
-import type {
-  LedgerWithMembers,
-  LedgerDetail,
-  CategoryDetail,
-} from '../../shared/types';
-import type {
+  LedgerEntity,
   LedgerRepository,
+  LedgerMemberEntity,
   LedgerMemberRepository,
   CategoryRepository,
+  MemberRole,
 } from '../../domain/ledger/types';
-import type { AuthService } from '../../domain/auth/types';
+import type {
+  CategoryDetail,
+  LedgerDetail,
+  LedgerWithMembers,
+} from '../../shared/types';
+import { toCurrencyCode } from '../../domain/shared/utils';
 import {
   LedgerRules,
   LedgerMemberRules,
   CategoryRules,
 } from '../../domain/ledger/rules';
-import { UnauthorizedError, NotFoundError } from '../../domain/shared/errors';
+import type { SupabaseAuthService } from '../../infrastructure/supabase/auth/SupabaseAuthService';
+import type {
+  CreateLedgerInput,
+  UpdateLedgerInput,
+  InviteMemberInput,
+  DeleteCategoryResult,
+} from './types';
+import type { TransactionRepository } from '../../domain/transaction/types';
+import {
+  NotFoundError,
+  UnauthorizedError,
+  BusinessRuleViolationError,
+} from '../../domain/shared/errors';
 
+/**
+ * 가계부 관련 비즈니스 로직을 처리하는 서비스
+ *
+ * 설계 원칙:
+ * - RLS(Row Level Security)가 기본 권한 체크 담당
+ * - 서비스 레이어는 비즈니스 규칙과 사용자 경험에 집중
+ * - 중복 권한 체크 최소화
+ */
 export class LedgerService {
   constructor(
     private ledgerRepo: LedgerRepository,
     private memberRepo: LedgerMemberRepository,
     private categoryRepo: CategoryRepository,
-    private authService: AuthService
+    private authService: SupabaseAuthService,
+    private transactionRepo?: TransactionRepository
   ) {}
 
   /**
-   * 사용자가 속한 모든 가계부 목록 조회
+   * 현재 사용자의 가계부 목록 조회
    */
   async getUserLedgers(): Promise<LedgerWithMembers[]> {
     const currentUser = await this.authService.getCurrentUser();
@@ -41,68 +59,55 @@ export class LedgerService {
       currentUser.id
     );
 
-    // Transform to UI format
     return ledgersWithMembers.map(({ ledger, members }) => ({
       id: ledger.id,
       name: ledger.name,
-      description: ledger.description ?? null,
+      description: ledger.description || null,
       currency: ledger.currency,
       created_by: ledger.createdBy,
       created_at: ledger.createdAt.toISOString(),
       updated_at: ledger.updatedAt.toISOString(),
-      deleted_at: null,
-      ledger_members: members
-        .filter((m) => m.userId === currentUser.id)
-        .map((m) => ({
-          role: m.role,
-          user_id: m.userId,
-        })),
+      deleted_at: ledger.isDeleted ? new Date().toISOString() : null,
+      ledger_members: members.map((m) => ({
+        role: m.role,
+        user_id: m.userId,
+      })),
     }));
   }
 
   /**
    * 특정 가계부 상세 정보 조회
    */
-  async getLedger(ledgerId: string): Promise<LedgerDetail> {
+  async getLedgerDetail(ledgerId: string): Promise<LedgerDetail | null> {
     const currentUser = await this.authService.getCurrentUser();
     if (!currentUser) throw new UnauthorizedError('인증이 필요합니다.');
 
-    // 권한 확인
-    const memberEntity = await this.memberRepo.findByLedgerAndUser(
-      ledgerId,
-      currentUser.id
-    );
-    if (!memberEntity || !memberEntity.isActive) {
-      throw new UnauthorizedError('가계부에 접근할 권한이 없습니다.');
-    }
-
     const result = await this.ledgerRepo.findByIdWithMembers(ledgerId);
-    if (!result) {
-      throw new NotFoundError('가계부를 찾을 수 없습니다.');
-    }
+    if (!result) return null;
 
-    // Transform to UI format
+    const { ledger, members } = result;
+
     return {
-      id: result.ledger.id,
-      name: result.ledger.name,
-      description: result.ledger.description ?? null,
-      currency: result.ledger.currency,
-      created_by: result.ledger.createdBy,
-      created_at: result.ledger.createdAt.toISOString(),
-      updated_at: result.ledger.updatedAt.toISOString(),
-      deleted_at: null,
-      ledger_members: result.members.map(({ member, profile }) => ({
-        id: `${member.ledgerId}-${member.userId}`, // Composite ID
-        ledger_id: member.ledgerId,
-        user_id: member.userId,
-        role: member.role,
-        joined_at: member.joinedAt.toISOString(),
-        deleted_at: member.isActive ? null : new Date().toISOString(),
+      id: ledger.id,
+      name: ledger.name,
+      description: ledger.description || null,
+      currency: ledger.currency,
+      created_by: ledger.createdBy,
+      created_at: ledger.createdAt.toISOString(),
+      updated_at: ledger.updatedAt.toISOString(),
+      deleted_at: ledger.isDeleted ? new Date().toISOString() : null,
+      ledger_members: members.map((m) => ({
+        id: m.member.userId,
+        ledger_id: m.member.ledgerId,
+        user_id: m.member.userId,
+        role: m.member.role,
+        joined_at: m.member.joinedAt.toISOString(),
+        deleted_at: m.member.isActive ? null : new Date().toISOString(),
         profiles: {
-          id: profile.id,
-          email: profile.email,
-          full_name: profile.fullName ?? null,
-          avatar_url: profile.avatarUrl ?? null,
+          id: m.profile.id,
+          email: m.profile.email,
+          full_name: m.profile.fullName || null,
+          avatar_url: m.profile.avatarUrl || null,
         },
       })),
     };
@@ -111,134 +116,79 @@ export class LedgerService {
   /**
    * 새 가계부 생성
    */
-  async createLedger(
-    input: CreateLedgerInput
-  ): Promise<{ id: string; name: string; currency: string }> {
+  async createLedger(input: CreateLedgerInput): Promise<string> {
     const currentUser = await this.authService.getCurrentUser();
     if (!currentUser) throw new UnauthorizedError('인증이 필요합니다.');
 
-    // 도메인 규칙으로 가계부 생성
-    const ledgerEntity = LedgerRules.createLedger({
+    LedgerRules.validateName(input.name);
+
+    const ledger = LedgerRules.createLedger({
       name: input.name,
       description: input.description,
-      currency: (input.currency || 'KRW') as any, // CurrencyCode type from domain
+      currency: toCurrencyCode(input.currency),
       createdBy: currentUser.id,
     });
 
-    // 저장
-    const ledgerId = await this.ledgerRepo.save(ledgerEntity);
+    const ledgerId = await this.ledgerRepo.create(ledger);
 
-    // 생성자를 owner로 추가
-    const memberEntity = LedgerMemberRules.createMember(
+    const ownerMember = LedgerMemberRules.createMember(
       ledgerId,
       currentUser.id,
       'owner'
     );
-    await this.memberRepo.save(memberEntity);
-
-    // 기본 카테고리 활성화
+    await this.memberRepo.save(ownerMember);
     await this.categoryRepo.activateDefaultCategories(ledgerId);
 
-    return {
-      id: ledgerId,
-      name: ledgerEntity.name,
-      currency: ledgerEntity.currency,
-    };
+    return ledgerId;
   }
 
   /**
    * 가계부 정보 수정
    */
-  async updateLedger(
-    ledgerId: string,
-    input: UpdateLedgerInput
-  ): Promise<void> {
-    const currentUser = await this.authService.getCurrentUser();
-    if (!currentUser) throw new UnauthorizedError('인증이 필요합니다.');
-
-    // 권한 확인
-    const memberEntity = await this.memberRepo.findByLedgerAndUser(
-      ledgerId,
-      currentUser.id
-    );
-    if (!memberEntity || !memberEntity.isActive) {
-      throw new UnauthorizedError('가계부에 접근할 권한이 없습니다.');
-    }
-
-    LedgerMemberRules.canEditLedger(memberEntity.role);
-
-    // 기존 가계부 조회
-    const ledgerEntity = await this.ledgerRepo.findById(ledgerId);
-    if (!ledgerEntity) {
+  async updateLedger(input: UpdateLedgerInput): Promise<void> {
+    const ledger = await this.ledgerRepo.findById(input.ledgerId);
+    if (!ledger) {
       throw new NotFoundError('가계부를 찾을 수 없습니다.');
     }
 
-    // 업데이트
-    const updatedLedger = LedgerRules.updateLedger(ledgerEntity, {
-      id: ledgerId,
-      name: input.name,
-      description: input.description,
-      currency: input.currency as any,
-    });
+    if (input.name) {
+      LedgerRules.validateName(input.name);
+    }
 
-    await this.ledgerRepo.save(updatedLedger);
+    const updatedLedger: LedgerEntity = {
+      ...ledger,
+      ...(input.name && { name: input.name }),
+      ...(input.description !== undefined && {
+        description: input.description,
+      }),
+      ...(input.currency && { currency: toCurrencyCode(input.currency) }),
+    };
+    await this.ledgerRepo.update(updatedLedger);
   }
 
   /**
-   * 가계부 삭제 (Soft Delete)
+   * 가계부 삭제
    */
   async deleteLedger(ledgerId: string): Promise<void> {
-    const currentUser = await this.authService.getCurrentUser();
-    if (!currentUser) throw new UnauthorizedError('인증이 필요합니다.');
-
-    // 권한 확인
-    const memberEntity = await this.memberRepo.findByLedgerAndUser(
-      ledgerId,
-      currentUser.id
-    );
-    if (!memberEntity || !memberEntity.isActive) {
-      throw new UnauthorizedError('가계부에 접근할 권한이 없습니다.');
-    }
-
-    LedgerMemberRules.canDeleteLedger(memberEntity.role);
-
     await this.ledgerRepo.delete(ledgerId);
   }
 
   /**
-   * 가계부 멤버 초대
+   * 멤버 초대
    */
   async inviteMember(input: InviteMemberInput): Promise<void> {
-    const currentUser = await this.authService.getCurrentUser();
-    if (!currentUser) throw new UnauthorizedError('인증이 필요합니다.');
-
-    // 권한 확인
-    const memberEntity = await this.memberRepo.findByLedgerAndUser(
-      input.ledgerId,
-      currentUser.id
-    );
-    if (!memberEntity || !memberEntity.isActive) {
-      throw new UnauthorizedError('가계부에 접근할 권한이 없습니다.');
-    }
-
-    LedgerMemberRules.canInviteMember(memberEntity.role);
-
-    // 초대할 사용자 찾기
     const targetUser = await this.memberRepo.findUserByEmail(input.userEmail);
     if (!targetUser) {
       throw new NotFoundError('사용자를 찾을 수 없습니다.');
     }
 
-    // 이미 멤버인지 확인
     const existingMember = await this.memberRepo.findByLedgerAndUser(
       input.ledgerId,
       targetUser.id
     );
     if (existingMember && existingMember.isActive) {
-      throw new Error('이미 가계부 멤버입니다.');
+      throw new BusinessRuleViolationError('이미 가계부 멤버입니다.');
     }
-
-    // 멤버 추가
     const newMember = LedgerMemberRules.createMember(
       input.ledgerId,
       targetUser.id,
@@ -250,6 +200,7 @@ export class LedgerService {
 
   /**
    * 멤버 권한 변경
+   * 복잡한 권한 로직이므로 서비스에서 체크
    */
   async updateMemberRole(
     ledgerId: string,
@@ -259,25 +210,15 @@ export class LedgerService {
     const currentUser = await this.authService.getCurrentUser();
     if (!currentUser) throw new UnauthorizedError('인증이 필요합니다.');
 
-    // 현재 사용자 권한 확인
-    const currentMember = await this.memberRepo.findByLedgerAndUser(
-      ledgerId,
-      currentUser.id
-    );
-    if (!currentMember || !currentMember.isActive) {
-      throw new UnauthorizedError('가계부에 접근할 권한이 없습니다.');
-    }
+    const [currentMember, targetMember] = await Promise.all([
+      this.memberRepo.findByLedgerAndUser(ledgerId, currentUser.id),
+      this.memberRepo.findByLedgerAndUser(ledgerId, userId),
+    ]);
 
-    // 대상 멤버 확인
-    const targetMember = await this.memberRepo.findByLedgerAndUser(
-      ledgerId,
-      userId
-    );
-    if (!targetMember || !targetMember.isActive) {
+    if (!currentMember || !targetMember) {
       throw new NotFoundError('멤버를 찾을 수 없습니다.');
     }
 
-    // 권한 변경 가능 여부 확인
     if (
       !LedgerMemberRules.canChangeRole(
         currentMember.role,
@@ -288,8 +229,7 @@ export class LedgerService {
       throw new UnauthorizedError('권한을 변경할 수 없습니다.');
     }
 
-    // 권한 변경
-    const updatedMember: typeof targetMember = {
+    const updatedMember: LedgerMemberEntity = {
       ...targetMember,
       role,
     };
@@ -300,19 +240,6 @@ export class LedgerService {
    * 멤버 제거
    */
   async removeMember(ledgerId: string, userId: string): Promise<void> {
-    const currentUser = await this.authService.getCurrentUser();
-    if (!currentUser) throw new UnauthorizedError('인증이 필요합니다.');
-
-    // 현재 사용자 권한 확인
-    const currentMember = await this.memberRepo.findByLedgerAndUser(
-      ledgerId,
-      currentUser.id
-    );
-    if (!currentMember || !currentMember.isActive) {
-      throw new UnauthorizedError('가계부에 접근할 권한이 없습니다.');
-    }
-
-    // 대상 멤버 확인
     const targetMember = await this.memberRepo.findByLedgerAndUser(
       ledgerId,
       userId
@@ -321,17 +248,9 @@ export class LedgerService {
       throw new NotFoundError('멤버를 찾을 수 없습니다.');
     }
 
-    // 제거 가능 여부 확인
-    if (!LedgerMemberRules.canManageMembers(currentMember.role)) {
-      throw new UnauthorizedError('멤버를 제거할 권한이 없습니다.');
-    }
-
-    // owner는 제거할 수 없음
     if (targetMember.role === 'owner') {
-      throw new Error('소유자는 제거할 수 없습니다.');
+      throw new BusinessRuleViolationError('소유자는 제거할 수 없습니다.');
     }
-
-    // 멤버 제거
     await this.memberRepo.delete(ledgerId, userId);
   }
 
@@ -342,7 +261,6 @@ export class LedgerService {
     const currentUser = await this.authService.getCurrentUser();
     if (!currentUser) throw new UnauthorizedError('인증이 필요합니다.');
 
-    // 멤버인지 확인
     const member = await this.memberRepo.findByLedgerAndUser(
       ledgerId,
       currentUser.id
@@ -351,33 +269,21 @@ export class LedgerService {
       throw new NotFoundError('가계부 멤버가 아닙니다.');
     }
 
-    // owner는 나갈 수 없음
     if (member.role === 'owner') {
-      throw new Error('소유자는 가계부를 나갈 수 없습니다.');
+      throw new BusinessRuleViolationError(
+        '소유자는 가계부를 나갈 수 없습니다.'
+      );
     }
 
     await this.memberRepo.delete(ledgerId, currentUser.id);
   }
 
   /**
-   * 가계부의 카테고리 목록 조회
+   * 카테고리 목록 조회
    */
   async getCategories(ledgerId: string): Promise<CategoryDetail[]> {
-    const currentUser = await this.authService.getCurrentUser();
-    if (!currentUser) throw new UnauthorizedError('인증이 필요합니다.');
-
-    // 권한 확인
-    const member = await this.memberRepo.findByLedgerAndUser(
-      ledgerId,
-      currentUser.id
-    );
-    if (!member || !member.isActive) {
-      throw new UnauthorizedError('가계부에 접근할 권한이 없습니다.');
-    }
-
     const categories = await this.categoryRepo.findByLedger(ledgerId);
 
-    // Transform to UI format
     return categories.map((cat) => ({
       id: cat.id,
       ledger_id: cat.ledgerId,
@@ -405,31 +311,139 @@ export class LedgerService {
     color?: string,
     icon?: string
   ): Promise<string> {
-    const currentUser = await this.authService.getCurrentUser();
-    if (!currentUser) throw new UnauthorizedError('인증이 필요합니다.');
-
-    // 권한 확인
-    const member = await this.memberRepo.findByLedgerAndUser(
-      ledgerId,
-      currentUser.id
-    );
-    if (!member || !member.isActive) {
-      throw new UnauthorizedError('가계부에 접근할 권한이 없습니다.');
-    }
-
-    LedgerMemberRules.canEditLedger(member.role);
-
-    // 카테고리 생성
+    // 현재 가계부의 카테고리들을 조회하여 최대 sort_order 값을 찾음
+    const existingCategories = await this.categoryRepo.findByLedger(ledgerId);
+    
+    // 같은 타입의 카테고리 중 최대 sort_order 찾기
+    const sameTypeCategories = existingCategories.filter(cat => cat.type === type);
+    const maxSortOrder = sameTypeCategories.reduce((max, cat) => {
+      return Math.max(max, cat.sortOrder || 0);
+    }, 99); // 템플릿 카테고리의 최대값인 99부터 시작
+    
+    // 새 카테고리는 최대값 + 10으로 설정 (나중에 중간 삽입 가능하도록 간격 확보)
+    const newSortOrder = maxSortOrder + 10;
+    
     const category = CategoryRules.createCustomCategory({
       ledgerId,
       name,
       type,
       color,
       icon,
-      sortOrder: 999,
+      sortOrder: newSortOrder,
     });
-
-    const categoryId = await this.categoryRepo.save(category);
+    const categoryId = await this.categoryRepo.create(category);
     return categoryId;
+  }
+
+  /**
+   * 카테고리 수정
+   */
+  async updateCategory(
+    categoryId: string,
+    updates: {
+      name?: string;
+      color?: string;
+      icon?: string;
+    }
+  ): Promise<void> {
+    const category = await this.categoryRepo.findById(categoryId);
+    if (!category) {
+      throw new NotFoundError('카테고리를 찾을 수 없습니다.');
+    }
+
+    if (category.templateId) {
+      throw new BusinessRuleViolationError(
+        '기본 카테고리는 수정할 수 없습니다.'
+      );
+    }
+    try {
+      await this.categoryRepo.updatePartial(categoryId, updates);
+    } catch (error) {
+      if (error instanceof Error && 'code' in error && error.code === '42501') {
+        throw new UnauthorizedError('카테고리를 수정할 권한이 없습니다.');
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * 카테고리 삭제 (소프트 삭제)
+   * 연결된 거래가 있으면 기본 카테고리로 이전
+   */
+  async deleteCategory(categoryId: string): Promise<DeleteCategoryResult> {
+    const category = await this.categoryRepo.findById(categoryId);
+    if (!category) {
+      throw new NotFoundError('카테고리를 찾을 수 없습니다.');
+    }
+
+    if (category.templateId) {
+      throw new BusinessRuleViolationError(
+        '기본 카테고리는 삭제할 수 없습니다.'
+      );
+    }
+
+    let movedTransactions = 0;
+    let fallbackCategoryName: string | undefined;
+
+    // 트랜잭션 리포지토리가 있으면 연결된 거래 처리
+    if (this.transactionRepo) {
+      // 연결된 거래 수 확인
+      const transactionCount =
+        await this.transactionRepo.countByCategoryId(categoryId);
+
+      if (transactionCount > 0) {
+        // 기본 카테고리 찾기
+        const fallbackCategory = await this.categoryRepo.findFallbackCategory(
+          category.ledgerId,
+          category.type
+        );
+
+        if (!fallbackCategory) {
+          // 기본 카테고리가 없으면 활성화
+          await this.categoryRepo.activateDefaultCategories(category.ledgerId);
+
+          // 다시 찾기
+          const retryFallback = await this.categoryRepo.findFallbackCategory(
+            category.ledgerId,
+            category.type
+          );
+
+          if (!retryFallback) {
+            throw new BusinessRuleViolationError(
+              '기본 카테고리를 찾을 수 없습니다. 시스템 관리자에게 문의하세요.'
+            );
+          }
+
+          // 모든 거래를 기본 카테고리로 이전
+          movedTransactions = await this.transactionRepo.updateCategoryBatch(
+            categoryId,
+            retryFallback.id
+          );
+          fallbackCategoryName = retryFallback.name;
+        } else {
+          // 모든 거래를 기본 카테고리로 이전
+          movedTransactions = await this.transactionRepo.updateCategoryBatch(
+            categoryId,
+            fallbackCategory.id
+          );
+          fallbackCategoryName = fallbackCategory.name;
+        }
+      }
+    }
+
+    try {
+      await this.categoryRepo.softDelete(categoryId);
+
+      return {
+        deleted: true,
+        movedTransactions,
+        fallbackCategoryName,
+      };
+    } catch (error) {
+      if (error instanceof Error && 'code' in error && error.code === '42501') {
+        throw new UnauthorizedError('카테고리를 삭제할 권한이 없습니다.');
+      }
+      throw error;
+    }
   }
 }

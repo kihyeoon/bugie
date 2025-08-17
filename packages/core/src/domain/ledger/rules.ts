@@ -9,43 +9,45 @@ import type {
 } from './types';
 import type { EntityId } from '../shared/types';
 import { ValidationError, BusinessRuleViolationError } from '../shared/errors';
+import {
+  LEDGER_MAX_NAME_LENGTH,
+  LEDGER_MIN_NAME_LENGTH,
+  DEFAULT_CURRENCY,
+  CATEGORY_MAX_NAME_LENGTH,
+  CATEGORY_DEFAULT_COLOR,
+  CATEGORY_DEFAULT_ICON,
+  CATEGORY_DEFAULT_SORT_ORDER,
+} from '../shared/constants';
 
 /**
  * 가계부 비즈니스 규칙
  */
 export const LedgerRules = {
-  // 상수
-  MAX_NAME_LENGTH: 50,
-  MIN_NAME_LENGTH: 1,
-  DEFAULT_CURRENCY: 'KRW' as const,
-  MAX_MEMBERS_PER_LEDGER: 20,
-
   /**
    * 가계부 이름 검증
    */
   validateName(name: string): void {
-    if (!name || name.trim().length < this.MIN_NAME_LENGTH) {
+    if (!name || name.trim().length < LEDGER_MIN_NAME_LENGTH) {
       throw new ValidationError('가계부 이름은 필수입니다');
     }
 
-    if (name.length > this.MAX_NAME_LENGTH) {
+    if (name.length > LEDGER_MAX_NAME_LENGTH) {
       throw new ValidationError(
-        `가계부 이름은 ${this.MAX_NAME_LENGTH}자를 초과할 수 없습니다`
+        `가계부 이름은 ${LEDGER_MAX_NAME_LENGTH}자를 초과할 수 없습니다`
       );
     }
   },
 
   /**
-   * 가계부 생성
+   * 가계부 생성 (ID는 DB에서 자동 생성)
    */
-  createLedger(command: CreateLedgerCommand): LedgerEntity {
+  createLedger(command: CreateLedgerCommand): Omit<LedgerEntity, 'id'> {
     this.validateName(command.name);
 
     return {
-      id: this.generateId(),
       name: command.name.trim(),
       description: command.description?.trim(),
-      currency: command.currency || this.DEFAULT_CURRENCY,
+      currency: command.currency || DEFAULT_CURRENCY,
       createdBy: command.createdBy,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -106,13 +108,6 @@ export const LedgerRules = {
       isDeleted: true,
       updatedAt: new Date(),
     };
-  },
-
-  /**
-   * ID 생성 (실제로는 UUID 라이브러리 사용)
-   */
-  generateId(): EntityId {
-    return `ledger_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   },
 };
 
@@ -202,11 +197,6 @@ export const LedgerMemberRules = {
  * 카테고리 비즈니스 규칙
  */
 export const CategoryRules = {
-  MAX_NAME_LENGTH: 20,
-  DEFAULT_COLOR: '#6B7280',
-  DEFAULT_ICON: 'tag',
-  DEFAULT_SORT_ORDER: 999,
-
   /**
    * 카테고리 이름 검증
    */
@@ -215,41 +205,41 @@ export const CategoryRules = {
       throw new ValidationError('카테고리 이름은 필수입니다');
     }
 
-    if (name.length > this.MAX_NAME_LENGTH) {
+    if (name.length > CATEGORY_MAX_NAME_LENGTH) {
       throw new ValidationError(
-        `카테고리 이름은 ${this.MAX_NAME_LENGTH}자를 초과할 수 없습니다`
+        `카테고리 이름은 ${CATEGORY_MAX_NAME_LENGTH}자를 초과할 수 없습니다`
       );
     }
   },
 
   /**
-   * 커스텀 카테고리 생성
+   * 커스텀 카테고리 생성 (ID는 DB에서 자동 생성)
    */
-  createCustomCategory(command: CreateCategoryCommand): CategoryEntity {
+  createCustomCategory(
+    command: CreateCategoryCommand
+  ): Omit<CategoryEntity, 'id'> {
     this.validateName(command.name);
 
     return {
-      id: this.generateId(),
       ledgerId: command.ledgerId,
       name: command.name.trim(),
       type: command.type,
-      color: command.color || this.DEFAULT_COLOR,
-      icon: command.icon || this.DEFAULT_ICON,
-      sortOrder: command.sortOrder ?? this.DEFAULT_SORT_ORDER,
+      color: command.color || CATEGORY_DEFAULT_COLOR,
+      icon: command.icon || CATEGORY_DEFAULT_ICON,
+      sortOrder: command.sortOrder ?? CATEGORY_DEFAULT_SORT_ORDER,
       isTemplate: false,
       isActive: true,
     };
   },
 
   /**
-   * 템플릿 기반 카테고리 생성
+   * 템플릿 기반 카테고리 생성 (ID는 DB에서 자동 생성)
    */
   createFromTemplate(
     ledgerId: EntityId,
     template: CategoryEntity
-  ): CategoryEntity {
+  ): Omit<CategoryEntity, 'id'> {
     return {
-      id: this.generateId(),
       ledgerId,
       name: template.name,
       type: template.type,
@@ -260,12 +250,5 @@ export const CategoryRules = {
       templateId: template.id,
       isActive: true,
     };
-  },
-
-  /**
-   * ID 생성
-   */
-  generateId(): EntityId {
-    return `category_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   },
 };

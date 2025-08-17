@@ -404,7 +404,7 @@ for all using (
 **주요 제약조건**
 
 - `unique_ledger_template`: 원장별 템플릿 중복 방지
-- `unique_ledger_custom_name`: 원장별 커스텀 카테고리명 중복 방지
+- `unique_active_ledger_custom_name`: 원장별 활성 커스텀 카테고리명 중복 방지 (삭제된 이름 재사용 가능)
 
 ```sql
 create table categories (
@@ -416,7 +416,7 @@ create table categories (
   name text,
   type category_type not null,
   color text default '#6B7280',
-  icon text default 'tag',
+  icon text default 'pricetag',
   sort_order integer default 0,
 
   is_active boolean default true,
@@ -431,15 +431,20 @@ create table categories (
   ),
 
   -- 원장별 템플릿 중복 방지
-  constraint unique_ledger_template unique(ledger_id, template_id),
+  constraint unique_ledger_template unique(ledger_id, template_id)
 
-  -- 원장별 커스텀 카테고리명 중복 방지
-  constraint unique_ledger_custom_name unique(ledger_id, name, type)
+  -- 원장별 활성 커스텀 카테고리명 중복 방지는 부분 인덱스로 처리
+  -- (삭제된 카테고리 이름 재사용 가능)
 );
 
 -- 인덱스
 create index idx_categories_ledger_template on categories(ledger_id, template_id)
 where deleted_at is null and is_active = true;
+
+-- 활성 카테고리 이름 중복 방지 (삭제된 이름 재사용 가능)
+create unique index unique_active_ledger_custom_name 
+on categories(ledger_id, name, type) 
+where deleted_at is null;
 
 create index idx_categories_ledger_active on categories(ledger_id, is_active)
 where deleted_at is null;
@@ -455,11 +460,55 @@ where deleted_at is null and is_active = true;
 
 -- RLS 정책
 alter table categories enable row level security;
-create policy "categories_policy" on categories for all using (
+
+-- SELECT: 멤버인 원장의 카테고리 조회 가능
+create policy "categories_select_policy" on categories
+for select using (
   deleted_at is null and
   ledger_id in (
     select ledger_id from ledger_members
     where user_id = auth.uid() and deleted_at is null
+  )
+);
+
+-- INSERT: member 이상 권한으로 카테고리 생성 가능
+create policy "categories_insert_policy" on categories
+for insert with check (
+  ledger_id in (
+    select ledger_id from ledger_members
+    where user_id = auth.uid() 
+    and role in ('owner', 'admin', 'member')
+    and deleted_at is null
+  )
+);
+
+-- UPDATE: member 이상 권한으로 카테고리 수정 가능 (soft delete 포함)
+create policy "categories_update_policy" on categories
+for update using (
+  ledger_id in (
+    select ledger_id from ledger_members
+    where user_id = auth.uid() 
+    and role in ('owner', 'admin', 'member')
+    and deleted_at is null
+  )
+)
+with check (
+  ledger_id in (
+    select ledger_id from ledger_members
+    where user_id = auth.uid() 
+    and role in ('owner', 'admin', 'member')
+    and deleted_at is null
+  )
+);
+
+-- DELETE: owner만 하드 삭제 가능 (실제로는 soft delete 사용)
+create policy "categories_delete_policy" on categories
+for delete using (
+  ledger_id in (
+    select ledger_id from ledger_members
+    where user_id = auth.uid() 
+    and role = 'owner'
+    and deleted_at is null
   )
 );
 ```
@@ -736,6 +785,30 @@ where b.deleted_at is null;
 
 ### 🔧 시스템 함수 (Functions)
 
+#### 📋 함수 목록 요약
+
+| 함수명 | 파라미터 | 반환 타입 | 설명 |
+|--------|----------|-----------|------|
+| **시스템 초기화** |
+| `initialize_category_templates()` | 없음 | void | 시스템 기본 카테고리 템플릿 생성 |
+| `activate_default_categories(ledger_id)` | uuid | void | 원장별 기본 카테고리 활성화 |
+| `setup_new_user(user_id, email, name)` | uuid, text, text | uuid | 새 사용자 초기 설정 |
+| **사용자 관리** |
+| `handle_new_user()` | 트리거 | trigger | OAuth 사용자 자동 생성 |
+| `get_user_ledgers()` | 없음 | TABLE | 사용자의 가계부 목록 조회 |
+| `invite_member_to_ledger(ledger_id, email, role)` | uuid, text, member_role | boolean | 가계부 멤버 초대 |
+| **카테고리 관리** |
+| `add_custom_category(ledger_id, name, type, color, icon, order)` | uuid, text, category_type, text, text, int | uuid | 커스텀 카테고리 추가 |
+| `soft_delete_category(category_id)` | uuid | boolean | 카테고리 soft delete (RLS 우회) |
+| **거래 관리** |
+| `check_transaction_category_type()` | 트리거 | trigger | 거래-카테고리 타입 일치 검증 |
+| **예산 관리** |
+| `set_budget(ledger_id, category_id, amount, year, month)` | uuid, uuid, decimal, int, int | uuid | 예산 설정/수정 |
+| **통계 조회** |
+| `get_ledger_monthly_stats(ledger_id, year, month)` | uuid, int, int | TABLE | 월별 통계 조회 |
+| **유지보수** |
+| `cleanup_old_deleted_data()` | 없음 | void | 30일 경과 soft delete 데이터 정리 |
+
 #### 1. 시스템 초기화 함수
 
 **`initialize_category_templates()`**
@@ -945,7 +1018,7 @@ create or replace function add_custom_category(
   category_name text,
   category_type category_type,
   category_color text default '#6B7280',
-  category_icon text default 'tag',
+  category_icon text default 'pricetag',  -- 기본값 수정됨 (tag → pricetag)
   category_sort_order integer default 999
 )
 returns uuid as $$
@@ -959,6 +1032,39 @@ begin
   return category_id;
 end;
 $$ language plpgsql security definer;
+
+-- 카테고리 soft delete 함수 (RLS 우회)
+create or replace function soft_delete_category(category_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  -- 권한 확인
+  if not exists (
+    select 1 
+    from categories c
+    join ledger_members lm on c.ledger_id = lm.ledger_id
+    where c.id = category_id
+    and lm.user_id = auth.uid()
+    and lm.role in ('owner', 'admin', 'member')
+    and lm.deleted_at is null
+  ) then
+    raise exception 'Permission denied to delete this category';
+  end if;
+
+  -- Soft delete 수행
+  update categories
+  set 
+    is_active = false,
+    deleted_at = now(),
+    updated_at = now()
+  where id = category_id;
+
+  return true;
+end;
+$$;
 
 -- 월별 통계 조회 함수 (원장별)
 create or replace function get_ledger_monthly_stats(
@@ -1354,6 +1460,51 @@ limit 10;
 
 ---
 
+## 📦 함수 목록
+
+### 시스템 함수
+
+| 함수명 | 용도 | Security |
+|--------|------|----------|
+| `handle_new_user()` | 신규 사용자 자동 프로필 생성 | DEFINER |
+| `setup_new_user()` | 신규 사용자 초기 설정 (프로필, 가계부, 카테고리) | - |
+| `initialize_category_templates()` | 시스템 카테고리 템플릿 초기화 | - |
+| `activate_default_categories()` | 원장별 기본 카테고리 활성화 | - |
+| `check_transaction_category_type()` | 거래 타입과 카테고리 타입 일치 검증 | - |
+
+### 비즈니스 로직 함수
+
+| 함수명 | 용도 | Security |
+|--------|------|----------|
+| `invite_member_to_ledger()` | 가계부 멤버 초대 | DEFINER |
+| `set_budget()` | 예산 설정 (월별/연간) | DEFINER |
+| `add_custom_category()` | 커스텀 카테고리 추가 | DEFINER |
+| `get_ledger_monthly_stats()` | 월별 통계 조회 | DEFINER |
+| `soft_delete_category()` | 카테고리 소프트 삭제 | DEFINER |
+
+### 유지보수 함수
+
+| 함수명 | 용도 | Security |
+|--------|------|----------|
+| `cleanup_old_deleted_data()` | 30일 경과 소프트 삭제 데이터 완전 삭제 | - |
+
+## 📋 마이그레이션 히스토리
+
+### 주요 마이그레이션 목록
+
+| 파일명 | 설명 | 적용일 |
+|--------|------|--------|
+| `20250729_001_initial_schema.sql` | 초기 스키마 생성 | 2025-07-29 |
+| `20250729_002_functions_and_triggers.sql` | 기본 함수 및 트리거 | 2025-07-29 |
+| `20250729_003_views.sql` | 뷰 생성 | 2025-07-29 |
+| `20250729_004_seed_category_templates.sql` | 카테고리 템플릿 초기 데이터 | 2025-07-29 |
+| `20250803_005_fix_rls_infinite_recursion.sql` | RLS 무한 재귀 수정 시도 | 2025-08-03 |
+| `20250803_006_fix_rls_final_solution.sql` | RLS 최종 해결책 | 2025-08-03 |
+| `20250816_fix_categories_rls_policy.sql` | 카테고리 RLS 개별 정책 분리 | 2025-08-16 |
+| `20250816_create_soft_delete_category_function.sql` | 카테고리 소프트 삭제 함수 | 2025-08-16 |
+| `20250816_fix_default_icon.sql` | 기본 아이콘 'tag' → 'pricetag' 변경 | 2025-08-16 |
+| `20250817_fix_category_unique_constraint.sql` | 카테고리 unique 제약조건 개선 (삭제된 카테고리명 재사용 허용) | 2025-08-17 |
+
 ## 🚨 트러블슈팅
 
 ### OAuth 인증 오류 해결
@@ -1389,6 +1540,32 @@ WHERE NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = u.id);
 | Apple | `raw_user_meta_data->>'name'` | 제공하지 않음 |
 | Kakao | `raw_user_meta_data->>'full_name'` | `raw_user_meta_data->>'avatar_url'` |
 | GitHub | `raw_user_meta_data->>'name'` | `raw_user_meta_data->>'avatar_url'` |
+
+### Soft Delete와 RLS 충돌 문제 해결
+
+#### 문제: "new row violates row-level security policy for table 'categories'"
+
+**원인**: Supabase JS 클라이언트가 UPDATE 시 자동으로 RETURNING 절을 추가하여 soft delete 후 SELECT 권한 문제 발생
+
+**해결 방법**: `soft_delete_category` RPC 함수 생성
+```sql
+-- SECURITY DEFINER로 RLS 우회
+-- RETURNING 절 없이 UPDATE만 수행
+CREATE FUNCTION soft_delete_category(category_id uuid)
+RETURNS boolean
+SECURITY DEFINER
+AS $$ ... $$;
+```
+
+**사용법**:
+```typescript
+// RPC 함수 호출
+const { error } = await supabase.rpc('soft_delete_category', {
+  category_id: categoryId
+});
+```
+
+자세한 내용은 [troubleshooting-rls-soft-delete.md](./troubleshooting-rls-soft-delete.md) 참조
 
 ### RLS 무한 재귀 문제 해결
 
@@ -1481,4 +1658,4 @@ $$;
 
 ---
 
-마지막 업데이트: 2025-08-03
+마지막 업데이트: 2025-08-16

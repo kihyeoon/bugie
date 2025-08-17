@@ -28,57 +28,83 @@ export function ToggleSwitch({
 }: ToggleSwitchProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const [selectedIndex, setSelectedIndex] = useState(
-    options.findIndex(opt => opt.value === value)
-  );
-  const slideAnim = useRef(new Animated.Value(0)).current;
+  const initialIndex = options.findIndex((opt) => opt.value === value);
+  const [selectedIndex, setSelectedIndex] = useState(initialIndex);
+  const slideAnim = useRef(new Animated.Value(initialIndex)).current;
+  const [containerWidth, setContainerWidth] = useState(0);
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
-    const index = options.findIndex(opt => opt.value === value);
+    const index = options.findIndex((opt) => opt.value === value);
     setSelectedIndex(index);
-    
-    Animated.spring(slideAnim, {
-      toValue: index,
-      useNativeDriver: false,
-      tension: 68,
-      friction: 10,
-    }).start();
+
+    // 초기 렌더링 시에는 애니메이션 없이 즉시 위치 설정
+    if (isInitialMount.current) {
+      slideAnim.setValue(index);
+      isInitialMount.current = false;
+    } else {
+      // 이후 변경 시에만 애니메이션 실행
+      Animated.spring(slideAnim, {
+        toValue: index,
+        useNativeDriver: false,
+        tension: 68,
+        friction: 10,
+      }).start();
+    }
   }, [value, options, slideAnim]);
 
   const handlePress = (index: number) => {
     onChange(options[index].value);
   };
 
-  const indicatorWidth = `${100 / options.length}%` as const;
-  const indicatorTranslateX = slideAnim.interpolate({
+  // 컨테이너 너비를 측정하고 정확한 위치 계산
+  const handleLayout = (event: {
+    nativeEvent: { layout: { width: number } };
+  }) => {
+    const { width } = event.nativeEvent.layout;
+    setContainerWidth(width);
+  };
+
+  // padding 8px (4px * 2)를 제외한 실제 사용 가능한 너비
+  const availableWidth = containerWidth - 8;
+  const indicatorWidth = availableWidth / options.length;
+
+  // left 속성을 직접 애니메이션
+  const indicatorLeft = slideAnim.interpolate({
     inputRange: options.map((_, i) => i),
-    outputRange: options.map((_, i) => `${i * 100}%`),
+    outputRange: options.map((_, i) => 4 + i * indicatorWidth),
   });
 
   return (
-    <View style={[
-      styles.container,
-      { backgroundColor: colors.backgroundSecondary },
-      fullWidth && styles.fullWidth,
-    ]}>
-      <Animated.View
-        style={[
-          styles.indicator,
-          {
-            backgroundColor: colors.background,
-            width: indicatorWidth,
-            transform: [{ translateX: indicatorTranslateX }],
-          },
-        ]}
-      />
-      
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: colors.backgroundSecondary },
+        fullWidth && styles.fullWidth,
+      ]}
+      onLayout={handleLayout}
+    >
+      {containerWidth > 0 && (
+        <Animated.View
+          style={[
+            styles.indicator,
+            {
+              backgroundColor: colors.background,
+              width: indicatorWidth,
+              left: indicatorLeft,
+            },
+          ]}
+        />
+      )}
+
       {options.map((option, index) => {
         const isSelected = selectedIndex === index;
-        const textColor = option.color && isSelected
-          ? option.color
-          : isSelected
-          ? colors.text
-          : colors.textSecondary;
+        const textColor =
+          option.color && isSelected
+            ? option.color
+            : isSelected
+              ? colors.text
+              : colors.textSecondary;
 
         return (
           <TouchableOpacity
@@ -87,11 +113,13 @@ export function ToggleSwitch({
             onPress={() => handlePress(index)}
             activeOpacity={0.7}
           >
-            <Text style={[
-              styles.optionText,
-              { color: textColor },
-              isSelected && styles.selectedText,
-            ]}>
+            <Text
+              style={[
+                styles.optionText,
+                { color: textColor },
+                isSelected && styles.selectedText,
+              ]}
+            >
               {option.label}
             </Text>
           </TouchableOpacity>

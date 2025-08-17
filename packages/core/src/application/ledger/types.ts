@@ -11,6 +11,7 @@ export interface CreateLedgerInput {
 }
 
 export interface UpdateLedgerInput {
+  ledgerId: string;
   name?: string;
   description?: string;
   currency?: string;
@@ -20,4 +21,10 @@ export interface InviteMemberInput {
   ledgerId: string;
   userEmail: string;
   role?: MemberRole;
+}
+
+export interface DeleteCategoryResult {
+  deleted: boolean;
+  movedTransactions: number;
+  fallbackCategoryName?: string;
 }
