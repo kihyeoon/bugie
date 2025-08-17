@@ -404,7 +404,7 @@ for all using (
 **주요 제약조건**
 
 - `unique_ledger_template`: 원장별 템플릿 중복 방지
-- `unique_ledger_custom_name`: 원장별 커스텀 카테고리명 중복 방지
+- `unique_active_ledger_custom_name`: 원장별 활성 커스텀 카테고리명 중복 방지 (삭제된 이름 재사용 가능)
 
 ```sql
 create table categories (
@@ -431,15 +431,20 @@ create table categories (
   ),
 
   -- 원장별 템플릿 중복 방지
-  constraint unique_ledger_template unique(ledger_id, template_id),
+  constraint unique_ledger_template unique(ledger_id, template_id)
 
-  -- 원장별 커스텀 카테고리명 중복 방지
-  constraint unique_ledger_custom_name unique(ledger_id, name, type)
+  -- 원장별 활성 커스텀 카테고리명 중복 방지는 부분 인덱스로 처리
+  -- (삭제된 카테고리 이름 재사용 가능)
 );
 
 -- 인덱스
 create index idx_categories_ledger_template on categories(ledger_id, template_id)
 where deleted_at is null and is_active = true;
+
+-- 활성 카테고리 이름 중복 방지 (삭제된 이름 재사용 가능)
+create unique index unique_active_ledger_custom_name 
+on categories(ledger_id, name, type) 
+where deleted_at is null;
 
 create index idx_categories_ledger_active on categories(ledger_id, is_active)
 where deleted_at is null;
@@ -1498,6 +1503,7 @@ limit 10;
 | `20250816_fix_categories_rls_policy.sql` | 카테고리 RLS 개별 정책 분리 | 2025-08-16 |
 | `20250816_create_soft_delete_category_function.sql` | 카테고리 소프트 삭제 함수 | 2025-08-16 |
 | `20250816_fix_default_icon.sql` | 기본 아이콘 'tag' → 'pricetag' 변경 | 2025-08-16 |
+| `20250817_fix_category_unique_constraint.sql` | 카테고리 unique 제약조건 개선 (삭제된 카테고리명 재사용 허용) | 2025-08-17 |
 
 ## 🚨 트러블슈팅
 

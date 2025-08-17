@@ -33,7 +33,10 @@ interface CategoryBottomSheetProps {
   transactionType: 'income' | 'expense';
   loading?: boolean;
   onCategoriesRefresh?: () => Promise<void>;
-  onUpdateCategory: (categoryId: string, updates: { name: string; color: string; icon: string }) => Promise<void>;
+  onUpdateCategory: (
+    categoryId: string,
+    updates: { name: string; color: string; icon: string }
+  ) => Promise<void>;
   onDeleteCategory: (categoryId: string) => Promise<boolean>;
 }
 
@@ -60,8 +63,11 @@ export function CategoryBottomSheet({
   const { currentLedger } = useLedger();
 
   const [showAddModal, setShowAddModal] = useState(false);
-  const [contextMenuCategory, setContextMenuCategory] = useState<Category | null>(null);
-  const [editModalCategory, setEditModalCategory] = useState<Category | null>(null);
+  const [contextMenuCategory, setContextMenuCategory] =
+    useState<Category | null>(null);
+  const [editModalCategory, setEditModalCategory] = useState<Category | null>(
+    null
+  );
 
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -170,7 +176,8 @@ export function CategoryBottomSheet({
       Alert.alert('성공', '카테고리가 추가되었습니다.');
     } catch (error) {
       console.error('Failed to add custom category:', error);
-      Alert.alert('오류', '카테고리 추가에 실패했습니다.');
+      // Alert는 AddCategoryModal에서 처리하므로 여기서는 에러만 전파
+      throw error;
     }
   };
 
@@ -205,7 +212,7 @@ export function CategoryBottomSheet({
   // 카테고리 삭제 핸들러
   const handleDeleteCategory = async () => {
     if (!contextMenuCategory) return;
-    
+
     try {
       const success = await onDeleteCategory(contextMenuCategory.id);
       if (success) {
@@ -225,7 +232,7 @@ export function CategoryBottomSheet({
     try {
       await onUpdateCategory(categoryId, updates);
       setEditModalCategory(null);
-      
+
       // 카테고리 목록 새로고침
       if (onCategoriesRefresh) {
         await onCategoriesRefresh();

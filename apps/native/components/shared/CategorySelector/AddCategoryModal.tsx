@@ -44,7 +44,6 @@ interface AddCategoryModalProps {
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const MODAL_HEIGHT = SCREEN_HEIGHT * 0.75;
 
-
 export function AddCategoryModal({
   visible,
   onClose,
@@ -58,8 +57,9 @@ export function AddCategoryModal({
   const [categoryName, setCategoryName] = useState('');
   const [categoryType, setCategoryType] = useState<CategoryType>(initialType);
   const [selectedColor, setSelectedColor] = useState(DEFAULT_CATEGORY_COLOR);
-  const [selectedIcon, setSelectedIcon] =
-    useState<keyof typeof Ionicons.glyphMap>(DEFAULT_CATEGORY_ICON_IONICON);
+  const [selectedIcon, setSelectedIcon] = useState<
+    keyof typeof Ionicons.glyphMap
+  >(DEFAULT_CATEGORY_ICON_IONICON);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -134,7 +134,11 @@ export function AddCategoryModal({
       handleClose();
     } catch (error) {
       console.error('Failed to save category:', error);
-      Alert.alert('오류', '카테고리 저장에 실패했습니다. 다시 시도해주세요.');
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : '카테고리 저장에 실패했습니다. 다시 시도해주세요.';
+      Alert.alert('오류', errorMessage);
     } finally {
       setSaving(false);
     }

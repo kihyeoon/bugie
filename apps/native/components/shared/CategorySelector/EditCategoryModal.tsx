@@ -23,7 +23,10 @@ import {
 interface EditCategoryModalProps {
   visible: boolean;
   category: Category | null;
-  onSave: (categoryId: string, updates: { name: string; color: string; icon: string }) => Promise<void>;
+  onSave: (
+    categoryId: string,
+    updates: { name: string; color: string; icon: string }
+  ) => Promise<void>;
   onClose: () => void;
 }
 
@@ -65,7 +68,7 @@ export default function EditCategoryModal({
     }
 
     // 변경사항 확인
-    const hasChanges = 
+    const hasChanges =
       name !== category.name ||
       selectedColor !== category.color ||
       selectedIcon !== category.icon;
@@ -83,8 +86,13 @@ export default function EditCategoryModal({
         icon: selectedIcon,
       });
       onClose();
-    } catch {
-      Alert.alert('수정 실패', '카테고리 수정 중 오류가 발생했습니다.');
+    } catch (error) {
+      console.error('Failed to update category:', error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : '카테고리 수정 중 오류가 발생했습니다.';
+      Alert.alert('수정 실패', errorMessage);
     } finally {
       setIsSaving(false);
     }
@@ -103,7 +111,9 @@ export default function EditCategoryModal({
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View
+          style={[styles.container, { backgroundColor: colors.background }]}
+        >
           {/* 헤더 */}
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose} activeOpacity={0.7}>
@@ -114,8 +124,8 @@ export default function EditCategoryModal({
             <Text style={[styles.title, { color: colors.text }]}>
               카테고리 수정
             </Text>
-            <TouchableOpacity 
-              onPress={handleSave} 
+            <TouchableOpacity
+              onPress={handleSave}
               activeOpacity={0.7}
               disabled={isSaving}
             >
@@ -130,7 +140,10 @@ export default function EditCategoryModal({
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={styles.content}
+            showsVerticalScrollIndicator={false}
+          >
             {/* 카테고리 이름 입력 */}
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
@@ -188,14 +201,15 @@ export default function EditCategoryModal({
               </Text>
               <View style={styles.iconGrid}>
                 {SELECTABLE_ICONS.map((icon) => {
-                  const ioniconsName = icon.name as keyof typeof Ionicons.glyphMap;
+                  const ioniconsName =
+                    icon.name as keyof typeof Ionicons.glyphMap;
                   return (
                     <TouchableOpacity
                       key={icon.name}
                       style={[
                         styles.iconItem,
                         {
-                          backgroundColor: 
+                          backgroundColor:
                             selectedIcon === icon.dbValue
                               ? selectedColor || colors.tint
                               : colors.backgroundSecondary,
@@ -208,9 +222,7 @@ export default function EditCategoryModal({
                         name={ioniconsName}
                         size={28}
                         color={
-                          selectedIcon === icon.dbValue
-                            ? 'white'
-                            : colors.text
+                          selectedIcon === icon.dbValue ? 'white' : colors.text
                         }
                       />
                     </TouchableOpacity>

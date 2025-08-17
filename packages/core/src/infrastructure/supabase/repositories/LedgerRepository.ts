@@ -308,7 +308,19 @@ export class CategoryRepository implements ICategoryRepository {
       .select('id')
       .single();
 
-    if (error) throw error;
+    if (error) {
+      // PostgreSQL unique constraint 위반 시 더 명확한 에러 메시지 제공
+      if (
+        error.code === '23505' &&
+        error.message?.includes('unique_active_ledger_custom_name')
+      ) {
+        const categoryName = dbData.name || '해당';
+        throw new Error(
+          `이미 "${categoryName}" 카테고리가 존재합니다. 다른 이름을 사용해주세요.`
+        );
+      }
+      throw error;
+    }
     return data.id;
   }
 
@@ -320,7 +332,19 @@ export class CategoryRepository implements ICategoryRepository {
       .update(dbData)
       .eq('id', category.id);
 
-    if (error) throw error;
+    if (error) {
+      // PostgreSQL unique constraint 위반 시 더 명확한 에러 메시지 제공
+      if (
+        error.code === '23505' &&
+        error.message?.includes('unique_active_ledger_custom_name')
+      ) {
+        const categoryName = dbData.name || '해당';
+        throw new Error(
+          `이미 "${categoryName}" 카테고리가 존재합니다. 다른 이름을 사용해주세요.`
+        );
+      }
+      throw error;
+    }
   }
 
   async updatePartial(
