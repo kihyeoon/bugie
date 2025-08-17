@@ -22,7 +22,9 @@ import type {
   CreateLedgerInput,
   UpdateLedgerInput,
   InviteMemberInput,
+  DeleteCategoryResult,
 } from './types';
+import type { TransactionRepository } from '../../domain/transaction/types';
 import {
   NotFoundError,
   UnauthorizedError,
@@ -42,7 +44,8 @@ export class LedgerService {
     private ledgerRepo: LedgerRepository,
     private memberRepo: LedgerMemberRepository,
     private categoryRepo: CategoryRepository,
-    private authService: SupabaseAuthService
+    private authService: SupabaseAuthService,
+    private transactionRepo?: TransactionRepository
   ) {}
 
   /**
@@ -353,8 +356,9 @@ export class LedgerService {
 
   /**
    * 카테고리 삭제 (소프트 삭제)
+   * 연결된 거래가 있으면 기본 카테고리로 이전
    */
-  async deleteCategory(categoryId: string): Promise<void> {
+  async deleteCategory(categoryId: string): Promise<DeleteCategoryResult> {
     const category = await this.categoryRepo.findById(categoryId);
     if (!category) {
       throw new NotFoundError('카테고리를 찾을 수 없습니다.');
@@ -365,8 +369,64 @@ export class LedgerService {
         '기본 카테고리는 삭제할 수 없습니다.'
       );
     }
+
+    let movedTransactions = 0;
+    let fallbackCategoryName: string | undefined;
+
+    // 트랜잭션 리포지토리가 있으면 연결된 거래 처리
+    if (this.transactionRepo) {
+      // 연결된 거래 수 확인
+      const transactionCount =
+        await this.transactionRepo.countByCategoryId(categoryId);
+
+      if (transactionCount > 0) {
+        // 기본 카테고리 찾기
+        const fallbackCategory = await this.categoryRepo.findFallbackCategory(
+          category.ledgerId,
+          category.type
+        );
+
+        if (!fallbackCategory) {
+          // 기본 카테고리가 없으면 활성화
+          await this.categoryRepo.activateDefaultCategories(category.ledgerId);
+
+          // 다시 찾기
+          const retryFallback = await this.categoryRepo.findFallbackCategory(
+            category.ledgerId,
+            category.type
+          );
+
+          if (!retryFallback) {
+            throw new BusinessRuleViolationError(
+              '기본 카테고리를 찾을 수 없습니다. 시스템 관리자에게 문의하세요.'
+            );
+          }
+
+          // 모든 거래를 기본 카테고리로 이전
+          movedTransactions = await this.transactionRepo.updateCategoryBatch(
+            categoryId,
+            retryFallback.id
+          );
+          fallbackCategoryName = retryFallback.name;
+        } else {
+          // 모든 거래를 기본 카테고리로 이전
+          movedTransactions = await this.transactionRepo.updateCategoryBatch(
+            categoryId,
+            fallbackCategory.id
+          );
+          fallbackCategoryName = fallbackCategory.name;
+        }
+      }
+    }
+
     try {
       await this.categoryRepo.softDelete(categoryId);
+
+      return {
+        deleted: true,
+        movedTransactions,
+        fallbackCategoryName,
+      };
     } catch (error) {
       if (error instanceof Error && 'code' in error && error.code === '42501') {
         throw new UnauthorizedError('카테고리를 삭제할 권한이 없습니다.');

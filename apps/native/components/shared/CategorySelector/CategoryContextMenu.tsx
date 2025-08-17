@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Modal,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
@@ -69,30 +68,6 @@ export default function CategoryContextMenu({
   // 커스텀 카테고리인지 확인 (templateId가 없으면 커스텀)
   const isCustomCategory = !category.template_id;
 
-  const handleDelete = () => {
-    const categoryType = isCustomCategory ? '카테고리' : '기본 카테고리';
-    const message = isCustomCategory
-      ? '정말 이 카테고리를 삭제하시겠습니까?\n삭제된 카테고리는 복구할 수 없습니다.'
-      : '이 기본 카테고리를 숨기시겠습니까?\n언제든지 다시 표시할 수 있습니다.';
-
-    Alert.alert(
-      `${categoryType} ${isCustomCategory ? '삭제' : '숨기기'}`,
-      message,
-      [
-        {
-          text: '취소',
-          style: 'cancel',
-        },
-        {
-          text: isCustomCategory ? '삭제' : '숨기기',
-          style: 'destructive',
-          onPress: onDelete,
-        },
-      ],
-      { cancelable: true }
-    );
-  };
-
   return (
     <Modal
       transparent
@@ -138,7 +113,7 @@ export default function CategoryContextMenu({
             <MenuItem
               icon="trash-outline"
               text={isCustomCategory ? '삭제' : '숨기기'}
-              onPress={handleDelete}
+              onPress={onDelete}
               danger
             />
 

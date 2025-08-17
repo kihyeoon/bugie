@@ -89,6 +89,10 @@ export interface TransactionRepository {
   update(transaction: TransactionEntity): Promise<void>;
   delete(id: EntityId): Promise<void>;
   
+  // 카테고리 관련 메서드
+  countByCategoryId(categoryId: EntityId): Promise<number>;
+  updateCategoryBatch(fromCategoryId: EntityId, toCategoryId: EntityId): Promise<number>;
+  
   // 집계 메서드
   getDailySummary(ledgerId: EntityId, date: DomainDate): Promise<DailySummary>;
   getMonthlySummary(ledgerId: EntityId, year: number, month: number): Promise<MonthlySummary>;

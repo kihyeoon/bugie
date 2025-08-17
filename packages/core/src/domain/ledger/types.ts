@@ -113,6 +113,7 @@ export interface LedgerMemberRepository {
 export interface CategoryRepository {
   findByLedger(ledgerId: EntityId): Promise<CategoryEntity[]>;
   findById(id: EntityId): Promise<CategoryEntity | null>;
+  findFallbackCategory(ledgerId: EntityId, type: CategoryType): Promise<CategoryEntity | null>;
   create(category: Omit<CategoryEntity, 'id'>): Promise<EntityId>;
   update(category: CategoryEntity): Promise<void>;
   updatePartial(id: EntityId, updates: Partial<CategoryEntity>): Promise<void>;

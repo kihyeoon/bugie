@@ -5,7 +5,6 @@ import type {
   DailySummary,
   MonthlySummary
 } from './types';
-import type { EntityId } from '../shared/types';
 import type { CategoryType, CategoryEntity } from '../ledger/types';
 import { ValidationError, BusinessRuleViolationError } from '../shared/errors';
 

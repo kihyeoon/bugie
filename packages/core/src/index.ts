@@ -11,7 +11,11 @@ export * from './domain/ledger/types';
 export * from './domain/transaction/types';
 
 // 도메인 규칙
-export { LedgerRules, LedgerMemberRules, CategoryRules } from './domain/ledger/rules';
+export {
+  LedgerRules,
+  LedgerMemberRules,
+  CategoryRules,
+} from './domain/ledger/rules';
 export { TransactionRules } from './domain/transaction/rules';
 
 // 애플리케이션 레이어 Export
@@ -19,13 +23,14 @@ export { TransactionRules } from './domain/transaction/rules';
 export type {
   CreateLedgerInput,
   UpdateLedgerInput,
-  InviteMemberInput
+  InviteMemberInput,
+  DeleteCategoryResult,
 } from './application/ledger/types';
 
 export type {
   CreateTransactionInput,
   UpdateTransactionInput,
-  TransactionFilterInput
+  TransactionFilterInput,
 } from './application/transaction/types';
 
 // UI/응답 타입
@@ -37,7 +42,7 @@ export type {
   CalendarDayData,
   CalendarData,
   CategorySummary,
-  DailySummary
+  DailySummary,
 } from './shared/types';
 
 // 서비스 팩토리 함수
@@ -46,7 +51,11 @@ import { LedgerService } from './application/ledger/LedgerService';
 import { TransactionService } from './application/transaction/TransactionService';
 
 // Infrastructure imports
-import { LedgerRepository, LedgerMemberRepository, CategoryRepository } from './infrastructure/supabase/repositories/LedgerRepository';
+import {
+  LedgerRepository,
+  LedgerMemberRepository,
+  CategoryRepository,
+} from './infrastructure/supabase/repositories/LedgerRepository';
 import { TransactionRepository } from './infrastructure/supabase/repositories/TransactionRepository';
 import { TransactionViewRepository } from './infrastructure/supabase/repositories/TransactionViewRepository';
 import { SupabaseAuthService } from './infrastructure/supabase/auth/SupabaseAuthService';
@@ -56,17 +65,31 @@ export function createLedgerService(supabase: SupabaseClient): LedgerService {
   const memberRepo = new LedgerMemberRepository(supabase);
   const categoryRepo = new CategoryRepository(supabase);
   const authService = new SupabaseAuthService(supabase);
-  
-  return new LedgerService(ledgerRepo, memberRepo, categoryRepo, authService);
+  const transactionRepo = new TransactionRepository(supabase);
+
+  return new LedgerService(
+    ledgerRepo,
+    memberRepo,
+    categoryRepo,
+    authService,
+    transactionRepo
+  );
 }
 
-export function createTransactionService(supabase: SupabaseClient): TransactionService {
+export function createTransactionService(
+  supabase: SupabaseClient
+): TransactionService {
   const transactionRepo = new TransactionRepository(supabase);
   const transactionViewRepo = new TransactionViewRepository(supabase);
   const memberRepo = new LedgerMemberRepository(supabase);
   const authService = new SupabaseAuthService(supabase);
-  
-  return new TransactionService(transactionRepo, memberRepo, authService, transactionViewRepo);
+
+  return new TransactionService(
+    transactionRepo,
+    memberRepo,
+    authService,
+    transactionViewRepo
+  );
 }
 
 // 서비스 클래스 Export (타입용)

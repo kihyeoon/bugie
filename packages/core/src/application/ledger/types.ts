@@ -22,3 +22,9 @@ export interface InviteMemberInput {
   userEmail: string;
   role?: MemberRole;
 }
+
+export interface DeleteCategoryResult {
+  deleted: boolean;
+  movedTransactions: number;
+  fallbackCategoryName?: string;
+}
