@@ -52,7 +52,7 @@ export const CATEGORY_DEFAULT_COLOR = '#6B7280';
 /**
  * 카테고리 기본 아이콘
  */
-export const CATEGORY_DEFAULT_ICON = 'tag';
+export const CATEGORY_DEFAULT_ICON = 'pricetag';
 
 /**
  * 카테고리 기본 정렬 순서

@@ -59,20 +59,39 @@ export function useCategories(type?: 'income' | 'expense') {
       categoryId: string,
       updates: { name: string; color: string; icon: string }
     ) => {
+      // 이전 상태 백업 (롤백용)
+      const previousCategories = [...categories];
+      
+      // 낙관적 업데이트 - UI 즉시 반영
+      setCategories((prev) =>
+        prev.map((cat) =>
+          cat.id === categoryId
+            ? { ...cat, ...updates }
+            : cat
+        )
+      );
+
       try {
         await ledgerService.updateCategory(categoryId, updates);
-
-        await loadCategories(); // 목록 새로고침
+        
+        // 성공 시 서버 데이터로 동기화 (선택 사항)
+        // 낙관적 업데이트가 정확하다면 생략 가능
+        // await loadCategories();
+        
         Alert.alert('성공', '카테고리가 수정되었습니다.');
       } catch (err) {
         console.error('Failed to update category:', err);
+        
+        // 실패 시 롤백
+        setCategories(previousCategories);
+        
         const errorMessage =
           err instanceof Error ? err.message : '카테고리 수정에 실패했습니다.';
         Alert.alert('오류', errorMessage);
         throw err;
       }
     },
-    [ledgerService, loadCategories]
+    [categories, ledgerService]
   );
 
   /**

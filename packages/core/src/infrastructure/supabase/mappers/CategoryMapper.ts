@@ -22,7 +22,7 @@ export class CategoryMapper {
       name: db.name || '', // 커스텀 카테고리인 경우
       type: db.type as CategoryType,
       color: db.color || '#6B7280',
-      icon: db.icon || 'tag',
+      icon: db.icon || 'pricetag',
       sortOrder: db.sort_order || 0,
       isTemplate: db.template_id !== null,
       templateId: db.template_id ?? undefined,

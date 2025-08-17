@@ -39,44 +39,48 @@ export const CATEGORY_COLOR_PALETTE = [
  * DB는 일반적인 아이콘 이름을 저장하고,
  * 프론트엔드에서 실제 Ionicons 이름으로 변환
  */
-export const CATEGORY_ICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
-  // DB 템플릿 아이콘 (filled 버전)
-  utensils: 'restaurant',
-  car: 'car',
-  'shopping-bag': 'cart',
-  film: 'film',
-  heart: 'heart',
-  home: 'home',
-  book: 'book',
-  'more-horizontal': 'ellipsis-horizontal',
-  briefcase: 'briefcase',
-  'trending-up': 'trending-up',
-  'bar-chart': 'bar-chart',
-  gift: 'gift',
-  'plus-circle': 'add-circle',
-  tag: 'pricetag',
-  receipt: 'receipt',
-  
-  // 추가 아이콘 (커스텀 카테고리용)
-  airplane: 'airplane',
-  paw: 'paw',
-  fitness: 'fitness',
-  cafe: 'cafe',
-  beer: 'beer',
-  shirt: 'shirt',
-  'phone-portrait': 'phone-portrait',
-  medkit: 'medkit',
-  cash: 'cash',
-  card: 'card',
-  wallet: 'wallet',
-  'game-controller': 'game-controller',
-} as const;
+export const CATEGORY_ICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> =
+  {
+    // DB 템플릿 아이콘 (filled 버전)
+    utensils: 'restaurant',
+    car: 'car',
+    'shopping-bag': 'cart',
+    film: 'film',
+    heart: 'heart',
+    home: 'home',
+    book: 'book',
+    'more-horizontal': 'ellipsis-horizontal',
+    briefcase: 'briefcase',
+    'trending-up': 'trending-up',
+    'bar-chart': 'bar-chart',
+    gift: 'gift',
+    'plus-circle': 'add-circle',
+    pricetag: 'pricetag',
+    receipt: 'receipt',
+
+    // 추가 아이콘 (커스텀 카테고리용)
+    airplane: 'airplane',
+    paw: 'paw',
+    fitness: 'fitness',
+    cafe: 'cafe',
+    beer: 'beer',
+    shirt: 'shirt',
+    'phone-portrait': 'phone-portrait',
+    medkit: 'medkit',
+    cash: 'cash',
+    card: 'card',
+    wallet: 'wallet',
+    'game-controller': 'game-controller',
+  } as const;
 
 /**
  * DB 아이콘 이름과 Ionicons outline 버전 매핑
  * CategorySelector에서 선택된 카테고리 표시할 때 사용
  */
-export const CATEGORY_ICON_MAP_OUTLINE: Record<string, keyof typeof Ionicons.glyphMap> = {
+export const CATEGORY_ICON_MAP_OUTLINE: Record<
+  string,
+  keyof typeof Ionicons.glyphMap
+> = {
   // DB 템플릿 아이콘 (outline 버전)
   utensils: 'restaurant-outline',
   car: 'car-outline',
@@ -91,9 +95,9 @@ export const CATEGORY_ICON_MAP_OUTLINE: Record<string, keyof typeof Ionicons.gly
   'bar-chart': 'bar-chart-outline',
   gift: 'gift-outline',
   'plus-circle': 'add-circle-outline',
-  tag: 'pricetag-outline',
+  pricetag: 'pricetag-outline',
   receipt: 'receipt-outline',
-  
+
   // 추가 아이콘 (커스텀 카테고리용)
   airplane: 'airplane-outline',
   paw: 'paw-outline',
@@ -124,7 +128,11 @@ export const SELECTABLE_ICONS: {
   { name: 'home-outline', dbValue: 'home', label: '주거' },
   { name: 'heart-outline', dbValue: 'heart', label: '건강' },
   { name: 'book-outline', dbValue: 'book', label: '교육' },
-  { name: 'game-controller-outline', dbValue: 'game-controller', label: '오락' },
+  {
+    name: 'game-controller-outline',
+    dbValue: 'game-controller',
+    label: '오락',
+  },
   { name: 'gift-outline', dbValue: 'gift', label: '선물' },
   { name: 'airplane-outline', dbValue: 'airplane', label: '여행' },
   { name: 'paw-outline', dbValue: 'paw', label: '반려동물' },
@@ -137,7 +145,7 @@ export const SELECTABLE_ICONS: {
   { name: 'cash-outline', dbValue: 'cash', label: '현금' },
   { name: 'card-outline', dbValue: 'card', label: '카드' },
   { name: 'wallet-outline', dbValue: 'wallet', label: '지갑' },
-  { name: 'pricetag-outline', dbValue: 'tag', label: '기타' },
+  { name: 'pricetag-outline', dbValue: 'pricetag', label: '기타' },
 ];
 
 // ============================================
@@ -163,20 +171,22 @@ export function getIoniconName(
  * @param ioniconName Ionicons 아이콘 이름
  * @returns DB에 저장할 아이콘 이름
  */
-export function getDbIconName(ioniconName: keyof typeof Ionicons.glyphMap): string {
+export function getDbIconName(
+  ioniconName: keyof typeof Ionicons.glyphMap
+): string {
   // SELECTABLE_ICONS에서 매칭되는 항목 찾기
-  const icon = SELECTABLE_ICONS.find(i => i.name === ioniconName);
+  const icon = SELECTABLE_ICONS.find((i) => i.name === ioniconName);
   if (icon) return icon.dbValue;
-  
+
   // outline 제거하고 반환
   const name = ioniconName.replace('-outline', '');
-  
+
   // 역매핑 찾기
   for (const [dbName, ionName] of Object.entries(CATEGORY_ICON_MAP)) {
     if (ionName === name) return dbName;
   }
-  
-  return 'tag'; // 기본값
+
+  return 'pricetag'; // 기본값
 }
 
 // ============================================
@@ -184,5 +194,6 @@ export function getDbIconName(ioniconName: keyof typeof Ionicons.glyphMap): stri
 // ============================================
 
 export const DEFAULT_CATEGORY_COLOR = '#6B7280'; // Gray
-export const DEFAULT_CATEGORY_ICON = 'tag';
-export const DEFAULT_CATEGORY_ICON_IONICON: keyof typeof Ionicons.glyphMap = 'pricetag-outline';
+export const DEFAULT_CATEGORY_ICON = 'pricetag';
+export const DEFAULT_CATEGORY_ICON_IONICON: keyof typeof Ionicons.glyphMap =
+  'pricetag-outline';

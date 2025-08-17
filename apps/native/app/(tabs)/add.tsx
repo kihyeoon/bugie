@@ -8,7 +8,7 @@ import {
   Platform,
   KeyboardAvoidingView,
 } from 'react-native';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -20,12 +20,6 @@ import { useServices } from '@/contexts/ServiceContext';
 import type { CategoryDetail } from '@repo/core';
 
 export default function AddTransactionScreen() {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
-  const router = useRouter();
-  const { currentLedger } = useLedger();
-  const { transactionService } = useServices();
-
   const [amount, setAmount] = useState(0);
   const [transactionType, setTransactionType] = useState<'income' | 'expense'>(
     'expense'
@@ -39,6 +33,43 @@ export default function AddTransactionScreen() {
   // Input refs for focus management
   const titleInputRef = useRef<TextInput>(null);
   const memoInputRef = useRef<TextInput>(null);
+
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? 'light'];
+  const router = useRouter();
+  const { currentLedger } = useLedger();
+  const { transactionService } = useServices();
+
+  // 실제 DB에서 카테고리 가져오기
+  const {
+    categories,
+    loading: categoriesLoading,
+    refresh: refreshCategories,
+    updateCategory,
+    deleteCategory,
+  } = useCategories(transactionType);
+
+  // 카테고리가 수정/삭제되면 선택된 카테고리도 자동 업데이트
+  useEffect(() => {
+    setSelectedCategory((prev) => {
+      if (!prev) return prev;
+      
+      const updatedCategory = categories.find(cat => cat.id === prev.id);
+      if (!updatedCategory) {
+        // 카테고리가 삭제된 경우 - 선택 해제
+        return null;
+      } else if (
+        updatedCategory.name !== prev.name ||
+        updatedCategory.color !== prev.color ||
+        updatedCategory.icon !== prev.icon
+      ) {
+        // 카테고리가 수정된 경우 - 최신 데이터로 업데이트
+        return updatedCategory;
+      }
+      
+      return prev;
+    });
+  }, [categories]);
 
   const handleSave = async () => {
     // 유효성 검사
@@ -85,15 +116,6 @@ export default function AddTransactionScreen() {
       setSaving(false);
     }
   };
-
-  // 실제 DB에서 카테고리 가져오기
-  const { 
-    categories, 
-    loading: categoriesLoading, 
-    refresh: refreshCategories,
-    updateCategory,
-    deleteCategory,
-  } = useCategories(transactionType);
 
   // 저장 버튼 활성화 여부
   const isSaveDisabled =
