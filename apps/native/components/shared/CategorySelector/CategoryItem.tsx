@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, Text, View, StyleSheet, Dimensions } from 'react-native';
+import { Pressable, Text, View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -11,23 +11,18 @@ interface CategoryItemProps {
   isSelected: boolean;
   onPress: () => void;
   onLongPress?: () => void;
-  columns?: 3 | 4;
+  itemWidth: number;
 }
-
-const SCREEN_WIDTH = Dimensions.get('window').width;
-const PADDING = 24;
 
 export function CategoryItem({
   category,
   isSelected,
   onPress,
   onLongPress,
-  columns = 4,
+  itemWidth,
 }: CategoryItemProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-
-  const itemWidth = (SCREEN_WIDTH - PADDING * 2 - (columns - 1) * 12) / columns;
 
   return (
     <Pressable

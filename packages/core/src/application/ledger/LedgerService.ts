@@ -311,13 +311,25 @@ export class LedgerService {
     color?: string,
     icon?: string
   ): Promise<string> {
+    // 현재 가계부의 카테고리들을 조회하여 최대 sort_order 값을 찾음
+    const existingCategories = await this.categoryRepo.findByLedger(ledgerId);
+    
+    // 같은 타입의 카테고리 중 최대 sort_order 찾기
+    const sameTypeCategories = existingCategories.filter(cat => cat.type === type);
+    const maxSortOrder = sameTypeCategories.reduce((max, cat) => {
+      return Math.max(max, cat.sortOrder || 0);
+    }, 99); // 템플릿 카테고리의 최대값인 99부터 시작
+    
+    // 새 카테고리는 최대값 + 10으로 설정 (나중에 중간 삽입 가능하도록 간격 확보)
+    const newSortOrder = maxSortOrder + 10;
+    
     const category = CategoryRules.createCustomCategory({
       ledgerId,
       name,
       type,
       color,
       icon,
-      sortOrder: 999,
+      sortOrder: newSortOrder,
     });
     const categoryId = await this.categoryRepo.create(category);
     return categoryId;

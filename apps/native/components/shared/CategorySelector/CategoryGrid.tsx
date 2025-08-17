@@ -5,6 +5,7 @@ import {
   Text,
   StyleSheet,
   ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import { CategoryItem } from './CategoryItem';
 import { Colors } from '@/constants/Colors';
@@ -21,6 +22,9 @@ interface CategoryGridProps {
   columns?: 3 | 4;
 }
 
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const PADDING = 24;
+
 export function CategoryGrid({
   categories,
   selectedCategory,
@@ -32,6 +36,11 @@ export function CategoryGrid({
 }: CategoryGridProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+
+  // 아이템 너비 계산
+  const itemWidth = useMemo(() => {
+    return (SCREEN_WIDTH - PADDING * 2 - (columns - 1) * 12) / columns;
+  }, [columns]);
 
   // 거래 타입에 따라 카테고리 필터링
   const filteredCategories = useMemo(() => {
@@ -83,13 +92,13 @@ export function CategoryGrid({
               isSelected={selectedCategory?.id === category.id}
               onPress={() => onSelectCategory(category)}
               onLongPress={onLongPress ? () => onLongPress(category) : undefined}
-              columns={columns}
+              itemWidth={itemWidth}
             />
           ))}
           {/* 마지막 행에서 빈 공간 채우기 */}
           {rowIndex === rows.length - 1 &&
             Array.from({ length: columns - row.length }).map((_, index) => (
-              <View key={`empty-${index}`} style={{ flex: 1 / columns }} />
+              <View key={`empty-${index}`} style={{ width: itemWidth }} />
             ))}
         </View>
       ))}
@@ -107,7 +116,6 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     paddingHorizontal: 24,
     gap: 12,
   },
