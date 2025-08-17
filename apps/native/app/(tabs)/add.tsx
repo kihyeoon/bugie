@@ -8,7 +8,7 @@ import {
   Platform,
   KeyboardAvoidingView,
 } from 'react-native';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -48,6 +48,15 @@ export default function AddTransactionScreen() {
     updateCategory,
     deleteCategory,
   } = useCategories(transactionType);
+
+  // 폼 초기화 함수
+  const resetForm = useCallback(() => {
+    setAmount(0);
+    setSelectedCategory(null);
+    setTitle('');
+    setMemo('');
+    // transactionType은 사용자 편의를 위해 유지
+  }, []);
 
   // 카테고리가 수정/삭제되면 선택된 카테고리도 자동 업데이트
   useEffect(() => {
@@ -104,7 +113,8 @@ export default function AddTransactionScreen() {
       // 거래 저장
       await transactionService.createTransaction(transactionInput);
 
-      // 성공 - 홈 화면으로 이동
+      // 성공 - 폼 초기화 후 홈 화면으로 이동
+      resetForm();
       router.replace('/(tabs)');
     } catch (error) {
       console.error('거래 저장 실패:', error);
