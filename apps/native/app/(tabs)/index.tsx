@@ -7,6 +7,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useState, useCallback, useRef } from 'react';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '@/constants/Colors';
@@ -64,6 +65,7 @@ const extractUserName = (
 
 export default function HomeScreen() {
   const { user } = useAuth();
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -121,15 +123,16 @@ export default function HomeScreen() {
   const handleDateSelect = (date: Date) => {
     if (!calendarData) return;
 
-    const dayTransactions = calendarData[date.getDate()];
+    // calendarData는 "YYYY-MM-DD" 형식의 키를 사용
+    const dateStr = date.toISOString().split('T')[0];
+    const dayTransactions = calendarData[dateStr];
     const hasTransactions =
       dayTransactions &&
       (dayTransactions.income > 0 || dayTransactions.expense > 0);
 
     if (hasTransactions) {
-      // TODO: 거래 목록 화면으로 네비게이션
-      // router.push(`/transactions?date=${dateKey}`);
-      console.log('Navigate to transactions');
+      // 거래 목록 화면으로 네비게이션
+      router.push(`/transactions?date=${dateStr}`);
     }
   };
 
