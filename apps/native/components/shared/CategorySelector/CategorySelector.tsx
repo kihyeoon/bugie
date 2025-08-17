@@ -21,7 +21,10 @@ interface CategorySelectorProps {
   loading?: boolean;
   placeholder?: string;
   onCategoriesRefresh?: () => Promise<void>;
-  onUpdateCategory: (categoryId: string, updates: { name: string; color: string; icon: string }) => Promise<void>;
+  onUpdateCategory: (
+    categoryId: string,
+    updates: { name: string; color: string; icon: string }
+  ) => Promise<void>;
   onDeleteCategory: (categoryId: string) => Promise<boolean>;
 }
 
@@ -113,8 +116,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 14,
     borderRadius: 12,
+    height: 52,
   },
   content: {
     flexDirection: 'row',

@@ -53,8 +53,8 @@ export default function AddTransactionScreen() {
   useEffect(() => {
     setSelectedCategory((prev) => {
       if (!prev) return prev;
-      
-      const updatedCategory = categories.find(cat => cat.id === prev.id);
+
+      const updatedCategory = categories.find((cat) => cat.id === prev.id);
       if (!updatedCategory) {
         // 카테고리가 삭제된 경우 - 선택 해제
         return null;
@@ -66,7 +66,7 @@ export default function AddTransactionScreen() {
         // 카테고리가 수정된 경우 - 최신 데이터로 업데이트
         return updatedCategory;
       }
-      
+
       return prev;
     });
   }, [categories]);
@@ -316,6 +316,7 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 15,
     letterSpacing: -0.3,
+    height: 52,
   },
   memoSection: {
     paddingHorizontal: 24,
