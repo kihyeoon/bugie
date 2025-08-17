@@ -6,8 +6,9 @@ import {
   Platform,
   SafeAreaView,
 } from 'react-native';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography, Card, AmountDisplay } from '@/components/ui';
@@ -91,6 +92,21 @@ export default function HomeScreen() {
 
   const userName = extractUserName(user);
 
+  // 마지막 리페치 시간 추적 (디바운싱용)
+  const lastRefetchTime = useRef(0);
+
+  // 화면 포커스 시 데이터 새로고침 (디바운싱 적용)
+  useFocusEffect(
+    useCallback(() => {
+      const now = Date.now();
+      // 마지막 리페치로부터 1초 이상 경과 시만 리페치
+      if (now - lastRefetchTime.current > 1000) {
+        refetchData();
+        lastRefetchTime.current = now;
+      }
+    }, [refetchData])
+  );
+
   // Refresh handler
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -122,8 +138,8 @@ export default function HomeScreen() {
     setCurrentMonth(new Date(year, month));
   };
 
-  // Show loading state
-  if (ledgerLoading || (currentLedger && dataLoading)) {
+  // Show loading state (첫 로딩 시에만)
+  if (ledgerLoading || (currentLedger && dataLoading && !calendarData)) {
     return <LoadingState message="데이터를 불러오는 중..." />;
   }
 

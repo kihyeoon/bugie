@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useServices } from '../contexts/ServiceContext';
 import { useLedger } from '../contexts/LedgerContext';
 import type { CalendarTransaction } from '../components/shared/calendar/types';
@@ -13,6 +13,7 @@ interface MonthlyDataResult {
   calendarData: CalendarTransaction | null;
   monthlySummary: MonthlySummary | null;
   loading: boolean;
+  isRefetching: boolean;
   error: Error | null;
   refetch: () => Promise<void>;
 }
@@ -54,18 +55,29 @@ export function useMonthlyData(year: number, month: number): MonthlyDataResult {
     null
   );
   const [loading, setLoading] = useState(true);
+  const [isRefetching, setIsRefetching] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+
+  // 데이터 존재 여부를 ref로 추적
+  const hasDataRef = useRef(false);
 
   const fetchData = useCallback(async () => {
     if (!currentLedger) {
       setCalendarData(null);
       setMonthlySummary(null);
       setLoading(false);
+      hasDataRef.current = false;
       return;
     }
 
     try {
-      setLoading(true);
+      // 첫 로딩인지 리페칭인지 판단
+      if (hasDataRef.current) {
+        setIsRefetching(true);
+      } else {
+        setLoading(true);
+      }
+
       setError(null);
 
       const summary = await transactionService.getCalendarSummary(
@@ -84,15 +96,27 @@ export function useMonthlyData(year: number, month: number): MonthlyDataResult {
         expense: summary.monthlyTotal.expense,
         balance: summary.monthlyTotal.balance,
       });
+
+      // 데이터가 있음을 표시
+      hasDataRef.current = true;
     } catch (err) {
       console.error('Failed to fetch monthly data:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch data'));
-      setCalendarData(null);
-      setMonthlySummary(null);
+      // 에러 시에는 기존 데이터 유지 (첫 로딩이 아닌 경우)
+      if (!hasDataRef.current) {
+        setCalendarData(null);
+        setMonthlySummary(null);
+      }
     } finally {
       setLoading(false);
+      setIsRefetching(false);
     }
   }, [currentLedger, year, month, transactionService]);
+
+  // 연도/월 변경 시 ref 리셋
+  useEffect(() => {
+    hasDataRef.current = false;
+  }, [year, month, currentLedger]);
 
   useEffect(() => {
     fetchData();
@@ -102,6 +126,7 @@ export function useMonthlyData(year: number, month: number): MonthlyDataResult {
     calendarData,
     monthlySummary,
     loading,
+    isRefetching,
     error,
     refetch: fetchData,
   };
