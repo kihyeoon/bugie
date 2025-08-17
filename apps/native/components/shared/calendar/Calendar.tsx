@@ -10,12 +10,12 @@ import { useCalendarAnimation } from './hooks/useCalendarAnimation';
 import { addMonths } from './utils/dateHelpers';
 
 function CalendarContent({
-  showNavigation = true,
+  showHeader = true,
   containerStyle,
   animationConfig,
   scrollY,
 }: Pick<CalendarProps, 'containerStyle' | 'animationConfig' | 'scrollY'> & {
-  showNavigation?: boolean;
+  showHeader?: boolean;
 }) {
   const { animatedContainerStyle, animatedHeaderStyle, animatedWeekStyle } =
     useCalendarAnimation(scrollY, animationConfig);
@@ -36,14 +36,15 @@ function CalendarContent({
     <Animated.View
       style={[styles.container, animatedContainerStyle, containerStyle]}
     >
-      <Animated.View style={animatedHeaderStyle}>
-        <CalendarHeader
-          currentMonth={currentMonth}
-          onPrevMonth={handlePrevMonth}
-          onNextMonth={handleNextMonth}
-          showNavigation={showNavigation}
-        />
-      </Animated.View>
+      {showHeader && (
+        <Animated.View style={animatedHeaderStyle}>
+          <CalendarHeader
+            currentMonth={currentMonth}
+            onPrevMonth={handlePrevMonth}
+            onNextMonth={handleNextMonth}
+          />
+        </Animated.View>
+      )}
 
       <CalendarWeekDays />
 
@@ -62,9 +63,11 @@ export function Calendar({
   scrollY,
   animationConfig,
   containerStyle,
+  showHeader,
   ...props
 }: CalendarProps) {
-  const showNavigation = mode === 'static';
+  // showHeader가 명시적으로 전달되지 않은 경우, mode가 'static'일 때만 true
+  const shouldShowHeader = showHeader ?? (mode === 'static');
 
   return (
     <CalendarProvider
@@ -76,7 +79,7 @@ export function Calendar({
       onMonthChange={onMonthChange}
     >
       <CalendarContent
-        showNavigation={showNavigation}
+        showHeader={shouldShowHeader}
         containerStyle={containerStyle}
         animationConfig={animationConfig}
         scrollY={scrollY}

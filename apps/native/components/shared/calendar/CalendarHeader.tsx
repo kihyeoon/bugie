@@ -12,7 +12,6 @@ export function CalendarHeader({
   currentMonth,
   onPrevMonth,
   onNextMonth,
-  showNavigation = true,
 }: CalendarHeaderProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -24,27 +23,23 @@ export function CalendarHeader({
   
   return (
     <Animated.View style={styles.container}>
-      {showNavigation && (
-        <TouchableOpacity
-          onPress={onPrevMonth}
-          style={styles.navButton}
-          activeOpacity={0.7}
-        >
-          <IconSymbol name="chevron.left" size={20} color={colors.text} />
-        </TouchableOpacity>
-      )}
+      <TouchableOpacity
+        onPress={onPrevMonth}
+        style={styles.navButton}
+        activeOpacity={0.7}
+      >
+        <IconSymbol name="chevron.left" size={20} color={colors.text} />
+      </TouchableOpacity>
       
       <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
       
-      {showNavigation && (
-        <TouchableOpacity
-          onPress={onNextMonth}
-          style={styles.navButton}
-          activeOpacity={0.7}
-        >
-          <IconSymbol name="chevron.right" size={20} color={colors.text} />
-        </TouchableOpacity>
-      )}
+      <TouchableOpacity
+        onPress={onNextMonth}
+        style={styles.navButton}
+        activeOpacity={0.7}
+      >
+        <IconSymbol name="chevron.right" size={20} color={colors.text} />
+      </TouchableOpacity>
     </Animated.View>
   );
 }

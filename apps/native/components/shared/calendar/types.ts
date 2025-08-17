@@ -44,6 +44,7 @@ export interface CalendarProps {
   // Customization
   renderDay?: (date: Date, transaction?: DailyTransaction) => React.ReactNode;
   locale?: string;
+  showHeader?: boolean;
 }
 
 export interface CalendarContextValue {
@@ -76,7 +77,6 @@ export interface CalendarHeaderProps {
   currentMonth: Date;
   onPrevMonth?: () => void;
   onNextMonth?: () => void;
-  showNavigation?: boolean;
 }
 
 export interface CalendarDate {

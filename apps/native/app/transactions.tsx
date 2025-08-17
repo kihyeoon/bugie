@@ -33,7 +33,7 @@ import type { TransactionWithDetails } from '@repo/core';
 // 상수
 const CONSTANTS = {
   HEADER_HEIGHT: Platform.select({ ios: 100, android: 80 }) ?? 80,
-  CALENDAR_MONTH_HEIGHT: 320,
+  CALENDAR_MONTH_HEIGHT: 360,
   CALENDAR_WEEK_HEIGHT: 120,
   SCROLL_THRESHOLD: 50,
   ANIMATION_DURATION: 300,
@@ -377,6 +377,7 @@ export default function TransactionsScreen() {
             />
           ),
           headerBackButtonDisplayMode: 'minimal',
+          headerShadowVisible: false,
           headerRight: () => (
             <TouchableOpacity onPress={handleSearch} style={{ marginRight: 8 }}>
               <Ionicons name="search" size={24} color={colors.icon} />
@@ -396,6 +397,7 @@ export default function TransactionsScreen() {
             onDateSelect={handleDateSelect}
             onMonthChange={handleMonthChange}
             scrollY={scrollY}
+            showHeader={false}
           />
         </Animated.View>
 
