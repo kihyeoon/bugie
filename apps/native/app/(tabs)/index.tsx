@@ -20,6 +20,7 @@ import { LoadingState } from '../../components/shared/LoadingState';
 import { ErrorState } from '../../components/shared/ErrorState';
 import { EmptyState } from '../../components/shared/EmptyState';
 import { LedgerSelector } from '../../components/shared/LedgerSelector';
+import { format } from 'date-fns';
 
 // Constants
 const CONSTANTS = {
@@ -123,8 +124,8 @@ export default function HomeScreen() {
   const handleDateSelect = (date: Date) => {
     if (!calendarData) return;
 
-    // calendarData는 "YYYY-MM-DD" 형식의 키를 사용
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = format(date, 'yyyy-MM-dd');
+
     const dayTransactions = calendarData[dateStr];
     const hasTransactions =
       dayTransactions &&

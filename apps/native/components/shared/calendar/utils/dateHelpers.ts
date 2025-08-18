@@ -1,26 +1,33 @@
 import { CalendarDate } from '../types';
+import {
+  startOfMonth,
+  startOfWeek,
+  addDays,
+  addWeeks,
+  format,
+  isToday,
+  isSameDay as isSameDayFns,
+  isSameMonth as isSameMonthFns,
+  addMonths as addMonthsFns,
+  getWeek,
+} from 'date-fns';
 
 export const DAYS_IN_WEEK = 7;
 export const WEEKS_IN_VIEW = 6;
 
 export function getMonthDates(year: number, month: number): CalendarDate[] {
   const dates: CalendarDate[] = [];
-  const firstDay = new Date(year, month, 1);
-  const startDate = new Date(firstDay);
-  const today = new Date();
-  
-  // 주의 시작일을 일요일로 맞추기
-  startDate.setDate(startDate.getDate() - firstDay.getDay());
+  const firstDayOfMonth = startOfMonth(new Date(year, month));
+  const startDate = startOfWeek(firstDayOfMonth, { weekStartsOn: 0 }); // 일요일 시작
   
   for (let week = 0; week < WEEKS_IN_VIEW; week++) {
     for (let day = 0; day < DAYS_IN_WEEK; day++) {
-      const date = new Date(startDate);
-      date.setDate(date.getDate() + (week * DAYS_IN_WEEK + day));
+      const date = addDays(addWeeks(startDate, week), day);
       
       dates.push({
         date,
-        isCurrentMonth: date.getMonth() === month,
-        isToday: isSameDay(date, today),
+        isCurrentMonth: isSameMonthFns(date, firstDayOfMonth),
+        isToday: isToday(date),
         weekIndex: week,
         dayIndex: day,
       });
@@ -32,20 +39,15 @@ export function getMonthDates(year: number, month: number): CalendarDate[] {
 
 export function getWeekDates(date: Date): CalendarDate[] {
   const dates: CalendarDate[] = [];
-  const startOfWeek = new Date(date);
-  const today = new Date();
-  
-  // 주의 시작일을 일요일로 맞추기
-  startOfWeek.setDate(date.getDate() - date.getDay());
+  const startDate = startOfWeek(date, { weekStartsOn: 0 }); // 일요일 시작
   
   for (let day = 0; day < DAYS_IN_WEEK; day++) {
-    const weekDate = new Date(startOfWeek);
-    weekDate.setDate(startOfWeek.getDate() + day);
+    const weekDate = addDays(startDate, day);
     
     dates.push({
       date: weekDate,
       isCurrentMonth: true, // 주간 뷰에서는 모두 현재 달로 취급
-      isToday: isSameDay(weekDate, today),
+      isToday: isToday(weekDate),
       weekIndex: 0,
       dayIndex: day,
     });
@@ -55,25 +57,15 @@ export function getWeekDates(date: Date): CalendarDate[] {
 }
 
 export function isSameDay(date1: Date, date2: Date): boolean {
-  return (
-    date1.getFullYear() === date2.getFullYear() &&
-    date1.getMonth() === date2.getMonth() &&
-    date1.getDate() === date2.getDate()
-  );
+  return isSameDayFns(date1, date2);
 }
 
 export function isSameMonth(date1: Date, date2: Date): boolean {
-  return (
-    date1.getFullYear() === date2.getFullYear() &&
-    date1.getMonth() === date2.getMonth()
-  );
+  return isSameMonthFns(date1, date2);
 }
 
 export function formatDateKey(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return format(date, 'yyyy-MM-dd');
 }
 
 export function getMonthName(date: Date, locale: string = 'ko-KR'): string {
@@ -94,15 +86,9 @@ export function getWeekdayNames(locale: string = 'ko-KR'): string[] {
 }
 
 export function getWeekOfMonth(date: Date): number {
-  const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
-  const firstDayOfWeek = firstDay.getDay();
-  const dayOfMonth = date.getDate();
-  
-  return Math.ceil((dayOfMonth + firstDayOfWeek) / DAYS_IN_WEEK);
+  return getWeek(date, { weekStartsOn: 0 }) - getWeek(startOfMonth(date), { weekStartsOn: 0 }) + 1;
 }
 
 export function addMonths(date: Date, months: number): Date {
-  const newDate = new Date(date);
-  newDate.setMonth(date.getMonth() + months);
-  return newDate;
+  return addMonthsFns(date, months);
 }

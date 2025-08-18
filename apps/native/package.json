@@ -20,6 +20,7 @@
     "@repo/types": "workspace:*",
     "@repo/ui": "workspace:*",
     "@supabase/supabase-js": "^2.52.0",
+    "date-fns": "^4.1.0",
     "expo": "~53.0.17",
     "expo-blur": "~14.1.5",
     "expo-constants": "~17.1.7",
