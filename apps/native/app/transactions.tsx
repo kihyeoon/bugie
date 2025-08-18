@@ -10,7 +10,7 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import Animated, {
   useSharedValue,
@@ -29,6 +29,7 @@ import { EmptyState } from '../components/shared/EmptyState';
 import { useLedger } from '../contexts/LedgerContext';
 import { useTransactions } from '../hooks/useTransactions';
 import type { TransactionWithDetails } from '@repo/core';
+import { format } from 'date-fns';
 
 // 상수
 const CONSTANTS = {
@@ -153,6 +154,8 @@ export default function TransactionsScreen() {
   const [calendarViewType, setCalendarViewType] = useState<'month' | 'week'>(
     'month'
   );
+  const [hasScrolledToInitialDate, setHasScrolledToInitialDate] =
+    useState(false);
 
   // 애니메이션 값
   const scrollY = useSharedValue(0);
@@ -212,28 +215,80 @@ export default function TransactionsScreen() {
     [calendarViewType, scrollY, calendarHeight]
   );
 
-  // 날짜 선택 처리
-  const handleDateSelect = useCallback(
-    (date: Date) => {
-      setSelectedDate(date);
-
-      // 이 날짜에 대한 섹션 찾기
-      const dateStr = date.toISOString().split('T')[0];
+  // 날짜로 스크롤하는 헬퍼 함수
+  const scrollToDate = useCallback(
+    (dateStr: string) => {
       const sectionIndex = groupedTransactions.findIndex(
         (group) => group.date === dateStr
       );
 
       if (sectionIndex !== -1 && listRef.current) {
-        // SectionList scrollToLocation 호출
-        listRef.current.scrollToLocation({
-          sectionIndex,
-          itemIndex: 0,
-          animated: true,
-        });
+        // 레이아웃 측정 완료를 위한 지연 후 스크롤
+        setTimeout(() => {
+          try {
+            listRef.current?.scrollToLocation({
+              sectionIndex,
+              itemIndex: 0,
+              animated: true,
+              viewPosition: 0, // 상단에 위치
+            });
+          } catch (error) {
+            console.warn('ScrollToLocation failed:', error);
+            // Fallback: 첫 번째 섹션으로라도 이동
+            if (sectionIndex > 0) {
+              listRef.current?.scrollToLocation({
+                sectionIndex: 0,
+                itemIndex: 0,
+                animated: true,
+                viewPosition: 0,
+              });
+            }
+          }
+        }, 300); // 더 긴 지연으로 안정성 확보
       }
     },
     [groupedTransactions]
   );
+
+  // 날짜 선택 처리
+  const handleDateSelect = useCallback(
+    (date: Date) => {
+      setSelectedDate(date);
+
+      // date-fns를 사용한 정확한 날짜 형식 변환
+      const dateStr = format(date, 'yyyy-MM-dd');
+      scrollToDate(dateStr);
+    },
+    [scrollToDate]
+  );
+
+  // 초기 로드 시 파라미터로 전달된 날짜로 자동 스크롤
+  useEffect(() => {
+    if (
+      params.date &&
+      groupedTransactions.length > 0 &&
+      !hasScrolledToInitialDate &&
+      !loading // 로딩이 완료된 후에만 스크롤
+    ) {
+      const targetDate = params.date as string;
+
+      // 대상 날짜가 실제로 데이터에 존재하는지 확인
+      const targetExists = groupedTransactions.some(
+        (group) => group.date === targetDate
+      );
+
+      if (targetExists) {
+        scrollToDate(targetDate);
+        setHasScrolledToInitialDate(true);
+      }
+    }
+  }, [
+    params.date,
+    groupedTransactions,
+    hasScrolledToInitialDate,
+    scrollToDate,
+    loading,
+  ]);
 
   // 월 변경 처리
   const handleMonthChange = useCallback((year: number, month: number) => {
@@ -271,6 +326,38 @@ export default function TransactionsScreen() {
     console.log('Navigate to transaction detail:', transactionId);
   }, []);
 
+  // 스크롤 실패 시 처리
+  const onScrollToIndexFailed = useCallback(
+    (info: {
+      index: number;
+      highestMeasuredFrameIndex: number;
+      averageItemLength: number;
+    }) => {
+      console.warn('ScrollToIndex failed:', info);
+
+      // 일단 측정된 가장 가까운 위치로 스크롤
+      const safeIndex = Math.min(info.index, info.highestMeasuredFrameIndex);
+      if (listRef.current && safeIndex >= 0) {
+        listRef.current.scrollToLocation({
+          sectionIndex: safeIndex,
+          itemIndex: 0,
+          animated: false,
+        });
+
+        // 그 다음 원하는 위치로 다시 시도
+        setTimeout(() => {
+          listRef.current?.scrollToLocation({
+            sectionIndex: info.index,
+            itemIndex: 0,
+            animated: true,
+            viewPosition: 0,
+          });
+        }, 100);
+      }
+    },
+    []
+  );
+
   // 검색 핸들러
   const handleSearch = useCallback(() => {
     // TODO: 검색 기능 구현
@@ -299,7 +386,7 @@ export default function TransactionsScreen() {
 
   // 푸터를 위한 일일 합계 계산
   const calculateDailyTotals = useCallback(() => {
-    const dateStr = selectedDate.toISOString().split('T')[0];
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
     const todayTransactions = transactions.filter(
       (t: TransactionWithDetails) => t.transaction_date === dateStr
     );
@@ -415,6 +502,7 @@ export default function TransactionsScreen() {
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           stickySectionHeadersEnabled={false}
+          onScrollToIndexFailed={onScrollToIndexFailed}
           ListFooterComponent={
             <View style={styles.footer}>
               <View style={styles.footerRow}>

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback, useEffect } from 'react';
 import { useSharedValue } from 'react-native-reanimated';
 import {
   CalendarContextValue,
@@ -39,6 +39,18 @@ export function CalendarProvider({
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(propSelectedDate);
   const [currentMonth, setCurrentMonth] = useState(() => propSelectedDate || new Date());
   const [viewType, setViewType] = useState<ViewType>(initialViewType);
+
+  // props로 전달된 selectedDate가 변경되면 내부 상태도 업데이트
+  useEffect(() => {
+    if (propSelectedDate) {
+      setSelectedDate(propSelectedDate);
+    }
+  }, [propSelectedDate]);
+
+  // props로 전달된 viewType이 변경되면 내부 상태도 업데이트
+  useEffect(() => {
+    setViewType(initialViewType);
+  }, [initialViewType]);
   
   // Animation values for scrollable mode
   const animatedHeight = useSharedValue(mode === 'scrollable' ? 300 : 0);

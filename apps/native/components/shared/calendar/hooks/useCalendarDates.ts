@@ -36,8 +36,14 @@ export function useCalendarDates() {
   }, [dates, viewType]);
   
   const selectedWeekIndex = useMemo(() => {
-    if (!selectedDate || viewType !== 'month') return 0;
+    if (!selectedDate) return 0;
     
+    if (viewType === 'week') {
+      // 주간 뷰에서는 항상 0 (이미 선택된 날짜가 속한 주만 표시)
+      return 0;
+    }
+    
+    // 월간 뷰에서 선택된 날짜가 속한 주 인덱스 계산
     const selectedDateInfo = dates.find(d => 
       d.date.getDate() === selectedDate.getDate() &&
       d.date.getMonth() === selectedDate.getMonth() &&
