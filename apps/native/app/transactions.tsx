@@ -384,6 +384,26 @@ export default function TransactionsScreen() {
     });
   }, []);
 
+  // 캘린더 뷰 타입 변경 핸들러 (드래그 제스처용)
+  const handleCalendarViewChange = useCallback(
+    (newViewType: 'month' | 'week') => {
+      setCalendarViewType(newViewType);
+      // 드래그로 모드 변경 시에는 애니메이션 값도 업데이트
+      if (newViewType === 'week') {
+        calendarHeight.value = withTiming(CONSTANTS.CALENDAR_WEEK_HEIGHT, {
+          duration: CONSTANTS.ANIMATION_DURATION,
+          easing: Easing.out(Easing.ease),
+        });
+      } else {
+        calendarHeight.value = withTiming(CONSTANTS.CALENDAR_MONTH_HEIGHT, {
+          duration: CONSTANTS.ANIMATION_DURATION,
+          easing: Easing.out(Easing.ease),
+        });
+      }
+    },
+    [calendarHeight]
+  );
+
   // 캘린더 컨테이너 애니메이션 스타일
   const animatedCalendarStyle = useAnimatedStyle(() => {
     return {
@@ -555,6 +575,7 @@ export default function TransactionsScreen() {
             transactions={calendarData}
             onDateSelect={handleDateSelect}
             onMonthChange={handleMonthChange}
+            onViewTypeChange={handleCalendarViewChange}
             scrollY={scrollY}
             showHeader={false}
           />

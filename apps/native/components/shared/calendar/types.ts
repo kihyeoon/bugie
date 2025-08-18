@@ -23,24 +23,25 @@ export interface CalendarProps {
   // Mode configuration
   mode?: CalendarMode;
   viewType?: ViewType;
-  
+
   // Data
   selectedDate?: Date;
   transactions?: CalendarTransaction;
-  
+
   // Events
   onDateSelect?: (date: Date) => void;
   onMonthChange?: (year: number, month: number) => void;
-  
+  onViewTypeChange?: (viewType: ViewType) => void;
+
   // Animation (for scrollable mode)
   scrollY?: SharedValue<number>;
   animationConfig?: CalendarAnimationConfig;
-  
+
   // Styling
   containerStyle?: ViewStyle;
   headerStyle?: ViewStyle;
   dayStyle?: ViewStyle;
-  
+
   // Customization
   renderDay?: (date: Date, transaction?: DailyTransaction) => React.ReactNode;
   locale?: string;
@@ -53,11 +54,11 @@ export interface CalendarContextValue {
   selectedDate?: Date;
   currentMonth: Date;
   transactions?: CalendarTransaction;
-  
+
   // Animation values
   animatedHeight?: SharedValue<number>;
   animatedOpacity?: SharedValue<number>;
-  
+
   // Actions
   selectDate: (date: Date) => void;
   changeMonth: (year: number, month: number) => void;
