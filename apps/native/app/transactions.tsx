@@ -194,6 +194,7 @@ export default function TransactionsScreen() {
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       const offsetY = event.nativeEvent.contentOffset.y;
+      const previousY = scrollY.value;
       scrollY.value = offsetY;
 
       // 프로그래매틱 스크롤일 경우 캘린더 모드 전환 방지
@@ -201,19 +202,25 @@ export default function TransactionsScreen() {
         return;
       }
 
-      // 스크롤 기반으로 캘린더 뷰 타입 결정
+      const scrollDirection = offsetY - previousY; // 양수: 위로 스크롤, 음수: 아래로 스크롤
+
+      // 월간 → 주간: 최상단 근처에서 실제로 위로 스크롤할 때만
       if (
-        offsetY > CONSTANTS.SCROLL_THRESHOLD &&
-        calendarViewType === 'month'
+        calendarViewType === 'month' &&
+        offsetY > 0 && // 실제로 컨텐츠를 스크롤 (바운스 제외)
+        offsetY <= CONSTANTS.SCROLL_THRESHOLD && // 최상단 근처에서만
+        scrollDirection > 0 // 위로 스크롤
       ) {
         setCalendarViewType('week');
         calendarHeight.value = withTiming(CONSTANTS.CALENDAR_WEEK_HEIGHT, {
           duration: CONSTANTS.ANIMATION_DURATION,
           easing: Easing.out(Easing.ease),
         });
-      } else if (
-        offsetY < -CONSTANTS.SCROLL_THRESHOLD &&
-        calendarViewType === 'week'
+      } 
+      // 주간 → 월간: 최상단에서 아래로 당길 때만 (pull-to-expand)
+      else if (
+        calendarViewType === 'week' &&
+        offsetY < -CONSTANTS.SCROLL_THRESHOLD // 최상단에서 아래로 당기기
       ) {
         setCalendarViewType('month');
         calendarHeight.value = withTiming(CONSTANTS.CALENDAR_MONTH_HEIGHT, {
