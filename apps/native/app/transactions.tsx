@@ -9,8 +9,9 @@ import {
   Platform,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  ViewToken,
 } from 'react-native';
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import Animated, {
   useSharedValue,
@@ -30,6 +31,7 @@ import { useLedger } from '../contexts/LedgerContext';
 import { useTransactions } from '../hooks/useTransactions';
 import type { TransactionWithDetails } from '@repo/core';
 import { format } from 'date-fns';
+import { debounce } from '@/utils/timing';
 
 // 상수
 const CONSTANTS = {
@@ -40,6 +42,12 @@ const CONSTANTS = {
   ANIMATION_DURATION: 300,
   PAGE_SIZE: 20,
 } as const;
+
+// SectionList 가시성 설정
+const viewabilityConfig = {
+  itemVisiblePercentThreshold: 50, // 50% 이상 보일 때 활성화
+  waitForInteraction: false, // 디바운스가 타이밍 제어
+};
 
 // 거래 아이템 컴포넌트
 const TransactionItem = ({
@@ -295,6 +303,56 @@ export default function TransactionsScreen() {
     setSelectedDate(new Date(year, month));
   }, []);
 
+  // 디바운스된 캘린더 날짜 업데이트 (300ms 지연)
+  const debouncedDateUpdate = useMemo(
+    () =>
+      debounce((newDate: Date) => {
+        // 현재 선택된 날짜와 다른 경우에만 업데이트
+        if (
+          format(newDate, 'yyyy-MM-dd') !== format(selectedDate, 'yyyy-MM-dd')
+        ) {
+          setSelectedDate(newDate);
+
+          // 월이 변경되었다면 캘린더 월도 변경
+          if (
+            newDate.getMonth() !== selectedDate.getMonth() ||
+            newDate.getFullYear() !== selectedDate.getFullYear()
+          ) {
+            handleMonthChange(newDate.getFullYear(), newDate.getMonth());
+          }
+        }
+      }, 300),
+    [selectedDate, handleMonthChange]
+  );
+
+  // 스크롤 시 보이는 날짜에 따른 캘린더 동기화
+  const onViewableItemsChanged = useCallback(
+    ({
+      viewableItems,
+    }: {
+      viewableItems: ViewToken<TransactionWithDetails>[];
+    }) => {
+      if (viewableItems.length > 0) {
+        // 가장 위에 보이는 섹션의 날짜 가져오기
+        const firstVisibleSection = viewableItems[0].section;
+        if (firstVisibleSection?.date) {
+          const newDate = new Date(firstVisibleSection.date);
+
+          // 디바운스된 함수 호출 (300ms 후 실행)
+          debouncedDateUpdate(newDate);
+        }
+      }
+    },
+    [debouncedDateUpdate]
+  );
+
+  // 컴포넌트 언마운트 시 디바운스 타이머 정리
+  useEffect(() => {
+    return () => {
+      debouncedDateUpdate.cancel();
+    };
+  }, [debouncedDateUpdate]);
+
   // 이전/다음 월 네비게이션
   const handlePrevMonth = useCallback(() => {
     setSelectedDate((prev) => {
@@ -503,6 +561,8 @@ export default function TransactionsScreen() {
           onEndReachedThreshold={0.5}
           stickySectionHeadersEnabled={false}
           onScrollToIndexFailed={onScrollToIndexFailed}
+          viewabilityConfig={viewabilityConfig}
+          onViewableItemsChanged={onViewableItemsChanged}
           ListFooterComponent={
             <View style={styles.footer}>
               <View style={styles.footerRow}>
