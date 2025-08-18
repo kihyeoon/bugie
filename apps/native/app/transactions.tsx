@@ -4,7 +4,6 @@ import {
   SectionList,
   SectionListData,
   SafeAreaView,
-  Text,
   TouchableOpacity,
   Platform,
   NativeSyntheticEvent,
@@ -32,6 +31,7 @@ import { useTransactions } from '../hooks/useTransactions';
 import type { TransactionWithDetails } from '@repo/core';
 import { format } from 'date-fns';
 import { debounce } from '@/utils/timing';
+import { getIoniconName } from '@/constants/categories';
 
 // 상수
 const CONSTANTS = {
@@ -73,7 +73,11 @@ const TransactionItem = ({
             { backgroundColor: transaction.category_color + '20' },
           ]}
         >
-          <Text style={{ fontSize: 20 }}>{transaction.category_icon}</Text>
+          <Ionicons
+            name={getIoniconName(transaction.category_icon, true)}
+            size={20}
+            color={transaction.category_color}
+          />
         </View>
         <View style={styles.transactionInfo}>
           <Typography variant="body1" weight="500">
@@ -95,9 +99,6 @@ const TransactionItem = ({
 
 // 날짜 섹션 헤더 컴포넌트
 const DateSectionHeader = ({ date }: { date: string }) => {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
-
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     const month = date.getMonth() + 1;
@@ -107,14 +108,9 @@ const DateSectionHeader = ({ date }: { date: string }) => {
   };
 
   return (
-    <View
-      style={[
-        styles.sectionHeader,
-        { backgroundColor: colors.backgroundSecondary },
-      ]}
-    >
-      <Typography variant="body1" weight="600">
-        📅 {formatDate(date)}
+    <View style={styles.sectionHeader}>
+      <Typography variant="body2" weight="500" color="secondary">
+        {formatDate(date)}
       </Typography>
     </View>
   );
@@ -655,16 +651,17 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 8,
+    paddingTop: 16,
   },
   transactionItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E5E8EB',
+    borderBottomColor: '#F3F4F6',
   },
   transactionLeft: {
     flexDirection: 'row',
@@ -672,9 +669,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   categoryIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
