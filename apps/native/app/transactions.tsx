@@ -453,11 +453,11 @@ export default function TransactionsScreen() {
     []
   );
 
-  // 검색 핸들러
-  const handleSearch = useCallback(() => {
-    // TODO: 검색 기능 구현
-    console.log('Search');
-  }, []);
+  // TODO: Phase 2에서 검색 기능 구현
+  // const handleSearch = useCallback(() => {
+  //   // TODO: 검색 기능 구현
+  //   console.log('Search');
+  // }, []);
 
   // 렌더 함수들
   const renderTransaction = useCallback(
@@ -560,17 +560,18 @@ export default function TransactionsScreen() {
           ),
           headerBackButtonDisplayMode: 'minimal',
           headerShadowVisible: false,
-          headerRight: () => (
-            <TouchableOpacity onPress={handleSearch} style={{ marginRight: 8 }}>
-              <Ionicons name="search" size={24} color={colors.icon} />
-            </TouchableOpacity>
-          ),
+          // TODO: Phase 2에서 검색 기능 구현 시 활성화
+          // headerRight: () => (
+          //   <TouchableOpacity onPress={handleSearch} style={{ marginRight: 8 }}>
+          //     <Ionicons name="search" size={24} color={colors.icon} />
+          //   </TouchableOpacity>
+          // ),
         }}
       />
 
       <View style={styles.content}>
         {/* 애니메이션 캘린더 */}
-        <Animated.View style={animatedCalendarStyle}>
+        <Animated.View style={[animatedCalendarStyle, styles.calendarContainer]}>
           <Calendar
             mode="scrollable"
             viewType={calendarViewType}
@@ -644,6 +645,9 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  calendarContainer: {
+    paddingHorizontal: 16,
   },
   headerTitle: {
     flexDirection: 'row',
