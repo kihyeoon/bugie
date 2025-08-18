@@ -36,7 +36,7 @@ import { debounce } from '@/utils/timing';
 // 상수
 const CONSTANTS = {
   HEADER_HEIGHT: Platform.select({ ios: 100, android: 80 }) ?? 80,
-  CALENDAR_MONTH_HEIGHT: 360,
+  CALENDAR_MONTH_HEIGHT: 420,
   CALENDAR_WEEK_HEIGHT: 120,
   SCROLL_THRESHOLD: 50,
   ANIMATION_DURATION: 300,
@@ -172,6 +172,7 @@ export default function TransactionsScreen() {
   );
   const listRef =
     useRef<SectionList<TransactionWithDetails, { date: string }>>(null);
+  const isProgrammaticScroll = useRef(false);
 
   // 데이터 가져오기 위한 현재 월/년 가져오기
   const year = selectedDate.getFullYear();
@@ -198,6 +199,11 @@ export default function TransactionsScreen() {
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       const offsetY = event.nativeEvent.contentOffset.y;
       scrollY.value = offsetY;
+
+      // 프로그래매틱 스크롤일 경우 캘린더 모드 전환 방지
+      if (isProgrammaticScroll.current) {
+        return;
+      }
 
       // 스크롤 기반으로 캘린더 뷰 타입 결정
       if (
@@ -231,6 +237,9 @@ export default function TransactionsScreen() {
       );
 
       if (sectionIndex !== -1 && listRef.current) {
+        // 프로그래매틱 스크롤 플래그 설정
+        isProgrammaticScroll.current = true;
+
         // 레이아웃 측정 완료를 위한 지연 후 스크롤
         setTimeout(() => {
           try {
@@ -252,6 +261,11 @@ export default function TransactionsScreen() {
               });
             }
           }
+
+          // 스크롤 완료 후 플래그 해제 (애니메이션 시간 고려)
+          setTimeout(() => {
+            isProgrammaticScroll.current = false;
+          }, 500);
         }, 300); // 더 긴 지연으로 안정성 확보
       }
     },
