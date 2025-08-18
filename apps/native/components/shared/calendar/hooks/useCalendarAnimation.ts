@@ -4,6 +4,7 @@ import {
   useAnimatedStyle,
   interpolate,
   SharedValue,
+  withTiming,
 } from 'react-native-reanimated';
 import { useCalendar } from '../CalendarContext';
 import { CalendarAnimationConfig } from '../types';
@@ -18,32 +19,32 @@ export function useCalendarAnimation(
   scrollY?: SharedValue<number>,
   config?: CalendarAnimationConfig
 ) {
-  const { mode, viewType, setViewType } = useCalendar();
+  const { mode, viewType } = useCalendar();
   const mergedConfig = { ...DEFAULT_CONFIG, ...config };
 
-  // Internal animation values
+  // 내부 애니메이션 값
   const isExpanded = useSharedValue(viewType === 'month' ? 1 : 0);
 
-  // Height calculations
-  const monthViewHeight = 300; // 6 weeks * 50px per week
-  const weekViewHeight = 80; // 1 week + reduced header
+  // 높이 계산
+  const monthViewHeight = 320; // CALENDAR_MONTH_HEIGHT와 일치
+  const weekViewHeight = 120; // CALENDAR_WEEK_HEIGHT와 일치
 
   useEffect(() => {
     if (mode !== 'scrollable' || !scrollY) return;
-  }, [
-    mode,
-    scrollY,
-    mergedConfig.threshold,
-    mergedConfig.duration,
-    setViewType,
-  ]);
+
+    // viewType 변경 시 애니메이션 값 업데이트
+    const targetValue = viewType === 'month' ? 1 : 0;
+    isExpanded.value = withTiming(targetValue, {
+      duration: mergedConfig.duration,
+    });
+  }, [mode, scrollY, viewType, mergedConfig.duration, isExpanded]);
 
   const animatedContainerStyle = useAnimatedStyle(() => {
     if (mode !== 'scrollable') {
       return {};
     }
 
-    // Scrollable 모드에서만 애니메이션 높이 적용
+    // 스크롤 가능 모드에서만 애니메이션 높이 적용
     const height = interpolate(
       isExpanded.value,
       [0, 1],

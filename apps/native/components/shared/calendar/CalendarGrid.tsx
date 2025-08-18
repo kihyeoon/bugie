@@ -34,14 +34,18 @@ export function CalendarGrid({ animatedStyle }: CalendarGridProps) {
   return (
     <Animated.View style={[styles.container, animatedStyle]}>
       {weekDates.map((week, weekIndex) => {
+        // 월간 뷰: 모든 주 표시
+        // 주간 뷰: 선택된 날짜가 속한 주만 표시 (이미 weekDates에서 필터링됨)
         const shouldShow =
-          viewType === 'month' || weekIndex === selectedWeekIndex;
+          viewType === 'month' || 
+          (viewType === 'week' && weekIndex === 0) ||
+          weekIndex === selectedWeekIndex;
 
         if (!shouldShow) return null;
 
         return (
           <Animated.View
-            key={weekIndex}
+            key={`week-${weekIndex}`}
             style={[styles.week, weekAnimatedStyle]}
           >
             {week.map((day) => {
