@@ -1,10 +1,15 @@
 import { Text, TextProps, StyleSheet } from 'react-native';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import {
+  formatAmount,
+  type TransactionType,
+  type FormatType,
+} from '@/utils/currency';
 
 interface AmountDisplayProps extends Omit<TextProps, 'children'> {
   amount: number;
-  type?: 'income' | 'expense' | 'neutral';
+  type?: TransactionType;
   size?: 'small' | 'medium' | 'large' | 'xlarge';
   showSign?: boolean;
   currency?: string;
@@ -24,32 +29,40 @@ export function AmountDisplay({
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
 
-  const formatAmount = (value: number) => {
-    return Math.abs(value).toLocaleString('ko-KR');
-  };
+  // size에 따른 포맷 결정 (small은 축약형, 나머지는 full)
+  const format: FormatType = size === 'small' ? 'abbreviated' : 'full';
 
-  const getSign = () => {
-    if (!showSign) return '';
-    if (type === 'income' || amount > 0) return '+';
-    if (type === 'expense' || amount < 0) return '-';
-    return '';
-  };
+  // 통화 표시 결정 (currency가 '원'이 아니거나 currencyPosition이 'before'인 경우만)
+  const showCurrency = currency !== '원' || currencyPosition === 'before';
 
+  // 핵심 포맷팅 로직 호출
+  const result = formatAmount({
+    amount,
+    type,
+    format,
+    showSign,
+    showCurrency,
+    currency,
+  });
+
+  // 색상 매핑
   const getColor = () => {
-    // type이 명시적으로 지정된 경우 우선 적용
-    if (type === 'income') return colors.income;
-    if (type === 'expense') return colors.expense;
-    
-    // type이 neutral인 경우 amount 기준으로 판단
-    if (type === 'neutral') {
-      if (amount > 0) return colors.income;
-      if (amount < 0) return colors.expense;
-      return colors.text;
+    switch (result.colorKey) {
+      case 'income':
+        return colors.income;
+      case 'expense':
+        return colors.expense;
+      case 'neutral':
+        // neutral의 경우 amount 기준으로 판단
+        if (amount > 0) return colors.income;
+        if (amount < 0) return colors.expense;
+        return colors.text;
+      default:
+        return colors.text;
     }
-    
-    return colors.text;
   };
 
+  // 크기별 스타일
   const getSizeStyle = () => {
     const sizeStyles = {
       small: styles.small,
@@ -60,23 +73,18 @@ export function AmountDisplay({
     return sizeStyles[size];
   };
 
-  const sign = getSign();
-  const formattedAmount = formatAmount(amount);
-  const displayText = currencyPosition === 'before' 
-    ? `${sign}${currency}${formattedAmount}`
-    : `${sign}${formattedAmount}${currency}`;
+  // currencyPosition이 'after'이고 showCurrency가 false인 경우 수동으로 '원' 추가
+  const finalText =
+    !showCurrency && currencyPosition === 'after'
+      ? `${result.formatted}${currency}`
+      : result.formatted;
 
   return (
     <Text
       {...props}
-      style={[
-        styles.base,
-        getSizeStyle(),
-        { color: getColor() },
-        style,
-      ]}
+      style={[styles.base, getSizeStyle(), { color: getColor() }, style]}
     >
-      {displayText}
+      {finalText}
     </Text>
   );
 }

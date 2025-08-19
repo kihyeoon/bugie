@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { Text, TouchableOpacity, View, StyleSheet } from 'react-native';
 import { CalendarDayProps } from './types';
-import { formatFullTransactionAmount } from './utils/formatters';
+import { formatCalendarAmount } from '@/utils/currency';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
@@ -63,14 +63,14 @@ export const CalendarDay = memo(
                 <Text
                   style={[styles.transactionText, { color: colors.income }]}
                 >
-                  {formatFullTransactionAmount(transaction.income, 'income')}
+                  {formatCalendarAmount(transaction.income, 'income')}
                 </Text>
               )}
               {transaction.expense > 0 && (
                 <Text
                   style={[styles.transactionText, { color: colors.expense }]}
                 >
-                  {formatFullTransactionAmount(transaction.expense, 'expense')}
+                  {formatCalendarAmount(transaction.expense, 'expense')}
                 </Text>
               )}
             </View>
