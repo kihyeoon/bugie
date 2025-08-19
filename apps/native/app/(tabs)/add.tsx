@@ -2,11 +2,14 @@ import {
   StyleSheet,
   TextInput,
   View,
+  ScrollView,
   Keyboard,
   Alert,
   SafeAreaView,
   Platform,
   KeyboardAvoidingView,
+  TouchableOpacity,
+  Text,
 } from 'react-native';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
@@ -17,6 +20,9 @@ import { CategorySelector } from '@/components/shared/CategorySelector';
 import { useCategories } from '@/hooks/useCategories';
 import { useLedger } from '@/contexts/LedgerContext';
 import { useServices } from '@/contexts/ServiceContext';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { Ionicons } from '@expo/vector-icons';
+import { format } from 'date-fns';
 import type { CategoryDetail } from '@repo/core';
 
 export default function AddTransactionScreen() {
@@ -28,6 +34,8 @@ export default function AddTransactionScreen() {
     useState<CategoryDetail | null>(null);
   const [title, setTitle] = useState('');
   const [memo, setMemo] = useState('');
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Input refs for focus management
@@ -49,12 +57,36 @@ export default function AddTransactionScreen() {
     deleteCategory,
   } = useCategories(transactionType);
 
+  // 날짜 포맷팅 함수
+  const formatDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const weekDay = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
+    return `${year}년 ${month}월 ${day}일 (${weekDay})`;
+  };
+
+  // 날짜 선택 핸들러
+  const showDatePicker = () => {
+    setDatePickerVisibility(true);
+  };
+
+  const hideDatePicker = () => {
+    setDatePickerVisibility(false);
+  };
+
+  const handleConfirm = (date: Date) => {
+    setSelectedDate(date);
+    hideDatePicker();
+  };
+
   // 폼 초기화 함수
   const resetForm = useCallback(() => {
     setAmount(0);
     setSelectedCategory(null);
     setTitle('');
     setMemo('');
+    setSelectedDate(new Date());
     // transactionType은 사용자 편의를 위해 유지
   }, []);
 
@@ -108,6 +140,7 @@ export default function AddTransactionScreen() {
         type: transactionType,
         title: title.trim(),
         description: memo || undefined,
+        transactionDate: format(selectedDate, 'yyyy-MM-dd'),
       };
 
       // 거래 저장
@@ -138,9 +171,11 @@ export default function AddTransactionScreen() {
       <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
-        <View style={styles.content}>
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.scrollContent}
+        >
           {/* 헤더 */}
           <View style={styles.header}>
             <Typography variant="h2" style={{ marginBottom: 20 }}>
@@ -203,6 +238,30 @@ export default function AddTransactionScreen() {
             />
           </View>
 
+          {/* 날짜 선택 */}
+          <View style={styles.dateSection}>
+            <TouchableOpacity
+              style={[
+                styles.dateInput,
+                {
+                  backgroundColor: colors.backgroundSecondary,
+                },
+              ]}
+              onPress={showDatePicker}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="calendar-outline"
+                size={20}
+                color={colors.textSecondary}
+                style={styles.dateIcon}
+              />
+              <Text style={[styles.dateText, { color: colors.text }]}>
+                {formatDate(selectedDate)}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {/* 제목 입력 */}
           <View style={styles.titleSection}>
             <TextInput
@@ -259,8 +318,21 @@ export default function AddTransactionScreen() {
               {saving ? '저장 중...' : '저장하기'}
             </Button>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* DateTimePicker Modal - 모든 플랫폼 */}
+      <DateTimePickerModal
+        isVisible={isDatePickerVisible}
+        mode="date"
+        onConfirm={handleConfirm}
+        onCancel={hideDatePicker}
+        date={selectedDate}
+        maximumDate={new Date()}
+        locale="ko"
+        confirmTextIOS="완료"
+        cancelTextIOS="취소"
+      />
     </SafeAreaView>
   );
 }
@@ -274,6 +346,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
   },
   header: {
     paddingTop: Platform.select({
@@ -327,6 +403,25 @@ const styles = StyleSheet.create({
     fontSize: 15,
     letterSpacing: -0.3,
     height: 52,
+  },
+  dateSection: {
+    paddingHorizontal: 24,
+    marginBottom: 12,
+  },
+  dateInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    padding: 16,
+    height: 52,
+  },
+  dateIcon: {
+    marginRight: 10,
+  },
+  dateText: {
+    fontSize: 15,
+    letterSpacing: -0.3,
+    flex: 1,
   },
   memoSection: {
     paddingHorizontal: 24,
