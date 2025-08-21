@@ -26,6 +26,10 @@ const MAPPING = {
   'gearshape.fill': 'settings',
   // 로그아웃 아이콘
   'rectangle.portrait.and.arrow.right': 'exit-to-app',
+  // 가계부 관리 아이콘들
+  'checkmark.circle.fill': 'check-circle',
+  'circle': 'radio-button-off',
+  'plus.circle.fill': 'add-circle',
 } as const;
 
 type IconSymbolName = keyof typeof MAPPING;
