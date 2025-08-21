@@ -5,13 +5,15 @@ import {
   SectionListData,
   SafeAreaView,
   TouchableOpacity,
+  Pressable,
   Platform,
   NativeSyntheticEvent,
   NativeScrollEvent,
   ViewToken,
 } from 'react-native';
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { useLocalSearchParams, Stack } from 'expo-router';
+import { useLocalSearchParams, Stack, router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -190,6 +192,21 @@ export default function TransactionsScreen() {
     month,
   });
 
+  // 마지막 리페치 시간 추적 (디바운싱용)
+  const lastRefetchTime = useRef(0);
+
+  // 화면 포커스 시 데이터 새로고침 (디바운싱 적용)
+  useFocusEffect(
+    useCallback(() => {
+      const now = Date.now();
+      // 마지막 리페치로부터 1초 이상 경과 시만 리페치
+      if (now - lastRefetchTime.current > 1000) {
+        refetch();
+        lastRefetchTime.current = now;
+      }
+    }, [refetch])
+  );
+
   // 스크롤 이벤트 처리
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -216,7 +233,7 @@ export default function TransactionsScreen() {
           duration: CONSTANTS.ANIMATION_DURATION,
           easing: Easing.out(Easing.ease),
         });
-      } 
+      }
       // 주간 → 월간: 최상단에서 아래로 당길 때만 (pull-to-expand)
       else if (
         calendarViewType === 'week' &&
@@ -417,8 +434,10 @@ export default function TransactionsScreen() {
 
   // 거래 상세 화면으로 네비게이션 처리
   const handleTransactionPress = useCallback((transactionId: string) => {
-    // TODO: 거래 상세 화면 구현
-    console.log('Navigate to transaction detail:', transactionId);
+    router.push({
+      pathname: '/transaction-detail',
+      params: { id: transactionId },
+    });
   }, []);
 
   // 스크롤 실패 시 처리
@@ -558,8 +577,12 @@ export default function TransactionsScreen() {
               onNextMonth={handleNextMonth}
             />
           ),
-          headerBackButtonDisplayMode: 'minimal',
           headerShadowVisible: false,
+          headerLeft: () => (
+            <Pressable onPress={() => router.back()}>
+              <Ionicons name="chevron-back" size={24} color={colors.text} />
+            </Pressable>
+          ),
           // TODO: Phase 2에서 검색 기능 구현 시 활성화
           // headerRight: () => (
           //   <TouchableOpacity onPress={handleSearch} style={{ marginRight: 8 }}>
@@ -571,7 +594,9 @@ export default function TransactionsScreen() {
 
       <View style={styles.content}>
         {/* 애니메이션 캘린더 */}
-        <Animated.View style={[animatedCalendarStyle, styles.calendarContainer]}>
+        <Animated.View
+          style={[animatedCalendarStyle, styles.calendarContainer]}
+        >
           <Calendar
             mode="scrollable"
             viewType={calendarViewType}
