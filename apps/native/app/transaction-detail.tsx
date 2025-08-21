@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ScrollView,
   View,
@@ -16,25 +16,119 @@ import { Typography } from '@/components/ui/Typography';
 import { Button } from '@/components/ui/Button';
 import { AmountDisplay } from '@/components/ui/AmountDisplay';
 import { getIoniconName } from '@/constants/categories';
+import { formatDateTime } from '@/utils/dateFormatter';
+import { EditAmountModal } from '@/components/transaction/EditAmountModal';
+import { EditTextModal } from '@/components/transaction/EditTextModal';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { format } from 'date-fns';
+import { CategoryBottomSheet } from '@/components/shared/CategorySelector/CategoryBottomSheet';
+import { useCategories } from '@/hooks/useCategories';
 
 export default function TransactionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const { transaction, loading, error, deleteTransaction } =
-    useTransactionDetail(id);
+  const {
+    transaction,
+    initialLoading,
+    error,
+    updateTransaction,
+    deleteTransaction,
+  } = useTransactionDetail(id);
+  const { categories } = useCategories();
 
-  // 시간 포맷팅
-  const formatDateTime = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  // 모달 상태들
+  const [amountModalVisible, setAmountModalVisible] = useState(false);
+  const [categoryModalVisible, setCategoryModalVisible] = useState(false);
+  const [titleModalVisible, setTitleModalVisible] = useState(false);
+  const [memoModalVisible, setMemoModalVisible] = useState(false);
+  const [datePickerVisible, setDatePickerVisible] = useState(false);
+
+  // 편집 핸들러들
+  const handleAmountSave = useCallback(
+    async (amount: number) => {
+      try {
+        await updateTransaction({ amount });
+        // 자연스럽게 변경사항 반영 (Alert 제거)
+      } catch {
+        Alert.alert('오류', '금액 수정에 실패했습니다.');
+      }
+    },
+    [updateTransaction]
+  );
+
+  const handleCategorySave = useCallback(
+    async (categoryId: string) => {
+      try {
+        const selectedCategory = categories.find((c) => c.id === categoryId);
+        if (selectedCategory) {
+          await updateTransaction({
+            categoryId,
+            type: selectedCategory.type,
+            // 카테고리 정보도 함께 낙관적 업데이트
+            category_id: categoryId,
+            category_name: selectedCategory.name,
+            category_color: selectedCategory.color,
+            category_icon: selectedCategory.icon,
+          });
+          // 자연스럽게 변경사항 반영 (Alert 제거)
+        }
+      } catch {
+        Alert.alert('오류', '카테고리 변경에 실패했습니다.');
+      }
+    },
+    [updateTransaction, categories]
+  );
+
+  // CategoryBottomSheet에서 필요한 핸들러들 (실제로는 사용하지 않음)
+  const handleCategoryUpdate = useCallback(async () => {
+    // 거래 상세에서는 카테고리 수정 기능을 제공하지 않음
+    return Promise.resolve();
+  }, []);
+
+  const handleCategoryDelete = useCallback(async () => {
+    // 거래 상세에서는 카테고리 삭제 기능을 제공하지 않음
+    return Promise.resolve(false);
+  }, []);
+
+  const handleTitleSave = useCallback(
+    async (title: string) => {
+      try {
+        await updateTransaction({ title });
+        // 자연스럽게 변경사항 반영 (Alert 제거)
+      } catch {
+        Alert.alert('오류', '제목 수정에 실패했습니다.');
+      }
+    },
+    [updateTransaction]
+  );
+
+  const handleMemoSave = useCallback(
+    async (description: string) => {
+      try {
+        await updateTransaction({ description });
+        // 자연스럽게 변경사항 반영 (Alert 제거)
+      } catch {
+        Alert.alert('오류', '메모 수정에 실패했습니다.');
+      }
+    },
+    [updateTransaction]
+  );
+
+  const handleDateConfirm = useCallback(
+    async (date: Date) => {
+      try {
+        await updateTransaction({
+          transactionDate: format(date, 'yyyy-MM-dd'),
+        });
+        setDatePickerVisible(false);
+        // 자연스럽게 변경사항 반영 (Alert 제거)
+      } catch {
+        Alert.alert('오류', '날짜 변경에 실패했습니다.');
+      }
+    },
+    [updateTransaction]
+  );
 
   // 삭제 버튼 핸들러
   const handleDelete = useCallback(() => {
@@ -60,8 +154,8 @@ export default function TransactionDetailScreen() {
     );
   }, [deleteTransaction]);
 
-  // 로딩 상태
-  if (loading) {
+  // 초기 로딩 상태 (첫 진입 시에만 표시)
+  if (initialLoading) {
     return (
       <>
         <Stack.Screen
@@ -173,7 +267,7 @@ export default function TransactionDetailScreen() {
             />
             <Pressable
               style={styles.editIcon}
-              onPress={() => console.log('Edit amount')}
+              onPress={() => setAmountModalVisible(true)}
             >
               <Ionicons name="pencil" size={20} color={colors.textSecondary} />
             </Pressable>
@@ -187,7 +281,7 @@ export default function TransactionDetailScreen() {
           {/* 카테고리 설정 */}
           <Pressable
             style={styles.infoRow}
-            onPress={() => console.log('Edit category')}
+            onPress={() => setCategoryModalVisible(true)}
           >
             <Typography variant="body1" color="secondary">
               카테고리 설정
@@ -207,7 +301,7 @@ export default function TransactionDetailScreen() {
           {/* 제목 */}
           <Pressable
             style={styles.infoRow}
-            onPress={() => console.log('Edit title')}
+            onPress={() => setTitleModalVisible(true)}
           >
             <Typography variant="body1" color="secondary">
               제목
@@ -225,7 +319,7 @@ export default function TransactionDetailScreen() {
           {/* 메모 */}
           <Pressable
             style={styles.infoRow}
-            onPress={() => console.log('Edit memo')}
+            onPress={() => setMemoModalVisible(true)}
           >
             <Typography variant="body1" color="secondary">
               메모
@@ -248,7 +342,7 @@ export default function TransactionDetailScreen() {
           {/* 거래 날짜 */}
           <Pressable
             style={styles.infoRow}
-            onPress={() => console.log('Edit date')}
+            onPress={() => setDatePickerVisible(true)}
           >
             <Typography variant="body1" color="secondary">
               거래일시
@@ -268,7 +362,7 @@ export default function TransactionDetailScreen() {
           {/* 작성자 - 수정 불가 */}
           <View style={styles.infoRow}>
             <Typography variant="body1" color="secondary">
-              사용자
+              작성자
             </Typography>
             <Typography variant="body1">
               {transaction.created_by_name || '알 수 없음'}
@@ -300,6 +394,75 @@ export default function TransactionDetailScreen() {
           </Typography>
         </Pressable>
       </View>
+
+      {/* 편집 모달들 */}
+      {transaction && (
+        <>
+          {/* 금액 편집 모달 */}
+          <EditAmountModal
+            visible={amountModalVisible}
+            initialAmount={Number(transaction.amount)}
+            type={transaction.type}
+            onSave={handleAmountSave}
+            onClose={() => setAmountModalVisible(false)}
+          />
+
+          {/* 카테고리 선택 모달 */}
+          <CategoryBottomSheet
+            visible={categoryModalVisible}
+            categories={categories.filter((c) => c.type === transaction.type)}
+            selectedCategory={
+              categories.find((c) => c.id === transaction.category_id) || null
+            }
+            onSelectCategory={(category) => {
+              if (category) {
+                handleCategorySave(category.id);
+              }
+              setCategoryModalVisible(false);
+            }}
+            onClose={() => setCategoryModalVisible(false)}
+            transactionType={transaction.type}
+            onUpdateCategory={handleCategoryUpdate}
+            onDeleteCategory={handleCategoryDelete}
+          />
+
+          {/* 제목 편집 모달 */}
+          <EditTextModal
+            visible={titleModalVisible}
+            title="제목 수정"
+            initialValue={transaction.title}
+            placeholder="거래 제목을 입력하세요"
+            maxLength={50}
+            onSave={handleTitleSave}
+            onClose={() => setTitleModalVisible(false)}
+          />
+
+          {/* 메모 편집 모달 */}
+          <EditTextModal
+            visible={memoModalVisible}
+            title="메모 수정"
+            initialValue={transaction.description || ''}
+            placeholder="메모를 입력하세요"
+            maxLength={200}
+            multiline={true}
+            onSave={handleMemoSave}
+            onClose={() => setMemoModalVisible(false)}
+          />
+
+          {/* 날짜 선택 모달 */}
+          <DateTimePickerModal
+            isVisible={datePickerVisible}
+            mode="date"
+            onConfirm={handleDateConfirm}
+            onCancel={() => setDatePickerVisible(false)}
+            date={new Date(transaction.transaction_date)}
+            maximumDate={new Date()}
+            locale="ko"
+            confirmTextIOS="완료"
+            cancelTextIOS="취소"
+          />
+        </>
+      )}
     </>
   );
 }

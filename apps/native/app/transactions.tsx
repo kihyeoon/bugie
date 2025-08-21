@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -189,6 +190,21 @@ export default function TransactionsScreen() {
     year,
     month,
   });
+
+  // 마지막 리페치 시간 추적 (디바운싱용)
+  const lastRefetchTime = useRef(0);
+
+  // 화면 포커스 시 데이터 새로고침 (디바운싱 적용)
+  useFocusEffect(
+    useCallback(() => {
+      const now = Date.now();
+      // 마지막 리페치로부터 1초 이상 경과 시만 리페치
+      if (now - lastRefetchTime.current > 1000) {
+        refetch();
+        lastRefetchTime.current = now;
+      }
+    }, [refetch])
+  );
 
   // 스크롤 이벤트 처리
   const handleScroll = useCallback(
