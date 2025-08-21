@@ -11,7 +11,7 @@ import {
   ViewToken,
 } from 'react-native';
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { useLocalSearchParams, Stack } from 'expo-router';
+import { useLocalSearchParams, Stack, router } from 'expo-router';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -216,7 +216,7 @@ export default function TransactionsScreen() {
           duration: CONSTANTS.ANIMATION_DURATION,
           easing: Easing.out(Easing.ease),
         });
-      } 
+      }
       // 주간 → 월간: 최상단에서 아래로 당길 때만 (pull-to-expand)
       else if (
         calendarViewType === 'week' &&
@@ -417,8 +417,10 @@ export default function TransactionsScreen() {
 
   // 거래 상세 화면으로 네비게이션 처리
   const handleTransactionPress = useCallback((transactionId: string) => {
-    // TODO: 거래 상세 화면 구현
-    console.log('Navigate to transaction detail:', transactionId);
+    router.push({
+      pathname: '/transaction-detail',
+      params: { id: transactionId },
+    });
   }, []);
 
   // 스크롤 실패 시 처리
@@ -571,7 +573,9 @@ export default function TransactionsScreen() {
 
       <View style={styles.content}>
         {/* 애니메이션 캘린더 */}
-        <Animated.View style={[animatedCalendarStyle, styles.calendarContainer]}>
+        <Animated.View
+          style={[animatedCalendarStyle, styles.calendarContainer]}
+        >
           <Calendar
             mode="scrollable"
             viewType={calendarViewType}
