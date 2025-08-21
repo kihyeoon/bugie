@@ -16,7 +16,7 @@ import { Typography } from '@/components/ui/Typography';
 import { Button } from '@/components/ui/Button';
 import { AmountDisplay } from '@/components/ui/AmountDisplay';
 import { getIoniconName } from '@/constants/categories';
-import { formatDateTime } from '@/utils/dateFormatter';
+import { formatDateKorean } from '@/utils/dateFormatter';
 import { EditAmountModal } from '@/components/transaction/EditAmountModal';
 import { EditTextModal } from '@/components/transaction/EditTextModal';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
@@ -283,7 +283,7 @@ export default function TransactionDetailScreen() {
             style={styles.infoRow}
             onPress={() => setCategoryModalVisible(true)}
           >
-            <Typography variant="body1" color="secondary">
+            <Typography variant="body1" color="secondary" weight="500">
               카테고리 설정
             </Typography>
             <View style={styles.valueContainer}>
@@ -303,7 +303,7 @@ export default function TransactionDetailScreen() {
             style={styles.infoRow}
             onPress={() => setTitleModalVisible(true)}
           >
-            <Typography variant="body1" color="secondary">
+            <Typography variant="body1" color="secondary" weight="500">
               제목
             </Typography>
             <View style={styles.valueContainer}>
@@ -321,13 +321,16 @@ export default function TransactionDetailScreen() {
             style={styles.infoRow}
             onPress={() => setMemoModalVisible(true)}
           >
-            <Typography variant="body1" color="secondary">
+            <Typography variant="body1" color="secondary" weight="500">
               메모
             </Typography>
             <View style={styles.valueContainer}>
               <Typography
                 variant="body1"
                 color={transaction.description ? 'primary' : 'secondary'}
+                numberOfLines={2}
+                ellipsizeMode="tail"
+                style={{ flex: 1, textAlign: 'right' }}
               >
                 {transaction.description || '메모를 남겨보세요'}
               </Typography>
@@ -344,12 +347,12 @@ export default function TransactionDetailScreen() {
             style={styles.infoRow}
             onPress={() => setDatePickerVisible(true)}
           >
-            <Typography variant="body1" color="secondary">
-              거래일시
+            <Typography variant="body1" color="secondary" weight="500">
+              거래일
             </Typography>
             <View style={styles.valueContainer}>
               <Typography variant="body1">
-                {formatDateTime(transaction.transaction_date)}
+                {formatDateKorean(transaction.transaction_date)}
               </Typography>
               <Ionicons
                 name="chevron-forward"
@@ -361,7 +364,7 @@ export default function TransactionDetailScreen() {
 
           {/* 작성자 - 수정 불가 */}
           <View style={styles.infoRow}>
-            <Typography variant="body1" color="secondary">
+            <Typography variant="body1" color="secondary" weight="500">
               작성자
             </Typography>
             <Typography variant="body1">

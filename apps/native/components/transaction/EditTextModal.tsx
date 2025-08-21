@@ -57,10 +57,8 @@ export function EditTextModal({
   useEffect(() => {
     if (visible) {
       setText(initialValue || '');
-      // 모달이 열리면 자동으로 키보드 포커스
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 400);
+      // 모달과 키보드가 동시에 올라오도록 즉시 포커스
+      inputRef.current?.focus();
     }
   }, [visible, initialValue]);
 

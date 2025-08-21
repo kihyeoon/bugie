@@ -5,6 +5,7 @@ import {
   SectionListData,
   SafeAreaView,
   TouchableOpacity,
+  Pressable,
   Platform,
   NativeSyntheticEvent,
   NativeScrollEvent,
@@ -576,8 +577,12 @@ export default function TransactionsScreen() {
               onNextMonth={handleNextMonth}
             />
           ),
-          headerBackButtonDisplayMode: 'minimal',
           headerShadowVisible: false,
+          headerLeft: () => (
+            <Pressable onPress={() => router.back()}>
+              <Ionicons name="chevron-back" size={24} color={colors.text} />
+            </Pressable>
+          ),
           // TODO: Phase 2에서 검색 기능 구현 시 활성화
           // headerRight: () => (
           //   <TouchableOpacity onPress={handleSearch} style={{ marginRight: 8 }}>
