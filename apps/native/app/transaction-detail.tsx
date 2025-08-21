@@ -144,7 +144,8 @@ export default function TransactionDetailScreen() {
             try {
               await deleteTransaction();
               router.back();
-            } catch {
+            } catch (error) {
+              console.error('Delete transaction error:', error);
               Alert.alert('오류', '거래를 삭제할 수 없습니다.');
             }
           },

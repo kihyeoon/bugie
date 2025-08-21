@@ -130,6 +130,7 @@ export function useTransactionDetail(
       await transactionService.deleteTransaction(transactionId);
       // 삭제 성공 후 화면에서 처리
     } catch (err) {
+      console.error('TransactionService deleteTransaction error:', err);
       throw err instanceof Error
         ? err
         : new Error('거래를 삭제할 수 없습니다.');

@@ -112,10 +112,10 @@ export class TransactionRepository implements ITransactionRepository {
   }
 
   async delete(id: EntityId): Promise<void> {
-    const { error } = await this.supabase
-      .from('transactions')
-      .update({ deleted_at: new Date().toISOString() })
-      .eq('id', id);
+    // RLS 정책을 우회하기 위해 RPC 함수 사용
+    const { error } = await this.supabase.rpc('soft_delete_transaction', {
+      transaction_id: id
+    });
 
     if (error) throw error;
   }
