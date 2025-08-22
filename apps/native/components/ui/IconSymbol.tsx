@@ -30,6 +30,8 @@ const MAPPING = {
   'checkmark.circle.fill': 'check-circle',
   'circle': 'radio-button-off',
   'plus.circle.fill': 'add-circle',
+  // 체크마크 단독 아이콘
+  'checkmark': 'check',
 } as const;
 
 type IconSymbolName = keyof typeof MAPPING;

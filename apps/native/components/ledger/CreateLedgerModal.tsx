@@ -23,13 +23,6 @@ interface CreateLedgerModalProps {
   onSuccess: (ledgerId: string) => void;
 }
 
-const CURRENCIES = [
-  { code: 'KRW', symbol: '₩', name: '한국 원' },
-  { code: 'USD', symbol: '$', name: '미국 달러' },
-  { code: 'EUR', symbol: '€', name: '유로' },
-  { code: 'JPY', symbol: '¥', name: '일본 엔' },
-];
-
 export function CreateLedgerModal({
   visible,
   onClose,
@@ -41,7 +34,6 @@ export function CreateLedgerModal({
   const { user } = useAuth();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [currency, setCurrency] = useState('KRW');
   const [creating, setCreating] = useState(false);
 
   const handleCreate = async () => {
@@ -61,7 +53,7 @@ export function CreateLedgerModal({
       const ledgerId = await ledgerService.createLedger({
         name: name.trim(),
         description: description.trim() || undefined,
-        currency,
+        currency: 'KRW', // MVP에서는 KRW 고정
       });
 
       // 성공 시 모달 닫고 콜백 호출
@@ -69,7 +61,6 @@ export function CreateLedgerModal({
       // 입력 필드 초기화
       setName('');
       setDescription('');
-      setCurrency('KRW');
       onClose();
     } catch (error) {
       console.error('Create ledger error:', error);
@@ -83,7 +74,6 @@ export function CreateLedgerModal({
     if (!creating) {
       setName('');
       setDescription('');
-      setCurrency('KRW');
       onClose();
     }
   };
@@ -188,45 +178,6 @@ export function CreateLedgerModal({
                 numberOfLines={3}
                 editable={!creating}
               />
-            </View>
-
-            {/* 통화 선택 */}
-            <View style={styles.inputGroup}>
-              <Typography
-                variant="body2"
-                color="secondary"
-                style={styles.label}
-              >
-                기본 통화
-              </Typography>
-              <View style={styles.currencyGrid}>
-                {CURRENCIES.map((curr) => (
-                  <Pressable
-                    key={curr.code}
-                    style={[
-                      styles.currencyOption,
-                      {
-                        backgroundColor: colors.backgroundSecondary,
-                        borderColor:
-                          currency === curr.code ? colors.tint : 'transparent',
-                      },
-                    ]}
-                    onPress={() => setCurrency(curr.code)}
-                    disabled={creating}
-                  >
-                    <Typography
-                      variant="body1"
-                      weight={currency === curr.code ? '600' : '500'}
-                      color={currency === curr.code ? 'primary' : 'secondary'}
-                    >
-                      {curr.symbol} {curr.code}
-                    </Typography>
-                    <Typography variant="caption" color="secondary">
-                      {curr.name}
-                    </Typography>
-                  </Pressable>
-                ))}
-              </View>
             </View>
 
             {/* 안내 메시지 */}

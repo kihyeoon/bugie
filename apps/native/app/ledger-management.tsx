@@ -3,7 +3,6 @@ import {
   StyleSheet,
   View,
   ScrollView,
-  TouchableOpacity,
   Alert,
   ActivityIndicator,
   Pressable,
@@ -52,6 +51,16 @@ export default function LedgerManagementScreen() {
 
   const handleCreateLedger = () => {
     setCreateModalVisible(true);
+  };
+
+  const handleOpenSettings = (ledger: (typeof ledgers)[0]) => {
+    router.push({
+      pathname: '/ledger-settings',
+      params: {
+        ledgerId: ledger.id,
+        ledgerName: ledger.name,
+      },
+    });
   };
 
   const handleCreateSuccess = async (ledgerId: string) => {
@@ -134,11 +143,11 @@ export default function LedgerManagementScreen() {
           <Typography variant="body1" color="secondary">
             가계부를 불러올 수 없습니다.
           </Typography>
-          <TouchableOpacity onPress={refreshLedgers} style={styles.retryButton}>
+          <Pressable onPress={refreshLedgers} style={styles.retryButton}>
             <Typography variant="body1" color="primary">
               다시 시도
             </Typography>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </>
     );
@@ -176,34 +185,38 @@ export default function LedgerManagementScreen() {
               const memberCount = getMemberCount(ledger);
 
               return (
-                <TouchableOpacity
+                <View
                   key={ledger.id}
-                  onPress={() => handleSelectLedger(ledger.id)}
-                  activeOpacity={0.7}
+                  style={[
+                    styles.ledgerItem,
+                    index !== ledgers.length - 1 && styles.ledgerItemBorder,
+                    { borderColor: colors.border },
+                  ]}
                 >
-                  <View
-                    style={[
-                      styles.ledgerItem,
-                      index !== ledgers.length - 1 && styles.ledgerItemBorder,
-                      { borderColor: colors.border },
-                    ]}
+                  {/* 체크 영역 - 가계부 선택 */}
+                  <Pressable
+                    onPress={() => handleSelectLedger(ledger.id)}
+                    style={styles.checkArea}
+                  >
+                    <IconSymbol
+                      name={isSelected ? 'checkmark.circle.fill' : 'circle'}
+                      size={20}
+                      color={isSelected ? colors.tint : colors.border}
+                    />
+                  </Pressable>
+
+                  {/* 정보 영역 - 설정 화면으로 이동 */}
+                  <Pressable
+                    onPress={() => handleOpenSettings(ledger)}
+                    style={styles.ledgerContent}
                   >
                     <View style={styles.ledgerInfo}>
-                      <View style={styles.ledgerHeader}>
-                        <IconSymbol
-                          name={isSelected ? "checkmark.circle.fill" : "circle"}
-                          size={20}
-                          color={isSelected ? colors.tint : colors.border}
-                          style={styles.checkIcon}
-                        />
-                        <Typography
-                          variant="body1"
-                          weight={isSelected ? '600' : '500'}
-                          style={styles.ledgerName}
-                        >
-                          {ledger.name}
-                        </Typography>
-                      </View>
+                      <Typography
+                        variant="body1"
+                        weight={isSelected ? '600' : '500'}
+                      >
+                        {ledger.name}
+                      </Typography>
                       <Typography
                         variant="caption"
                         color="secondary"
@@ -217,15 +230,15 @@ export default function LedgerManagementScreen() {
                       size={20}
                       color={colors.textSecondary}
                     />
-                  </View>
-                </TouchableOpacity>
+                  </Pressable>
+                </View>
               );
             })}
           </Card>
 
           {/* 새 가계부 만들기 버튼 */}
           <Card variant="outlined" padding="none" style={styles.createSection}>
-            <TouchableOpacity onPress={handleCreateLedger} activeOpacity={0.7}>
+            <Pressable onPress={handleCreateLedger}>
               <View style={styles.createButton}>
                 <IconSymbol
                   name="plus.circle.fill"
@@ -237,7 +250,7 @@ export default function LedgerManagementScreen() {
                   새 가계부 만들기
                 </Typography>
               </View>
-            </TouchableOpacity>
+            </Pressable>
           </Card>
 
           {/* 안내 메시지 */}
@@ -286,24 +299,23 @@ const styles = StyleSheet.create({
   ledgerItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
     paddingVertical: 16,
   },
   ledgerItemBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  ledgerInfo: {
-    flex: 1,
+  checkArea: {
+    paddingLeft: 20,
+    paddingRight: 12,
   },
-  ledgerHeader: {
+  ledgerContent: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingRight: 20,
   },
-  checkIcon: {
-    marginRight: 8,
-  },
-  ledgerName: {
+  ledgerInfo: {
     flex: 1,
   },
   ledgerMeta: {
