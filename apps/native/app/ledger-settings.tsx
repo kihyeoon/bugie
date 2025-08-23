@@ -1,6 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, View, ScrollView, Alert, Pressable } from 'react-native';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
+import {
+  router,
+  Stack,
+  useLocalSearchParams,
+  useFocusEffect,
+} from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography, Card } from '@/components/ui';
@@ -10,7 +15,9 @@ import { useLedger } from '@/contexts/LedgerContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useServices } from '@/contexts/ServiceContext';
 import { EditTextModal } from '@/components/transaction/EditTextModal';
-import type { LedgerWithMembers } from '@repo/core';
+import { ViewMembersModal } from '@/components/ledger/ViewMembersModal';
+import { InviteMemberModal } from '@/components/ledger/InviteMemberModal';
+import type { LedgerWithMembers, LedgerDetail, MemberRole } from '@repo/core';
 
 export default function LedgerSettingsScreen() {
   const colorScheme = useColorScheme();
@@ -24,17 +31,43 @@ export default function LedgerSettingsScreen() {
   const { ledgerService } = useServices();
 
   const [ledger, setLedger] = useState<LedgerWithMembers | null>(null);
+  const [ledgerDetail, setLedgerDetail] = useState<LedgerDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [nameModalVisible, setNameModalVisible] = useState(false);
   const [descriptionModalVisible, setDescriptionModalVisible] = useState(false);
+  const [viewMembersModalVisible, setViewMembersModalVisible] = useState(false);
+  const [inviteMemberModalVisible, setInviteMemberModalVisible] =
+    useState(false);
 
   useEffect(() => {
     // URL 파라미터로 받은 ledgerId로 가계부 찾기
     const currentLedger = ledgers.find((l) => l.id === params.ledgerId);
     if (currentLedger) {
+      console.log('currentLedger', currentLedger);
       setLedger(currentLedger);
     }
   }, [ledgers, params.ledgerId]);
+
+  // 멤버 상세 정보 가져오기
+  const fetchLedgerDetail = useCallback(async () => {
+    if (!params.ledgerId) return;
+
+    try {
+      const detail = await ledgerService.getLedgerDetail(params.ledgerId);
+      if (detail) {
+        setLedgerDetail(detail);
+      }
+    } catch (error) {
+      console.error('Failed to fetch ledger detail:', error);
+    }
+  }, [params.ledgerId, ledgerService]);
+
+  // 화면 포커스 시 멤버 정보 갱신
+  useFocusEffect(
+    useCallback(() => {
+      fetchLedgerDetail();
+    }, [fetchLedgerDetail])
+  );
 
   const getUserRole = () => {
     if (!ledger || !user) return null;
@@ -101,12 +134,30 @@ export default function LedgerSettingsScreen() {
     }
   };
 
-  const handleViewMembers = () => {
-    Alert.alert('준비 중', '멤버 목록 기능은 곧 추가될 예정입니다.');
+  const handleViewMembers = async () => {
+    if (!ledgerDetail) {
+      // 멤버 정보가 없으면 먼저 가져오기
+      await fetchLedgerDetail();
+    }
+    setViewMembersModalVisible(true);
   };
 
   const handleInviteMember = () => {
-    Alert.alert('준비 중', '멤버 초대 기능은 곧 추가될 예정입니다.');
+    setInviteMemberModalVisible(true);
+  };
+
+  const handleInviteMemberSubmit = async (email: string, role: MemberRole) => {
+    if (!ledger) return;
+
+    await ledgerService.inviteMember({
+      ledgerId: ledger.id,
+      userEmail: email,
+      role,
+    });
+
+    // 멤버 목록 새로고침
+    await fetchLedgerDetail();
+    await refreshLedgers();
   };
 
   const handleDeleteLedger = () => {
@@ -445,6 +496,24 @@ export default function LedgerSettingsScreen() {
           multiline
           onSave={handleSaveDescription}
           onClose={() => setDescriptionModalVisible(false)}
+        />
+      )}
+
+      {/* 멤버 목록 모달 */}
+      <ViewMembersModal
+        visible={viewMembersModalVisible}
+        ledger={ledgerDetail}
+        currentUserId={user?.id}
+        onClose={() => setViewMembersModalVisible(false)}
+      />
+
+      {/* 멤버 초대 모달 */}
+      {ledger && (
+        <InviteMemberModal
+          visible={inviteMemberModalVisible}
+          ledgerId={ledger.id}
+          onInvite={handleInviteMemberSubmit}
+          onClose={() => setInviteMemberModalVisible(false)}
         />
       )}
     </>

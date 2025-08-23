@@ -175,27 +175,32 @@ export class LedgerService {
 
   /**
    * 멤버 초대
+   * RPC 함수를 통해 사용자 조회, 권한 검증, 멤버 추가를 원자적으로 처리
    */
   async inviteMember(input: InviteMemberInput): Promise<void> {
-    const targetUser = await this.memberRepo.findUserByEmail(input.userEmail);
-    if (!targetUser) {
-      throw new NotFoundError('사용자를 찾을 수 없습니다.');
+    try {
+      // Repository가 RPC 호출을 캡슐화하여 클린 아키텍처 유지
+      // 데이터베이스 함수가 모든 검증 수행 (사용자 존재, 권한, 중복 멤버)
+      await this.memberRepo.inviteMemberByEmail(
+        input.ledgerId,
+        input.userEmail,
+        input.role || 'member'
+      );
+    } catch (error) {
+      // Repository에서 전달된 구체적인 에러 메시지 활용
+      if (error instanceof Error) {
+        if (error.message.includes('사용자를 찾을 수 없습니다')) {
+          throw new NotFoundError('사용자를 찾을 수 없습니다.');
+        }
+        if (error.message.includes('이미 가계부 멤버입니다')) {
+          throw new BusinessRuleViolationError('이미 가계부 멤버입니다.');
+        }
+        if (error.message.includes('권한이 없습니다')) {
+          throw new BusinessRuleViolationError('멤버를 초대할 권한이 없습니다.');
+        }
+      }
+      throw error;
     }
-
-    const existingMember = await this.memberRepo.findByLedgerAndUser(
-      input.ledgerId,
-      targetUser.id
-    );
-    if (existingMember && existingMember.isActive) {
-      throw new BusinessRuleViolationError('이미 가계부 멤버입니다.');
-    }
-    const newMember = LedgerMemberRules.createMember(
-      input.ledgerId,
-      targetUser.id,
-      input.role || 'member'
-    );
-
-    await this.memberRepo.save(newMember);
   }
 
   /**

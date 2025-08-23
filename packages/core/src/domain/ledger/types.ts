@@ -105,9 +105,10 @@ export interface LedgerRepository {
 export interface LedgerMemberRepository {
   findByLedgerAndUser(ledgerId: EntityId, userId: EntityId): Promise<LedgerMemberEntity | null>;
   findByLedger(ledgerId: EntityId): Promise<LedgerMemberEntity[]>;
-  findUserByEmail(email: string): Promise<{ id: EntityId; email: string } | null>;
   save(member: LedgerMemberEntity): Promise<void>;
   delete(ledgerId: EntityId, userId: EntityId): Promise<void>;
+  // RPC 기반 멤버 초대 (SECURITY DEFINER로 RLS 우회)
+  inviteMemberByEmail(ledgerId: EntityId, userEmail: string, role: MemberRole): Promise<void>;
 }
 
 export interface CategoryRepository {

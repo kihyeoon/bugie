@@ -8,6 +8,7 @@ import type {
   CategoryEntity,
   CategoryRepository as ICategoryRepository,
   CategoryType,
+  MemberRole,
 } from '../../../domain/ledger/types';
 import type { EntityId } from '../../../domain/shared/types';
 import { LedgerMapper, LedgerMemberMapper } from '../mappers/LedgerMapper';
@@ -56,15 +57,28 @@ export class LedgerRepository implements ILedgerRepository {
       members: LedgerMemberEntity[];
     }>
   > {
+    // Step 1: 사용자가 속한 가계부 ID 목록 가져오기
+    const { data: userMemberships, error: memberError } = await this.supabase
+      .from('ledger_members')
+      .select('ledger_id')
+      .eq('user_id', userId)
+      .is('deleted_at', null);
+
+    if (memberError) throw memberError;
+    if (!userMemberships || userMemberships.length === 0) return [];
+
+    const ledgerIds = userMemberships.map((m) => m.ledger_id);
+
+    // Step 2: 해당 가계부들과 모든 멤버 정보 가져오기
     const { data, error } = await this.supabase
       .from('ledgers')
       .select(
         `
         *,
-        ledger_members!inner(*)
+        ledger_members(*)
       `
       )
-      .eq('ledger_members.user_id', userId)
+      .in('id', ledgerIds)
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
@@ -206,18 +220,35 @@ export class LedgerMemberRepository implements ILedgerMemberRepository {
     return (data || []).map((item) => LedgerMemberMapper.toDomain(item));
   }
 
-  async findUserByEmail(
-    email: string
-  ): Promise<{ id: EntityId; email: string } | null> {
-    const { data, error } = await this.supabase
-      .from('profiles')
-      .select('id, email')
-      .eq('email', email)
-      .is('deleted_at', null)
-      .single();
+  /**
+   * RPC 함수를 통한 멤버 초대 (SECURITY DEFINER로 RLS 우회)
+   * - 사용자 조회, 권한 검증, 멤버 추가를 원자적으로 처리
+   * - 데이터베이스 함수가 모든 검증 수행
+   */
+  async inviteMemberByEmail(
+    ledgerId: EntityId,
+    userEmail: string,
+    role: MemberRole
+  ): Promise<void> {
+    const { data, error } = await this.supabase.rpc('invite_member_to_ledger', {
+      target_ledger_id: ledgerId,
+      target_user_email: userEmail,
+      member_role: role,
+    });
 
-    if (error || !data) return null;
-    return data;
+    if (error) {
+      // 데이터베이스 함수의 구체적인 에러 메시지 활용
+      if (error.message.includes('사용자를 찾을 수 없습니다')) {
+        throw new Error('사용자를 찾을 수 없습니다.');
+      }
+      if (error.message.includes('권한이 없습니다')) {
+        throw new Error('멤버를 초대할 권한이 없습니다.');
+      }
+      if (error.message.includes('이미 가계부 멤버입니다')) {
+        throw new Error('이미 가계부 멤버입니다.');
+      }
+      throw error;
+    }
   }
 
   async save(member: LedgerMemberEntity): Promise<void> {
