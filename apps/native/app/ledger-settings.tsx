@@ -48,7 +48,6 @@ export default function LedgerSettingsScreen() {
     // URL 파라미터로 받은 ledgerId로 가계부 찾기
     const currentLedger = ledgers.find((l) => l.id === params.ledgerId);
     if (currentLedger) {
-      console.log('currentLedger', currentLedger);
       setLedger(currentLedger);
     }
   }, [ledgers, params.ledgerId]);
@@ -209,7 +208,8 @@ export default function LedgerSettingsScreen() {
             await refreshLedgers();
             router.back();
             router.back(); // 가계부 관리 화면도 닫기
-          } catch {
+          } catch (error) {
+            console.error('Failed to leave ledger:', error);
             Alert.alert('오류', '가계부 나가기 중 문제가 발생했습니다.');
           } finally {
             setLoading(false);

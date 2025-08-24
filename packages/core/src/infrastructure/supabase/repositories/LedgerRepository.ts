@@ -177,10 +177,10 @@ export class LedgerRepository implements ILedgerRepository {
   }
 
   async delete(id: EntityId): Promise<void> {
-    const { error } = await this.supabase
-      .from('ledgers')
-      .update({ deleted_at: new Date().toISOString() })
-      .eq('id', id);
+    // RLS 정책과 RETURNING 절 충돌을 피하기 위해 RPC 함수 사용
+    const { error } = await this.supabase.rpc('soft_delete_ledger', {
+      ledger_id: id,
+    });
 
     if (error) throw error;
   }
@@ -262,7 +262,7 @@ export class LedgerMemberRepository implements ILedgerMemberRepository {
   async delete(ledgerId: EntityId, userId: EntityId): Promise<void> {
     const { error } = await this.supabase
       .from('ledger_members')
-      .update({ deleted_at: new Date().toISOString() })
+      .delete() // Hard delete 사용
       .eq('ledger_id', ledgerId)
       .eq('user_id', userId);
 
