@@ -66,11 +66,14 @@ export default function LedgerSettingsScreen() {
     }
   }, [params.ledgerId, ledgerService]);
 
-  // 화면 포커스 시 멤버 정보 갱신
+  // 화면 포커스 시 가계부 기본 정보와 멤버 정보 모두 갱신
   useFocusEffect(
     useCallback(() => {
+      // 가계부 목록 새로고침 (기본 정보 갱신)
+      refreshLedgers();
+      // 멤버 상세 정보 갱신
       fetchLedgerDetail();
-    }, [fetchLedgerDetail])
+    }, [refreshLedgers, fetchLedgerDetail])
   );
 
   const getUserRole = () => {
@@ -105,11 +108,8 @@ export default function LedgerSettingsScreen() {
         ledgerId: ledger.id,
         name: name.trim(),
       });
+      // 가계부 목록 새로고침 후 현재 가계부 정보 즉시 업데이트
       await refreshLedgers();
-      const updatedLedger = ledgers.find((l) => l.id === params.ledgerId);
-      if (updatedLedger) {
-        setLedger(updatedLedger);
-      }
     } catch {
       Alert.alert('오류', '가계부 이름 수정 중 문제가 발생했습니다.');
     } finally {
@@ -126,11 +126,8 @@ export default function LedgerSettingsScreen() {
         ledgerId: ledger.id,
         description: description.trim() || undefined,
       });
+      // 가계부 목록 새로고침 후 현재 가계부 정보 즉시 업데이트
       await refreshLedgers();
-      const updatedLedger = ledgers.find((l) => l.id === params.ledgerId);
-      if (updatedLedger) {
-        setLedger(updatedLedger);
-      }
     } catch {
       Alert.alert('오류', '가계부 설명 수정 중 문제가 발생했습니다.');
     } finally {

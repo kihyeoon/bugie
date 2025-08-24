@@ -20,6 +20,7 @@ import { LoadingState } from '../../components/shared/LoadingState';
 import { ErrorState } from '../../components/shared/ErrorState';
 import { EmptyState } from '../../components/shared/EmptyState';
 import { LedgerSelector } from '../../components/shared/LedgerSelector';
+import { CreateLedgerModal } from '../../components/ledger/CreateLedgerModal';
 import { format } from 'date-fns';
 
 // Constants
@@ -70,6 +71,7 @@ export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const colors = Colors[colorScheme ?? 'light'];
 
   const {
@@ -160,16 +162,25 @@ export default function HomeScreen() {
   // Show empty state if no ledgers
   if (!currentLedger || ledgers.length === 0) {
     return (
-      <EmptyState
-        icon="wallet-outline"
-        title="가계부가 없습니다"
-        message="새로운 가계부를 만들어 재무 관리를 시작해보세요"
-        actionLabel="가계부 만들기"
-        onAction={() => {
-          // TODO: 가계부 생성 화면으로 이동
-          console.log('Create ledger');
-        }}
-      />
+      <>
+        <EmptyState
+          icon="wallet-outline"
+          title="가계부가 없습니다"
+          message="새로운 가계부를 만들어 재무 관리를 시작해보세요"
+          actionLabel="가계부 만들기"
+          onAction={() => setShowCreateModal(true)}
+        />
+        
+        <CreateLedgerModal
+          visible={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={(ledgerId) => {
+            // 가계부 생성 성공 시 목록 새로고침
+            refreshLedgers();
+            setShowCreateModal(false);
+          }}
+        />
+      </>
     );
   }
 

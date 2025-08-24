@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   Pressable,
 } from 'react-native';
-import { router, Stack } from 'expo-router';
+import { router, Stack, useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography, Card } from '@/components/ui';
@@ -34,6 +34,13 @@ export default function LedgerManagementScreen() {
   useEffect(() => {
     refreshLedgers();
   }, [refreshLedgers]);
+
+  // 화면 포커스 시 가계부 목록 새로고침
+  useFocusEffect(
+    useCallback(() => {
+      refreshLedgers();
+    }, [refreshLedgers])
+  );
 
   const handleSelectLedger = async (ledgerId: string) => {
     if (ledgerId === currentLedger?.id) {
