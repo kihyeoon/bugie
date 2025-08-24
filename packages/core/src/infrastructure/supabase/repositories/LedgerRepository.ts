@@ -230,7 +230,7 @@ export class LedgerMemberRepository implements ILedgerMemberRepository {
     userEmail: string,
     role: MemberRole
   ): Promise<void> {
-    const { data, error } = await this.supabase.rpc('invite_member_to_ledger', {
+    const { error } = await this.supabase.rpc('invite_member_to_ledger', {
       target_ledger_id: ledgerId,
       target_user_email: userEmail,
       member_role: role,

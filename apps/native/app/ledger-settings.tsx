@@ -18,6 +18,11 @@ import { EditTextModal } from '@/components/transaction/EditTextModal';
 import { ViewMembersModal } from '@/components/ledger/ViewMembersModal';
 import { InviteMemberModal } from '@/components/ledger/InviteMemberModal';
 import type { LedgerWithMembers, LedgerDetail, MemberRole } from '@repo/core';
+import { PermissionService } from '@repo/core';
+import {
+  getSettingItemColors,
+  getSettingItemStyles,
+} from '@/utils/settingsColors';
 
 export default function LedgerSettingsScreen() {
   const colorScheme = useColorScheme();
@@ -216,9 +221,9 @@ export default function LedgerSettingsScreen() {
 
   const role = getUserRole();
   const memberCount = getMemberCount();
-  const isOwner = role === 'owner';
-  const isAdmin = role === 'admin';
-  const canManageMembers = isOwner || isAdmin;
+  const canManageMembers = PermissionService.canDo('inviteMember', role);
+  const canEditLedger = PermissionService.canDo('updateLedger', role);
+  const canDeleteLedger = PermissionService.canDo('deleteLedger', role);
 
   if (!ledger) {
     return (
@@ -290,72 +295,128 @@ export default function LedgerSettingsScreen() {
               style={styles.cardContainer}
             >
               <Pressable
-                onPress={handleEditName}
-                style={[
-                  styles.settingItem,
-                  styles.settingItemBorder,
-                  { borderColor: colors.border },
-                ]}
-                disabled={loading}
+                onPress={canEditLedger ? handleEditName : undefined}
+                style={getSettingItemStyles(
+                  !canEditLedger,
+                  [
+                    styles.settingItem,
+                    styles.settingItemBorder,
+                    { borderColor: colors.border },
+                  ],
+                  styles.disabledItem
+                )}
+                disabled={loading || !canEditLedger}
               >
-                <Typography variant="body1">이름</Typography>
-                <View style={styles.settingValue}>
-                  <Typography variant="body1" color="secondary">
-                    {ledger.name}
-                  </Typography>
-                  <IconSymbol
-                    name="chevron.right"
-                    size={20}
-                    color={colors.textSecondary}
-                  />
-                </View>
+                {(() => {
+                  const colors = getSettingItemColors({
+                    isEditable: canEditLedger,
+                    isEnabled: true,
+                    isActionable: canEditLedger,
+                  });
+                  return (
+                    <>
+                      <Typography variant="body1" color={colors.label}>
+                        이름
+                      </Typography>
+                      <View style={styles.settingValue}>
+                        <Typography variant="body1" color={colors.value}>
+                          {ledger.name}
+                        </Typography>
+                        {colors.showChevron && (
+                          <IconSymbol
+                            name="chevron.right"
+                            size={20}
+                            color={
+                              colorScheme === 'dark'
+                                ? Colors.dark.textSecondary
+                                : Colors.light.textSecondary
+                            }
+                          />
+                        )}
+                      </View>
+                    </>
+                  );
+                })()}
               </Pressable>
 
               <Pressable
-                onPress={handleEditDescription}
-                style={[
-                  styles.settingItem,
-                  styles.settingItemBorder,
-                  { borderColor: colors.border },
-                ]}
-                disabled={loading}
+                onPress={canEditLedger ? handleEditDescription : undefined}
+                style={getSettingItemStyles(
+                  !canEditLedger,
+                  [
+                    styles.settingItem,
+                    styles.settingItemBorder,
+                    { borderColor: colors.border },
+                  ],
+                  styles.disabledItem
+                )}
+                disabled={loading || !canEditLedger}
               >
-                <Typography variant="body1">설명</Typography>
-                <View style={styles.settingValue}>
-                  <Typography
-                    variant="body1"
-                    color="secondary"
-                    numberOfLines={1}
-                    style={styles.descriptionText}
-                  >
-                    {ledger.description || '설명 없음'}
-                  </Typography>
-                  <IconSymbol
-                    name="chevron.right"
-                    size={20}
-                    color={colors.textSecondary}
-                  />
-                </View>
+                {(() => {
+                  const colors = getSettingItemColors({
+                    isEditable: canEditLedger,
+                    isEnabled: true,
+                    isActionable: canEditLedger,
+                  });
+                  return (
+                    <>
+                      <Typography variant="body1" color={colors.label}>
+                        설명
+                      </Typography>
+                      <View style={styles.settingValue}>
+                        <Typography
+                          variant="body1"
+                          color={colors.value}
+                          numberOfLines={1}
+                          style={styles.descriptionText}
+                        >
+                          {ledger.description || '설명 없음'}
+                        </Typography>
+                        {colors.showChevron && (
+                          <IconSymbol
+                            name="chevron.right"
+                            size={20}
+                            color={
+                              colorScheme === 'dark'
+                                ? Colors.dark.textSecondary
+                                : Colors.light.textSecondary
+                            }
+                          />
+                        )}
+                      </View>
+                    </>
+                  );
+                })()}
               </Pressable>
 
               <Pressable
                 onPress={handleChangeCurrency}
-                style={[styles.settingItem, styles.disabledItem]}
+                style={getSettingItemStyles(
+                  true,
+                  [styles.settingItem],
+                  styles.disabledItem
+                )}
                 disabled={true}
               >
-                <Typography variant="body1" color="secondary">
-                  통화
-                </Typography>
-                <View style={styles.settingValue}>
-                  <Typography variant="body1" color="disabled">
-                    KRW (한국 원화)
-                  </Typography>
-                  <IconSymbol
-                    name="chevron.right"
-                    size={20}
-                    color={colors.textDisabled}
-                  />
-                </View>
+                {(() => {
+                  const colors = getSettingItemColors({
+                    isEditable: false,
+                    isEnabled: false,
+                    isActionable: false,
+                  });
+                  return (
+                    <>
+                      <Typography variant="body1" color={colors.label}>
+                        통화
+                      </Typography>
+                      <View style={styles.settingValue}>
+                        <Typography variant="body1" color={colors.value}>
+                          KRW (한국 원화)
+                        </Typography>
+                      </View>
+                    </>
+                  );
+                })()}
               </Pressable>
             </Card>
           </View>
@@ -383,17 +444,32 @@ export default function LedgerSettingsScreen() {
                 ]}
                 disabled={loading}
               >
-                <Typography variant="body1">멤버 보기</Typography>
-                <View style={styles.settingValue}>
-                  <Typography variant="body1" color="secondary">
-                    {memberCount}명
-                  </Typography>
-                  <IconSymbol
-                    name="chevron.right"
-                    size={20}
-                    color={colors.textSecondary}
-                  />
-                </View>
+                {(() => {
+                  const itemColors = getSettingItemColors({
+                    isEditable: true,
+                    isEnabled: true,
+                    isActionable: true,
+                  });
+                  return (
+                    <>
+                      <Typography variant="body1" color={itemColors.label}>
+                        멤버 보기
+                      </Typography>
+                      <View style={styles.settingValue}>
+                        <Typography variant="body1" color={itemColors.value}>
+                          {memberCount}명
+                        </Typography>
+                        {itemColors.showChevron && (
+                          <IconSymbol
+                            name="chevron.right"
+                            size={20}
+                            color={colors.textSecondary}
+                          />
+                        )}
+                      </View>
+                    </>
+                  );
+                })()}
               </Pressable>
 
               {canManageMembers && (
@@ -402,14 +478,26 @@ export default function LedgerSettingsScreen() {
                   style={styles.settingItem}
                   disabled={loading}
                 >
-                  <Typography variant="body1" color="primary">
-                    멤버 초대
-                  </Typography>
-                  <IconSymbol
-                    name="chevron.right"
-                    size={20}
-                    color={colors.tint}
-                  />
+                  {(() => {
+                    const itemColors = getSettingItemColors({
+                      isEditable: false,
+                      isEnabled: true,
+                      isActionable: true,
+                      type: 'primary',
+                    });
+                    return (
+                      <>
+                        <Typography variant="body1" color={itemColors.label}>
+                          멤버 초대
+                        </Typography>
+                        <IconSymbol
+                          name="chevron.right"
+                          size={20}
+                          color={colors.tint}
+                        />
+                      </>
+                    );
+                  })()}
                 </Pressable>
               )}
             </Card>
@@ -429,7 +517,7 @@ export default function LedgerSettingsScreen() {
               padding="none"
               style={styles.cardContainer}
             >
-              {isOwner ? (
+              {canDeleteLedger ? (
                 <Pressable
                   onPress={handleDeleteLedger}
                   style={styles.settingItem}
@@ -438,7 +526,11 @@ export default function LedgerSettingsScreen() {
                   <Typography variant="body1" style={styles.dangerText}>
                     가계부 삭제
                   </Typography>
-                  <IconSymbol name="chevron.right" size={20} color="#FF3B30" />
+                  <IconSymbol
+                    name="chevron.right"
+                    size={20}
+                    color={colors.expense}
+                  />
                 </Pressable>
               ) : (
                 <Pressable
@@ -449,7 +541,11 @@ export default function LedgerSettingsScreen() {
                   <Typography variant="body1" style={styles.dangerText}>
                     가계부 나가기
                   </Typography>
-                  <IconSymbol name="chevron.right" size={20} color="#FF3B30" />
+                  <IconSymbol
+                    name="chevron.right"
+                    size={20}
+                    color={colors.expense}
+                  />
                 </Pressable>
               )}
             </Card>
@@ -462,11 +558,7 @@ export default function LedgerSettingsScreen() {
               color="secondary"
               style={styles.infoText}
             >
-              {isOwner
-                ? '소유자로서 모든 설정을 변경할 수 있습니다.'
-                : isAdmin
-                  ? '관리자로서 멤버를 초대하고 가계부 정보를 수정할 수 있습니다.'
-                  : '멤버로서 거래를 입력하고 조회할 수 있습니다.'}
+              {PermissionService.getRoleDescription(role)}
             </Typography>
           </View>
         </ScrollView>
@@ -571,7 +663,7 @@ const styles = StyleSheet.create({
     maxWidth: 200,
   },
   dangerText: {
-    color: '#FF3B30',
+    color: Colors.light.expense, // 다크모드에서도 동일한 색상 사용
   },
   infoSection: {
     marginHorizontal: 16,

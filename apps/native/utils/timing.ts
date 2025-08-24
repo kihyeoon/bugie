@@ -8,16 +8,16 @@
  * @param delay 지연 시간 (ms)
  * @returns 디바운스된 함수 (cancel 메서드 포함)
  */
-export function debounce<T extends (...args: any[]) => void>(
-  func: T,
+export function debounce<Args extends unknown[]>(
+  func: (...args: Args) => void,
   delay: number
-): T & { cancel: () => void } {
+): ((...args: Args) => void) & { cancel: () => void } {
   let timeoutId: number;
   
-  const debouncedFunc = ((...args: any[]) => {
+  const debouncedFunc = ((...args: Args) => {
     clearTimeout(timeoutId);
     timeoutId = setTimeout(() => func(...args), delay);
-  }) as T & { cancel: () => void };
+  }) as ((...args: Args) => void) & { cancel: () => void };
   
   debouncedFunc.cancel = () => {
     clearTimeout(timeoutId);
@@ -32,19 +32,19 @@ export function debounce<T extends (...args: any[]) => void>(
  * @param limit 제한 시간 (ms)
  * @returns 스로틀된 함수
  */
-export function throttle<T extends (...args: any[]) => void>(
-  func: T,
+export function throttle<Args extends unknown[]>(
+  func: (...args: Args) => void,
   limit: number
-): T {
+): (...args: Args) => void {
   let inThrottle: boolean;
   
-  return ((...args: any[]) => {
+  return (...args: Args) => {
     if (!inThrottle) {
       func(...args);
       inThrottle = true;
       setTimeout(() => inThrottle = false, limit);
     }
-  }) as T;
+  };
 }
 
 /**

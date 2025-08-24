@@ -1,16 +1,10 @@
 import React from 'react';
-import {
-  Modal,
-  View,
-  StyleSheet,
-  ScrollView,
-  Pressable,
-} from 'react-native';
+import { Modal, View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography } from '@/components/ui/Typography';
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import type { LedgerDetail, MemberRole } from '@repo/core';
+import { PermissionService, type LedgerDetail } from '@repo/core';
 import type { IconSymbolName } from '@/components/ui/IconSymbol';
 
 interface ViewMembersModalProps {
@@ -19,13 +13,6 @@ interface ViewMembersModalProps {
   currentUserId: string | undefined;
   onClose: () => void;
 }
-
-const roleConfig: Record<MemberRole, { icon: IconSymbolName; label: string; color: string }> = {
-  owner: { icon: 'crown.fill', label: '소유자', color: '#FFB800' },
-  admin: { icon: 'shield.fill', label: '관리자', color: '#3182F6' },
-  member: { icon: 'person.fill', label: '멤버', color: '#191F28' },
-  viewer: { icon: 'eye.fill', label: '열람자', color: '#8B95A1' },
-};
 
 export function ViewMembersModal({
   visible,
@@ -43,7 +30,7 @@ export function ViewMembersModal({
   // 역할별로 멤버 정렬 (owner > admin > member > viewer)
   const sortedMembers = [...ledger.ledger_members].sort((a, b) => {
     const roleOrder = { owner: 0, admin: 1, member: 2, viewer: 3 };
-    return roleOrder[a.role as MemberRole] - roleOrder[b.role as MemberRole];
+    return roleOrder[a.role] - roleOrder[b.role];
   });
 
   return (
@@ -82,7 +69,7 @@ export function ViewMembersModal({
 
           {sortedMembers.map((member) => {
             const isCurrentUser = member.user_id === currentUserId;
-            const roleInfo = roleConfig[member.role as MemberRole];
+            const roleInfo = PermissionService.getRoleUIConfig(member.role);
 
             return (
               <View
@@ -94,13 +81,11 @@ export function ViewMembersModal({
               >
                 {/* 프로필 사진 영역 */}
                 <View
-                  style={[
-                    styles.avatar,
-                    { backgroundColor: colors.border },
-                  ]}
+                  style={[styles.avatar, { backgroundColor: colors.border }]}
                 >
                   <Typography variant="body1" weight="600" color="secondary">
-                    {member.profiles.full_name?.[0] || member.profiles.email[0].toUpperCase()}
+                    {member.profiles.full_name?.[0] ||
+                      member.profiles.email[0].toUpperCase()}
                   </Typography>
                 </View>
 
@@ -111,7 +96,12 @@ export function ViewMembersModal({
                       {member.profiles.full_name || '이름 없음'}
                     </Typography>
                     {isCurrentUser && (
-                      <View style={[styles.meBadge, { backgroundColor: colors.tint }]}>
+                      <View
+                        style={[
+                          styles.meBadge,
+                          { backgroundColor: colors.tint },
+                        ]}
+                      >
                         <Typography
                           variant="caption"
                           weight="600"
@@ -136,7 +126,7 @@ export function ViewMembersModal({
                     ]}
                   >
                     <IconSymbol
-                      name={roleInfo.icon}
+                      name={roleInfo.icon as IconSymbolName}
                       size={16}
                       color={roleInfo.color}
                     />
@@ -152,7 +142,6 @@ export function ViewMembersModal({
               </View>
             );
           })}
-
         </ScrollView>
       </View>
     </Modal>

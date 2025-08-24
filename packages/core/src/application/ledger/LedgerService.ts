@@ -17,6 +17,7 @@ import {
   LedgerMemberRules,
   CategoryRules,
 } from '../../domain/ledger/rules';
+import { PermissionService } from '../permission/PermissionService';
 import type { SupabaseAuthService } from '../../infrastructure/supabase/auth/SupabaseAuthService';
 import type {
   CreateLedgerInput,
@@ -146,9 +147,21 @@ export class LedgerService {
    * 가계부 정보 수정
    */
   async updateLedger(input: UpdateLedgerInput): Promise<void> {
+    const currentUser = await this.authService.getCurrentUser();
+    if (!currentUser) throw new UnauthorizedError('인증이 필요합니다.');
+
     const ledger = await this.ledgerRepo.findById(input.ledgerId);
     if (!ledger) {
       throw new NotFoundError('가계부를 찾을 수 없습니다.');
+    }
+
+    // 권한 체크: PermissionService 활용
+    const member = await this.memberRepo.findByLedgerAndUser(
+      input.ledgerId,
+      currentUser.id
+    );
+    if (!PermissionService.canDo('updateLedger', member?.role)) {
+      throw new UnauthorizedError('가계부를 수정할 권한이 없습니다.');
     }
 
     if (input.name) {
@@ -170,6 +183,18 @@ export class LedgerService {
    * 가계부 삭제
    */
   async deleteLedger(ledgerId: string): Promise<void> {
+    const currentUser = await this.authService.getCurrentUser();
+    if (!currentUser) throw new UnauthorizedError('인증이 필요합니다.');
+
+    // 권한 체크: owner만 삭제 가능
+    const member = await this.memberRepo.findByLedgerAndUser(
+      ledgerId,
+      currentUser.id
+    );
+    if (!PermissionService.canDo('deleteLedger', member?.role)) {
+      throw new UnauthorizedError('가계부를 삭제할 권한이 없습니다.');
+    }
+
     await this.ledgerRepo.delete(ledgerId);
   }
 

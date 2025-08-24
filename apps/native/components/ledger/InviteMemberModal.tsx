@@ -15,7 +15,6 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography } from '@/components/ui/Typography';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import type { MemberRole } from '@repo/core';
-import type { IconSymbolName } from '@/components/ui/IconSymbol';
 
 interface InviteMemberModalProps {
   visible: boolean;
@@ -24,48 +23,21 @@ interface InviteMemberModalProps {
   onClose: () => void;
 }
 
-const roleOptions: {
-  value: Exclude<MemberRole, 'owner'>;
-  label: string;
-  description: string;
-  icon: IconSymbolName;
-}[] = [
-  {
-    value: 'admin',
-    label: '관리자',
-    description: '멤버 초대 및 가계부 설정 가능',
-    icon: 'shield.fill',
-  },
-  {
-    value: 'member',
-    label: '멤버',
-    description: '거래 입력 및 수정 가능',
-    icon: 'person.fill',
-  },
-  {
-    value: 'viewer',
-    label: '열람자',
-    description: '조회만 가능',
-    icon: 'eye.fill',
-  },
-];
-
 export function InviteMemberModal({
   visible,
-  ledgerId,
   onInvite,
   onClose,
 }: InviteMemberModalProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  
+
   const [email, setEmail] = useState('');
-  const [selectedRole, setSelectedRole] = useState<Exclude<MemberRole, 'owner'>>('member');
   const [isInviting, setIsInviting] = useState(false);
+  // MVP에서는 member 권한만 초대 가능
+  const inviteRole: MemberRole = 'member';
 
   const handleClose = () => {
     setEmail('');
-    setSelectedRole('member');
     onClose();
   };
 
@@ -76,7 +48,7 @@ export function InviteMemberModal({
 
   const handleInvite = async () => {
     const trimmedEmail = email.trim().toLowerCase();
-    
+
     if (!trimmedEmail) {
       Alert.alert('오류', '이메일을 입력해주세요.');
       return;
@@ -89,13 +61,13 @@ export function InviteMemberModal({
 
     setIsInviting(true);
     try {
-      await onInvite(trimmedEmail, selectedRole);
+      await onInvite(trimmedEmail, inviteRole);
       Alert.alert('성공', '멤버 초대가 완료되었습니다.', [
         { text: '확인', onPress: handleClose },
       ]);
     } catch (error) {
       let errorMessage = '초대 중 문제가 발생했습니다.';
-      
+
       if (error instanceof Error) {
         if (error.message.includes('사용자를 찾을 수 없습니다')) {
           errorMessage = '해당 이메일로 가입한 사용자가 없습니다.';
@@ -103,7 +75,7 @@ export function InviteMemberModal({
           errorMessage = '이미 초대된 멤버입니다.';
         }
       }
-      
+
       Alert.alert('오류', errorMessage);
     } finally {
       setIsInviting(false);
@@ -149,7 +121,11 @@ export function InviteMemberModal({
         <View style={styles.content}>
           {/* 이메일 입력 */}
           <View style={styles.section}>
-            <Typography variant="caption" color="secondary" style={styles.label}>
+            <Typography
+              variant="caption"
+              color="secondary"
+              style={styles.label}
+            >
               이메일 주소
             </Typography>
             <TextInput
@@ -171,58 +147,45 @@ export function InviteMemberModal({
             />
           </View>
 
-          {/* 권한 선택 */}
+          {/* 권한 안내 - MVP에서는 member 권한만 초대 */}
           <View style={styles.section}>
-            <Typography variant="caption" color="secondary" style={styles.label}>
-              권한 선택
+            <Typography
+              variant="caption"
+              color="secondary"
+              style={styles.label}
+            >
+              초대 권한
             </Typography>
-            {roleOptions.map((option) => (
-              <Pressable
-                key={option.value}
-                style={[
-                  styles.roleOption,
-                  {
-                    backgroundColor: colors.backgroundSecondary,
-                    borderColor:
-                      selectedRole === option.value ? colors.tint : colors.border,
-                  },
-                  selectedRole === option.value && styles.selectedRole,
-                ]}
-                onPress={() => setSelectedRole(option.value)}
-                disabled={isInviting}
-              >
-                <View style={styles.roleIconContainer}>
-                  <IconSymbol
-                    name={option.icon}
-                    size={20}
-                    color={selectedRole === option.value ? colors.tint : colors.textSecondary}
-                  />
-                </View>
-                <View style={styles.roleInfo}>
-                  <Typography
-                    variant="body1"
-                    weight={selectedRole === option.value ? '600' : '500'}
-                  >
-                    {option.label}
-                  </Typography>
-                  <Typography variant="caption" color="secondary">
-                    {option.description}
-                  </Typography>
-                </View>
-                {selectedRole === option.value && (
-                  <IconSymbol
-                    name="checkmark.circle.fill"
-                    size={20}
-                    color={colors.tint}
-                  />
-                )}
-              </Pressable>
-            ))}
+            <View
+              style={[
+                styles.roleOption,
+                {
+                  backgroundColor: colors.backgroundSecondary,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <View style={styles.roleIconContainer}>
+                <IconSymbol name="person.fill" size={20} color={colors.text} />
+              </View>
+              <View style={styles.roleInfo}>
+                <Typography variant="body1" weight="600">
+                  멤버
+                </Typography>
+                <Typography variant="caption" color="secondary">
+                  거래 입력 및 수정 가능
+                </Typography>
+              </View>
+            </View>
           </View>
 
           {/* 안내 메시지 */}
           <View style={styles.infoSection}>
-            <Typography variant="caption" color="secondary" style={styles.infoText}>
+            <Typography
+              variant="caption"
+              color="secondary"
+              style={styles.infoText}
+            >
               초대할 사용자는 Bugie 계정이 있어야 합니다.
               {'\n'}
               초대 후 즉시 가계부에 접근할 수 있습니다.

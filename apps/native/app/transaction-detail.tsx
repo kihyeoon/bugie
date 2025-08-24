@@ -23,6 +23,10 @@ import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { format } from 'date-fns';
 import { CategoryBottomSheet } from '@/components/shared/CategorySelector/CategoryBottomSheet';
 import { useCategories } from '@/hooks/useCategories';
+import { useLedger } from '@/contexts/LedgerContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { PermissionService } from '@repo/core';
+import type { MemberRole } from '@repo/core';
 
 export default function TransactionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -36,6 +40,27 @@ export default function TransactionDetailScreen() {
     deleteTransaction,
   } = useTransactionDetail(id);
   const { categories } = useCategories();
+  const { currentLedger } = useLedger();
+  const { user } = useAuth();
+
+  // 현재 사용자의 가계부 내 역할을 가져옵니다.
+  const getUserRole = (): MemberRole | null => {
+    if (!currentLedger || !user) return null;
+    const member = currentLedger.ledger_members.find(
+      (m) => m.user_id === user.id
+    );
+    return member?.role || null;
+  };
+
+  const userRole = getUserRole();
+  const canUpdateTransaction = PermissionService.canDo(
+    'updateTransaction',
+    userRole
+  );
+  const canDeleteTransaction = PermissionService.canDo(
+    'deleteTransaction',
+    userRole
+  );
 
   // 모달 상태들
   const [amountModalVisible, setAmountModalVisible] = useState(false);
@@ -266,12 +291,18 @@ export default function TransactionDetailScreen() {
               size="large"
               style={styles.amount}
             />
-            <Pressable
-              style={styles.editIcon}
-              onPress={() => setAmountModalVisible(true)}
-            >
-              <Ionicons name="pencil" size={20} color={colors.textSecondary} />
-            </Pressable>
+            {canUpdateTransaction && (
+              <Pressable
+                style={styles.editIcon}
+                onPress={() => setAmountModalVisible(true)}
+              >
+                <Ionicons
+                  name="pencil"
+                  size={20}
+                  color={colors.textSecondary}
+                />
+              </Pressable>
+            )}
           </View>
         </View>
 
@@ -281,8 +312,16 @@ export default function TransactionDetailScreen() {
         >
           {/* 카테고리 설정 */}
           <Pressable
-            style={styles.infoRow}
-            onPress={() => setCategoryModalVisible(true)}
+            style={[
+              styles.infoRow,
+              !canUpdateTransaction && styles.disabledRow,
+            ]}
+            onPress={
+              canUpdateTransaction
+                ? () => setCategoryModalVisible(true)
+                : undefined
+            }
+            disabled={!canUpdateTransaction}
           >
             <Typography variant="body1" color="secondary" weight="500">
               카테고리 설정
@@ -291,36 +330,54 @@ export default function TransactionDetailScreen() {
               <Typography variant="body1">
                 {transaction.category_name}
               </Typography>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color={colors.textSecondary}
-              />
+              {canUpdateTransaction && (
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color={colors.textSecondary}
+                />
+              )}
             </View>
           </Pressable>
 
           {/* 제목 */}
           <Pressable
-            style={styles.infoRow}
-            onPress={() => setTitleModalVisible(true)}
+            style={[
+              styles.infoRow,
+              !canUpdateTransaction && styles.disabledRow,
+            ]}
+            onPress={
+              canUpdateTransaction
+                ? () => setTitleModalVisible(true)
+                : undefined
+            }
+            disabled={!canUpdateTransaction}
           >
             <Typography variant="body1" color="secondary" weight="500">
               제목
             </Typography>
             <View style={styles.valueContainer}>
               <Typography variant="body1">{transaction.title}</Typography>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color={colors.textSecondary}
-              />
+              {canUpdateTransaction && (
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color={colors.textSecondary}
+                />
+              )}
             </View>
           </Pressable>
 
           {/* 메모 */}
           <Pressable
-            style={styles.infoRow}
-            onPress={() => setMemoModalVisible(true)}
+            style={[
+              styles.infoRow,
+              !canUpdateTransaction && styles.disabledRow,
+            ]}
+            onPress={
+              canUpdateTransaction ? () => setMemoModalVisible(true) : undefined
+            }
+            disabled={!canUpdateTransaction}
           >
             <Typography variant="body1" color="secondary" weight="500">
               메모
@@ -335,18 +392,28 @@ export default function TransactionDetailScreen() {
               >
                 {transaction.description || '메모를 남겨보세요'}
               </Typography>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color={colors.textSecondary}
-              />
+              {canUpdateTransaction && (
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color={colors.textSecondary}
+                />
+              )}
             </View>
           </Pressable>
 
           {/* 거래 날짜 */}
           <Pressable
-            style={styles.infoRow}
-            onPress={() => setDatePickerVisible(true)}
+            style={[
+              styles.infoRow,
+              !canUpdateTransaction && styles.disabledRow,
+            ]}
+            onPress={
+              canUpdateTransaction
+                ? () => setDatePickerVisible(true)
+                : undefined
+            }
+            disabled={!canUpdateTransaction}
           >
             <Typography variant="body1" color="secondary" weight="500">
               거래일
@@ -355,11 +422,13 @@ export default function TransactionDetailScreen() {
               <Typography variant="body1">
                 {formatDateKorean(transaction.transaction_date)}
               </Typography>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color={colors.textSecondary}
-              />
+              {canUpdateTransaction && (
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color={colors.textSecondary}
+                />
+              )}
             </View>
           </Pressable>
 
@@ -375,29 +444,31 @@ export default function TransactionDetailScreen() {
         </View>
       </ScrollView>
 
-      {/* 하단 고정 삭제 버튼 */}
-      <View
-        style={[
-          styles.deleteButtonContainer,
-          { backgroundColor: colors.background },
-        ]}
-      >
-        <Pressable
+      {/* 하단 고정 삭제 버튼 - 권한이 있을 때만 표시 */}
+      {canDeleteTransaction && (
+        <View
           style={[
-            styles.deleteButton,
-            { backgroundColor: colors.backgroundSecondary },
+            styles.deleteButtonContainer,
+            { backgroundColor: colors.background },
           ]}
-          onPress={handleDelete}
         >
-          <Typography
-            variant="body1"
-            align="center"
-            style={{ color: colors.expense }}
+          <Pressable
+            style={[
+              styles.deleteButton,
+              { backgroundColor: colors.backgroundSecondary },
+            ]}
+            onPress={handleDelete}
           >
-            삭제하기
-          </Typography>
-        </Pressable>
-      </View>
+            <Typography
+              variant="body1"
+              align="center"
+              style={{ color: colors.expense }}
+            >
+              삭제하기
+            </Typography>
+          </Pressable>
+        </View>
+      )}
 
       {/* 편집 모달들 */}
       {transaction && (
@@ -549,5 +620,8 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
+  },
+  disabledRow: {
+    opacity: 0.6,
   },
 });
