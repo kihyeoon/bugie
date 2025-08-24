@@ -161,6 +161,23 @@ export default function LedgerSettingsScreen() {
     await refreshLedgers();
   };
 
+  const handleRemoveMember = async (userId: string) => {
+    if (!ledger) return;
+
+    setLoading(true);
+    try {
+      await ledgerService.removeMember(ledger.id, userId);
+      // 멤버 목록 새로고침
+      await fetchLedgerDetail();
+      await refreshLedgers();
+    } catch (error) {
+      console.error('Failed to remove member:', error);
+      Alert.alert('오류', '멤버 내보내기 중 문제가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDeleteLedger = () => {
     Alert.alert(
       '가계부 삭제',
@@ -490,7 +507,7 @@ export default function LedgerSettingsScreen() {
                         <IconSymbol
                           name="chevron.right"
                           size={20}
-                          color={colors.tint}
+                          color={colors.textSecondary}
                         />
                       </>
                     );
@@ -594,6 +611,7 @@ export default function LedgerSettingsScreen() {
         ledger={ledgerDetail}
         currentUserId={user?.id}
         onClose={() => setViewMembersModalVisible(false)}
+        onRemoveMember={handleRemoveMember}
       />
 
       {/* 멤버 초대 모달 */}
