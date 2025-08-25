@@ -94,3 +94,6 @@ export function createTransactionService(
 
 // 서비스 클래스 Export (타입용)
 export type { LedgerService, TransactionService };
+
+// 권한 관리 서비스 Export
+export { PermissionService } from './application/permission/PermissionService';

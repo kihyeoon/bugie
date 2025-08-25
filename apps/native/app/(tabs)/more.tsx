@@ -44,26 +44,17 @@ export default function MoreScreen() {
 
   const menuItems: MenuItem[] = [
     {
-      title: '전체 거래 내역',
-      icon: 'list.bullet',
-      onPress: () => {
-        // TODO: 거래 목록 화면으로 이동
-        console.log('거래 내역');
-      },
-    },
-    {
       title: '가계부 관리',
       icon: 'folder.fill',
       onPress: () => {
-        // TODO: 가계부 관리 웹뷰로 이동
-        console.log('가계부 관리');
+        router.push('/ledger-management');
       },
     },
     {
       title: '프로필 설정',
       icon: 'person.fill',
       onPress: () => {
-        // TODO: 프로필 설정 웹뷰로 이동
+        // TODO: 프로필 설정 화면으로 이동
         console.log('프로필 설정');
       },
     },

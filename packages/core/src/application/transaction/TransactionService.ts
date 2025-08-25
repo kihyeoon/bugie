@@ -17,6 +17,7 @@ import type { AuthService } from '../../domain/auth/types';
 import { TransactionRules } from '../../domain/transaction/rules';
 import { TransactionViewRepository } from '../../infrastructure/supabase/repositories/TransactionViewRepository';
 import { UnauthorizedError, NotFoundError } from '../../domain/shared/errors';
+import { PermissionService } from '../permission/PermissionService';
 
 export class TransactionService {
   constructor(
@@ -112,8 +113,8 @@ export class TransactionService {
       throw new UnauthorizedError('가계부에 접근할 권한이 없습니다.');
     }
 
-    // viewer는 생성 불가
-    if (member.role === 'viewer') {
+    // PermissionService로 권한 체크
+    if (!PermissionService.canDo('createTransaction', member.role)) {
       throw new UnauthorizedError('거래를 생성할 권한이 없습니다.');
     }
 
@@ -163,8 +164,8 @@ export class TransactionService {
       throw new UnauthorizedError('가계부에 접근할 권한이 없습니다.');
     }
 
-    // viewer는 수정 불가
-    if (member.role === 'viewer') {
+    // PermissionService로 권한 체크
+    if (!PermissionService.canDo('updateTransaction', member.role)) {
       throw new UnauthorizedError('거래를 수정할 권한이 없습니다.');
     }
 
@@ -206,8 +207,8 @@ export class TransactionService {
       throw new UnauthorizedError('가계부에 접근할 권한이 없습니다.');
     }
 
-    // viewer는 삭제 불가
-    if (member.role === 'viewer') {
+    // PermissionService로 권한 체크
+    if (!PermissionService.canDo('deleteTransaction', member.role)) {
       throw new UnauthorizedError('거래를 삭제할 권한이 없습니다.');
     }
 

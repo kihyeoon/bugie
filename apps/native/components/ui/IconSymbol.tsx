@@ -26,9 +26,20 @@ const MAPPING = {
   'gearshape.fill': 'settings',
   // 로그아웃 아이콘
   'rectangle.portrait.and.arrow.right': 'exit-to-app',
+  // 가계부 관리 아이콘들
+  'checkmark.circle.fill': 'check-circle',
+  'circle': 'radio-button-off',
+  'plus.circle.fill': 'add-circle',
+  // 체크마크 단독 아이콘
+  'checkmark': 'check',
+  // 멤버 관리 아이콘들
+  'crown.fill': 'star', // owner
+  'shield.fill': 'shield', // admin
+  'eye.fill': 'visibility', // viewer
+  'xmark': 'close', // close modal
 } as const;
 
-type IconSymbolName = keyof typeof MAPPING;
+export type IconSymbolName = keyof typeof MAPPING;
 
 /**
  * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.
