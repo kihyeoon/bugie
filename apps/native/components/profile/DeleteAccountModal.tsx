@@ -13,6 +13,7 @@ import { Typography, Button } from '../ui';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Ionicons } from '@expo/vector-icons';
+import { DELETE_ACCOUNT } from '@repo/core';
 
 interface DeleteAccountModalProps {
   visible: boolean;
@@ -33,7 +34,7 @@ export function DeleteAccountModal({
   const [confirmText, setConfirmText] = useState('');
   const [step, setStep] = useState(1);
 
-  const requiredText = '정말 탈퇴하시겠습니까?';
+  const requiredText = DELETE_ACCOUNT.CONFIRM_TEXT;
   const isConfirmTextValid = confirmText === requiredText;
 
   // 초기화
@@ -83,11 +84,11 @@ export function DeleteAccountModal({
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <Pressable onPress={handleClose}>
             <Typography variant="body1" color="primary">
-              취소
+              {DELETE_ACCOUNT.UI.BUTTON_CANCEL}
             </Typography>
           </Pressable>
           <Typography variant="h3" weight="600">
-            회원 탈퇴
+            {DELETE_ACCOUNT.UI.TITLE}
           </Typography>
           <View style={{ width: 40 }} />
         </View>
@@ -110,28 +111,28 @@ export function DeleteAccountModal({
 
               <View style={styles.warningContent}>
                 <Typography variant="body1" style={styles.warningText}>
-                  회원 탈퇴 시 다음 사항을 확인해주세요:
+                  {DELETE_ACCOUNT.UI.WARNING_TITLE}
                 </Typography>
 
                 <View style={styles.warningList}>
                   <View style={styles.warningItem}>
                     <Typography variant="body1" color="secondary">
-                      • 탈퇴 후 30일 이내 재로그인 시 자동 복구됩니다
+                      • {DELETE_ACCOUNT.MESSAGES.GRACE_PERIOD}
                     </Typography>
                   </View>
                   <View style={styles.warningItem}>
                     <Typography variant="body1" color="secondary">
-                      • 30일이 지나면 모든 데이터가 영구 삭제됩니다
+                      • {DELETE_ACCOUNT.MESSAGES.PERMANENT_DELETE}
                     </Typography>
                   </View>
                   <View style={styles.warningItem}>
                     <Typography variant="body1" color="secondary">
-                      • 참여 중인 가계부에서 자동으로 나가게 됩니다
+                      • {DELETE_ACCOUNT.MESSAGES.LEAVE_LEDGERS}
                     </Typography>
                   </View>
                   <View style={styles.warningItem}>
                     <Typography variant="body1" color="secondary">
-                      • 개인 정보는 즉시 비공개 처리됩니다
+                      • {DELETE_ACCOUNT.MESSAGES.PRIVACY_PROTECTION}
                     </Typography>
                   </View>
                 </View>
@@ -144,15 +145,14 @@ export function DeleteAccountModal({
                     ]}
                   >
                     <Typography variant="body1" color="error">
-                      ⚠️ 소유한 가계부가 {ownedLedgerCount}개 있습니다.
+                      ⚠️ {DELETE_ACCOUNT.MESSAGES.OWNED_LEDGERS_WARNING(ownedLedgerCount)}
                     </Typography>
                     <Typography
                       variant="caption"
                       color="error"
                       style={{ marginTop: 4 }}
                     >
-                      탈퇴하려면 먼저 가계부를 삭제하거나 다른 사용자에게
-                      양도해주세요.
+                      {DELETE_ACCOUNT.MESSAGES.TRANSFER_REQUIRED}
                     </Typography>
                   </View>
                 )}
@@ -165,7 +165,7 @@ export function DeleteAccountModal({
                   disabled={ownedLedgerCount > 0}
                   fullWidth
                 >
-                  다음
+                  {DELETE_ACCOUNT.UI.BUTTON_NEXT}
                 </Button>
               </View>
             </>
@@ -174,16 +174,16 @@ export function DeleteAccountModal({
             <>
               <View style={styles.stepHeader}>
                 <Typography variant="h3" style={styles.title}>
-                  최종 확인
+                  {DELETE_ACCOUNT.UI.FINAL_CONFIRM_TITLE}
                 </Typography>
               </View>
 
               <View style={styles.confirmContent}>
                 <Typography variant="body1" style={styles.confirmText}>
-                  정말로 회원 탈퇴를 진행하시겠습니까?
+                  {DELETE_ACCOUNT.UI.FINAL_CONFIRM_QUESTION}
                 </Typography>
                 <Typography variant="body1" style={styles.confirmText}>
-                  아래 문구를 정확히 입력해주세요:
+                  {DELETE_ACCOUNT.UI.INPUT_INSTRUCTION}
                 </Typography>
 
                 <View
@@ -210,7 +210,7 @@ export function DeleteAccountModal({
                   ]}
                   value={confirmText}
                   onChangeText={setConfirmText}
-                  placeholder="위 문구를 입력하세요"
+                  placeholder={DELETE_ACCOUNT.UI.INPUT_PLACEHOLDER}
                   placeholderTextColor={colors.textSecondary}
                   autoFocus
                   autoCapitalize="none"
@@ -224,7 +224,7 @@ export function DeleteAccountModal({
                   onPress={() => setStep(1)}
                   style={styles.button}
                 >
-                  이전
+                  {DELETE_ACCOUNT.UI.BUTTON_PREVIOUS}
                 </Button>
                 <Button
                   variant="danger"
@@ -232,7 +232,7 @@ export function DeleteAccountModal({
                   disabled={!isConfirmTextValid}
                   style={styles.button}
                 >
-                  탈퇴하기
+                  {DELETE_ACCOUNT.UI.BUTTON_DELETE}
                 </Button>
               </View>
             </>

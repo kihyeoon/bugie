@@ -20,6 +20,9 @@ export {
 export { TransactionRules } from './domain/transaction/rules';
 export { ProfileRules } from './domain/profile/rules';
 
+// 도메인 상수
+export { DELETE_ACCOUNT } from './domain/profile/constants';
+
 // 애플리케이션 레이어 Export
 // 입력 타입
 export type {
@@ -102,9 +105,7 @@ export function createTransactionService(
   );
 }
 
-export function createProfileService(
-  supabase: SupabaseClient
-): ProfileService {
+export function createProfileService(supabase: SupabaseClient): ProfileService {
   const profileRepo = new SupabaseProfileRepository(supabase);
   const ledgerRepo = new LedgerRepository(supabase);
   const authService = new SupabaseAuthService(supabase);

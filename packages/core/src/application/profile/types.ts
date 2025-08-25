@@ -13,7 +13,7 @@ export interface UpdateProfileInput {
  */
 export interface DeleteAccountInput {
   userId: string;
-  confirmText?: string; // "정말 탈퇴하시겠습니까?" 확인용
+  confirmText?: string;
 }
 
 /**
@@ -28,7 +28,7 @@ export interface ProfileDetail {
   timezone: string;
   createdAt: string;
   updatedAt: string;
-  
+
   // 추가 정보
   ownedLedgerCount?: number;
   sharedLedgerCount?: number;

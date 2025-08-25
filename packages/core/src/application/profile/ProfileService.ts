@@ -4,6 +4,7 @@ import type {
   LedgerMemberRepository,
 } from '../../domain/ledger/types';
 import { ProfileRules } from '../../domain/profile/rules';
+import { DELETE_ACCOUNT } from '../../domain/profile/constants';
 import {
   NotFoundError,
   UnauthorizedError,
@@ -113,12 +114,17 @@ export class ProfileService {
 
     // 본인 확인
     if (currentUser.id !== input.userId) {
-      throw new UnauthorizedError('본인의 계정만 탈퇴할 수 있습니다.');
+      throw new UnauthorizedError(DELETE_ACCOUNT.ERRORS.UNAUTHORIZED);
     }
 
     // 확인 텍스트 검증 (선택사항)
-    if (input.confirmText && input.confirmText !== '정말 탈퇴하시겠습니까?') {
-      throw new BusinessRuleViolationError('확인 문구가 일치하지 않습니다.');
+    if (
+      input.confirmText &&
+      input.confirmText !== DELETE_ACCOUNT.CONFIRM_TEXT
+    ) {
+      throw new BusinessRuleViolationError(
+        DELETE_ACCOUNT.ERRORS.CONFIRM_TEXT_MISMATCH
+      );
     }
 
     // 소유한 가계부 확인

@@ -16,7 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useServices } from '@/contexts/ServiceContext';
 import { EditTextModal } from '@/components/shared/EditTextModal';
 import { DeleteAccountModal } from '@/components/profile/DeleteAccountModal';
-import { ProfileRules } from '@repo/core';
+import { ProfileRules, DELETE_ACCOUNT } from '@repo/core';
 import type { ProfileDetail } from '@repo/core';
 
 export default function ProfileSettingsScreen() {
@@ -95,7 +95,7 @@ export default function ProfileSettingsScreen() {
     try {
       await profileService.deleteAccount({
         userId: user?.id || '',
-        confirmText: '정말 탈퇴하시겠습니까?',
+        confirmText: DELETE_ACCOUNT.CONFIRM_TEXT,
       });
 
       await signOut();
@@ -104,7 +104,7 @@ export default function ProfileSettingsScreen() {
       const errorMessage =
         error instanceof Error
           ? error.message
-          : '회원 탈퇴 중 오류가 발생했습니다.';
+          : DELETE_ACCOUNT.ERRORS.GENERIC;
       Alert.alert('탈퇴 실패', errorMessage);
     }
   };
