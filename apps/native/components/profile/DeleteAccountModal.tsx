@@ -116,7 +116,12 @@ export function DeleteAccountModal({
                 <View style={styles.warningList}>
                   <View style={styles.warningItem}>
                     <Typography variant="body1" color="secondary">
-                      • 모든 개인 정보가 삭제됩니다
+                      • 탈퇴 후 30일 이내 재로그인 시 자동 복구됩니다
+                    </Typography>
+                  </View>
+                  <View style={styles.warningItem}>
+                    <Typography variant="body1" color="secondary">
+                      • 30일이 지나면 모든 데이터가 영구 삭제됩니다
                     </Typography>
                   </View>
                   <View style={styles.warningItem}>
@@ -126,7 +131,7 @@ export function DeleteAccountModal({
                   </View>
                   <View style={styles.warningItem}>
                     <Typography variant="body1" color="secondary">
-                      • 삭제된 데이터는 복구할 수 없습니다
+                      • 개인 정보는 즉시 비공개 처리됩니다
                     </Typography>
                   </View>
                 </View>

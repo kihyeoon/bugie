@@ -268,6 +268,21 @@ export class LedgerMemberRepository implements ILedgerMemberRepository {
 
     if (error) throw error;
   }
+
+  /**
+   * 사용자를 모든 가계부에서 제거 (회원 탈퇴 시)
+   * 주의: ledger_members는 하드 삭제 사용
+   */
+  async removeUserFromAllLedgers(userId: EntityId): Promise<void> {
+    const { error } = await this.supabase
+      .from('ledger_members')
+      .delete()  // 하드 삭제
+      .eq('user_id', userId);
+
+    if (error) {
+      throw new Error(`가계부 멤버십 제거 실패: ${error.message}`);
+    }
+  }
 }
 
 /**

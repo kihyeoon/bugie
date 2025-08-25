@@ -25,8 +25,8 @@ export interface ProfileRepository {
   update(id: EntityId, data: Partial<ProfileEntity>): Promise<ProfileEntity>;
   delete(id: EntityId): Promise<void>;
   
-  // 회원 탈퇴 시 관련 데이터 정리
-  deleteUserData(userId: EntityId): Promise<void>;
+  // 프로필 soft delete (회원 탈퇴 시)
+  softDelete(userId: EntityId): Promise<void>;
 }
 
 /**

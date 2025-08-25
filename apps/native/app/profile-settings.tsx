@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   Pressable,
 } from 'react-native';
-import { Stack, router, useFocusEffect } from 'expo-router';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -22,7 +22,8 @@ import type { ProfileDetail } from '@repo/core';
 export default function ProfileSettingsScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const { user, profile, updateProfile } = useAuth();
+  const router = useRouter();
+  const { user, profile, updateProfile, signOut } = useAuth();
   const { profileService } = useServices();
 
   const [profileDetail, setProfileDetail] = useState<ProfileDetail | null>(
@@ -97,7 +98,7 @@ export default function ProfileSettingsScreen() {
         confirmText: '정말 탈퇴하시겠습니까?',
       });
 
-      // 로그인 화면으로 이동
+      await signOut();
       router.replace('/(auth)/login');
     } catch (error) {
       const errorMessage =
@@ -212,11 +213,6 @@ export default function ProfileSettingsScreen() {
             variant="danger"
             onPress={() => setDeleteAccountModalVisible(true)}
           />
-        </Card>
-
-        {/* 앱 정보 섹션 */}
-        <Card variant="outlined" padding="none" style={styles.section}>
-          <ListItem title="버전" rightText="1.0.0" disabled />
         </Card>
 
         <View style={styles.footer} />

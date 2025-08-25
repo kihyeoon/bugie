@@ -1,5 +1,8 @@
 import type { ProfileRepository } from '../../domain/profile/types';
-import type { LedgerRepository } from '../../domain/ledger/types';
+import type {
+  LedgerRepository,
+  LedgerMemberRepository,
+} from '../../domain/ledger/types';
 import { ProfileRules } from '../../domain/profile/rules';
 import {
   NotFoundError,
@@ -20,7 +23,8 @@ export class ProfileService {
   constructor(
     private profileRepo: ProfileRepository,
     private ledgerRepo: LedgerRepository,
-    private authService: AuthService
+    private authService: AuthService,
+    private ledgerMemberRepo: LedgerMemberRepository
   ) {}
 
   /**
@@ -135,11 +139,14 @@ export class ProfileService {
       sharedLedgers.length
     );
 
-    // 관련 데이터 정리
-    await this.profileRepo.deleteUserData(currentUser.id);
+    // 1. 가계부 멤버십 제거 (LedgerMemberRepository가 담당)
+    await this.ledgerMemberRepo.removeUserFromAllLedgers(currentUser.id);
 
-    // 계정 삭제
-    await this.authService.deleteAccount();
+    // 2. 프로필 soft delete (ProfileRepository가 담당)
+    await this.profileRepo.softDelete(currentUser.id);
+
+    // 3. 로그아웃은 UI 레이어(AuthContext)에서 처리
+    // 회원 탈퇴 후 로그아웃과 상태 정리는 프레젠테이션 레이어의 책임
   }
 
   /**

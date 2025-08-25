@@ -13,6 +13,4 @@ export interface CurrentUser {
  */
 export interface AuthService {
   getCurrentUser(): Promise<CurrentUser | null>;
-  signOut(): Promise<void>;
-  deleteAccount(): Promise<void>;
 }

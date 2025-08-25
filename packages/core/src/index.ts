@@ -108,11 +108,13 @@ export function createProfileService(
   const profileRepo = new SupabaseProfileRepository(supabase);
   const ledgerRepo = new LedgerRepository(supabase);
   const authService = new SupabaseAuthService(supabase);
+  const ledgerMemberRepo = new LedgerMemberRepository(supabase);
 
   return new ProfileService(
     profileRepo,
     ledgerRepo,
-    authService
+    authService,
+    ledgerMemberRepo
   );
 }
 

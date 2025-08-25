@@ -87,36 +87,20 @@ export class SupabaseProfileRepository implements ProfileRepository {
   }
 
   /**
-   * 회원 탈퇴 시 사용자 데이터 정리
+   * 프로필 soft delete (회원 탈퇴 시)
    */
-  async deleteUserData(userId: EntityId): Promise<void> {
-    // 1. 모든 공유 가계부에서 멤버 제거
-    const { error: memberError } = await this.supabase
-      .from('ledger_members')
-      .update({
-        deleted_at: new Date().toISOString(),
-      })
-      .eq('user_id', userId);
-
-    if (memberError) {
-      throw new Error(`멤버 데이터 정리 실패: ${memberError.message}`);
-    }
-
-    // 2. 소유한 가계부 soft delete
-    const { error: ledgerError } = await this.supabase
-      .from('ledgers')
+  async softDelete(userId: EntityId): Promise<void> {
+    const { error } = await this.supabase
+      .from('profiles')
       .update({
         deleted_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
-      .eq('created_by', userId);
+      .eq('id', userId);
 
-    if (ledgerError) {
-      throw new Error(`가계부 데이터 정리 실패: ${ledgerError.message}`);
+    if (error) {
+      throw new Error(`프로필 soft delete 실패: ${error.message}`);
     }
-
-    // 3. 프로필 soft delete
-    await this.delete(userId);
   }
 
   /**
