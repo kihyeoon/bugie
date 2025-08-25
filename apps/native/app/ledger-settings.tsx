@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLedger } from '@/contexts/LedgerContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useServices } from '@/contexts/ServiceContext';
-import { EditTextModal } from '@/components/transaction/EditTextModal';
+import { EditTextModal } from '@/components/shared/EditTextModal';
 import { ViewMembersModal } from '@/components/ledger/ViewMembersModal';
 import { InviteMemberModal } from '@/components/ledger/InviteMemberModal';
 import type { LedgerWithMembers, LedgerDetail, MemberRole } from '@repo/core';

@@ -18,7 +18,7 @@ import { AmountDisplay } from '@/components/ui/AmountDisplay';
 import { getIoniconName } from '@/constants/categories';
 import { formatDateKorean } from '@/utils/dateFormatter';
 import { EditAmountModal } from '@/components/transaction/EditAmountModal';
-import { EditTextModal } from '@/components/transaction/EditTextModal';
+import { EditTextModal } from '@/components/shared/EditTextModal';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { format } from 'date-fns';
 import { CategoryBottomSheet } from '@/components/shared/CategorySelector/CategoryBottomSheet';

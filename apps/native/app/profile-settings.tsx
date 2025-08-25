@@ -13,9 +13,9 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography, Card, ListItem } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
-import { EditNicknameModal } from '@/components/profile/EditNicknameModal';
+import { EditTextModal } from '@/components/shared/EditTextModal';
 import { DeleteAccountModal } from '@/components/profile/DeleteAccountModal';
-import { createProfileService } from '@repo/core';
+import { createProfileService, ProfileRules } from '@repo/core';
 import type { ProfileDetail } from '@repo/core';
 import { supabase } from '@/utils/supabase';
 
@@ -23,11 +23,14 @@ export default function ProfileSettingsScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const { user, profile, updateProfile } = useAuth();
-  
-  const [profileDetail, setProfileDetail] = useState<ProfileDetail | null>(null);
+
+  const [profileDetail, setProfileDetail] = useState<ProfileDetail | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [nicknameModalVisible, setNicknameModalVisible] = useState(false);
-  const [deleteAccountModalVisible, setDeleteAccountModalVisible] = useState(false);
+  const [deleteAccountModalVisible, setDeleteAccountModalVisible] =
+    useState(false);
 
   const profileService = React.useMemo(
     () => createProfileService(supabase),
@@ -37,7 +40,7 @@ export default function ProfileSettingsScreen() {
   // 프로필 상세 정보 조회
   const fetchProfileDetail = useCallback(async () => {
     if (!user) return;
-    
+
     try {
       setLoading(true);
       const detail = await profileService.getCurrentProfile();
@@ -81,11 +84,14 @@ export default function ProfileSettingsScreen() {
         userId: user?.id || '',
         confirmText: '정말 탈퇴하시겠습니까?',
       });
-      
+
       // 로그인 화면으로 이동
       router.replace('/(auth)/login');
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '회원 탈퇴 중 오류가 발생했습니다.';
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : '회원 탈퇴 중 오류가 발생했습니다.';
       Alert.alert('탈퇴 실패', errorMessage);
     }
   };
@@ -128,7 +134,7 @@ export default function ProfileSettingsScreen() {
           ),
         }}
       />
-      
+
       <ScrollView
         style={[
           styles.container,
@@ -137,7 +143,9 @@ export default function ProfileSettingsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* 프로필 헤더 */}
-        <View style={[styles.profileHeader, { backgroundColor: colors.background }]}>
+        <View
+          style={[styles.profileHeader, { backgroundColor: colors.background }]}
+        >
           <View style={[styles.profileImage, { backgroundColor: colors.tint }]}>
             <Typography variant="h2" style={{ color: '#FFFFFF' }}>
               {getInitials()}
@@ -193,22 +201,36 @@ export default function ProfileSettingsScreen() {
 
         {/* 앱 정보 섹션 */}
         <Card variant="outlined" padding="none" style={styles.section}>
-          <ListItem
-            title="버전"
-            rightText="1.0.0"
-            disabled
-          />
+          <ListItem title="버전" rightText="1.0.0" disabled />
         </Card>
 
         <View style={styles.footer} />
       </ScrollView>
 
       {/* 닉네임 수정 모달 */}
-      <EditNicknameModal
+      <EditTextModal
         visible={nicknameModalVisible}
-        currentNickname={profile?.full_name || ''}
-        onClose={() => setNicknameModalVisible(false)}
+        title="닉네임 수정"
+        initialValue={profile?.full_name || ''}
+        placeholder="닉네임을 입력하세요"
+        maxLength={20}
+        helperText="2-20자의 한글, 영문, 숫자, 공백만 사용 가능합니다."
+        validate={(text) => {
+          try {
+            ProfileRules.validateNickname(text);
+            return null;
+          } catch (error) {
+            return error instanceof Error
+              ? error.message
+              : '유효하지 않은 닉네임입니다.';
+          }
+        }}
+        validateOnChange={true}
+        required={true}
+        autoCapitalize="none"
+        autoCorrect={false}
         onSave={handleNicknameUpdate}
+        onClose={() => setNicknameModalVisible(false)}
       />
 
       {/* 회원 탈퇴 확인 모달 */}
