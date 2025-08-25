@@ -13,67 +13,79 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography, Card, ListItem } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
+import { useServices } from '@/contexts/ServiceContext';
 import { EditTextModal } from '@/components/shared/EditTextModal';
 import { DeleteAccountModal } from '@/components/profile/DeleteAccountModal';
-import { createProfileService, ProfileRules } from '@repo/core';
+import { ProfileRules } from '@repo/core';
 import type { ProfileDetail } from '@repo/core';
-import { supabase } from '@/utils/supabase';
 
 export default function ProfileSettingsScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const { user, profile, updateProfile } = useAuth();
+  const { profileService } = useServices();
 
   const [profileDetail, setProfileDetail] = useState<ProfileDetail | null>(
     null
   );
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [nicknameModalVisible, setNicknameModalVisible] = useState(false);
   const [deleteAccountModalVisible, setDeleteAccountModalVisible] =
     useState(false);
 
-  const profileService = React.useMemo(
-    () => createProfileService(supabase),
-    []
-  );
-
   // 프로필 상세 정보 조회
-  const fetchProfileDetail = useCallback(async () => {
-    if (!user) return;
+  const fetchProfileDetail = useCallback(
+    async (isInitial = false) => {
+      if (!user) return;
 
-    try {
-      setLoading(true);
-      const detail = await profileService.getCurrentProfile();
-      setProfileDetail(detail);
-    } catch (error) {
-      console.error('Failed to fetch profile:', error);
-      Alert.alert('오류', '프로필 정보를 불러올 수 없습니다.');
-    } finally {
-      setLoading(false);
-    }
-  }, [user, profileService]);
+      try {
+        if (isInitial) {
+          setInitialLoading(true);
+        }
+        const detail = await profileService.getCurrentProfile();
+        setProfileDetail(detail);
+      } catch (error) {
+        console.error('Failed to fetch profile:', error);
+        if (isInitial) {
+          Alert.alert('오류', '프로필 정보를 불러올 수 없습니다.');
+        }
+      } finally {
+        if (isInitial) {
+          setInitialLoading(false);
+        }
+      }
+    },
+    [user, profileService]
+  );
 
   useEffect(() => {
-    fetchProfileDetail();
-  }, [fetchProfileDetail]);
+    fetchProfileDetail(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // 화면 포커스 시 프로필 새로고침
+  // 화면 포커스 시 프로필 새로고침 (초기 로딩이 아닌 경우)
   useFocusEffect(
     useCallback(() => {
-      fetchProfileDetail();
-    }, [fetchProfileDetail])
+      if (!initialLoading) {
+        fetchProfileDetail(false);
+      }
+    }, [initialLoading, fetchProfileDetail])
   );
 
-  // 닉네임 수정 처리
+  // 닉네임 수정 처리 (소프트 업데이트)
   const handleNicknameUpdate = async (newNickname: string) => {
+    setIsUpdating(true);
     try {
+      // 낙관적 업데이트 - UI 즉시 반영
       await updateProfile({ full_name: newNickname });
-      await fetchProfileDetail();
-      setNicknameModalVisible(false);
-      Alert.alert('성공', '닉네임이 변경되었습니다.');
+      // 백그라운드에서 프로필 상세 정보 동기화
+      fetchProfileDetail(false);
     } catch (error) {
       console.error('Failed to update nickname:', error);
       Alert.alert('오류', '닉네임 변경에 실패했습니다.');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -102,7 +114,7 @@ export default function ProfileSettingsScreen() {
     return name.substring(0, 2).toUpperCase();
   };
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
         <Stack.Screen
@@ -161,11 +173,14 @@ export default function ProfileSettingsScreen() {
 
         {/* 프로필 정보 섹션 */}
         <Card variant="outlined" padding="none" style={styles.section}>
-          <ListItem
-            title="닉네임"
-            rightText={profile?.full_name || '설정하기'}
-            onPress={() => setNicknameModalVisible(true)}
-          />
+          <View style={{ opacity: isUpdating ? 0.6 : 1 }}>
+            <ListItem
+              title="닉네임"
+              rightText={profile?.full_name || '설정하기'}
+              onPress={() => setNicknameModalVisible(true)}
+              disabled={isUpdating}
+            />
+          </View>
           <ListItem
             title="이메일"
             rightText={profile?.email || ''}
