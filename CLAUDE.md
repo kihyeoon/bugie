@@ -53,8 +53,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - @docs/prd.md - 제품 요구사항 문서
 - @docs/mvp-plan.md - MVP 개발 계획 및 일정
 - @docs/screen-design.md - 화면별 상세 설계 문서
-- @docs/database.md - 데이터베이스 스키마 설계
 - @docs/design-principles.md - 디자인 원칙
+<!-- - @docs/database.md - 데이터베이스 스키마 설계 -->
 
 ## 주요 명령어
 

@@ -9,6 +9,7 @@ export * from './domain/shared/errors';
 export * from './domain/auth/types';
 export * from './domain/ledger/types';
 export * from './domain/transaction/types';
+export * from './domain/profile/types';
 
 // 도메인 규칙
 export {
@@ -17,6 +18,7 @@ export {
   CategoryRules,
 } from './domain/ledger/rules';
 export { TransactionRules } from './domain/transaction/rules';
+export { ProfileRules } from './domain/profile/rules';
 
 // 애플리케이션 레이어 Export
 // 입력 타입
@@ -32,6 +34,12 @@ export type {
   UpdateTransactionInput,
   TransactionFilterInput,
 } from './application/transaction/types';
+
+export type {
+  UpdateProfileInput,
+  DeleteAccountInput,
+  ProfileDetail,
+} from './application/profile/types';
 
 // UI/응답 타입
 export type {
@@ -49,6 +57,7 @@ export type {
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { LedgerService } from './application/ledger/LedgerService';
 import { TransactionService } from './application/transaction/TransactionService';
+import { ProfileService } from './application/profile/ProfileService';
 
 // Infrastructure imports
 import {
@@ -59,6 +68,7 @@ import {
 import { TransactionRepository } from './infrastructure/supabase/repositories/TransactionRepository';
 import { TransactionViewRepository } from './infrastructure/supabase/repositories/TransactionViewRepository';
 import { SupabaseAuthService } from './infrastructure/supabase/auth/SupabaseAuthService';
+import { SupabaseProfileRepository } from './infrastructure/supabase/profile/SupabaseProfileRepository';
 
 export function createLedgerService(supabase: SupabaseClient): LedgerService {
   const ledgerRepo = new LedgerRepository(supabase);
@@ -92,8 +102,25 @@ export function createTransactionService(
   );
 }
 
+export function createProfileService(
+  supabase: SupabaseClient
+): ProfileService {
+  const profileRepo = new SupabaseProfileRepository(supabase);
+  const ledgerRepo = new LedgerRepository(supabase);
+  const authService = new SupabaseAuthService(supabase);
+
+  return new ProfileService(
+    profileRepo,
+    ledgerRepo,
+    authService
+  );
+}
+
 // 서비스 클래스 Export (타입용)
-export type { LedgerService, TransactionService };
+export type { LedgerService, TransactionService, ProfileService };
 
 // 권한 관리 서비스 Export
 export { PermissionService } from './application/permission/PermissionService';
+
+// AuthService Export (네이티브 앱에서 사용)
+export { SupabaseAuthService } from './infrastructure/supabase/auth/SupabaseAuthService';
