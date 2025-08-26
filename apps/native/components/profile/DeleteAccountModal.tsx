@@ -82,15 +82,17 @@ export function DeleteAccountModal({
 
         {/* 헤더 */}
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Pressable onPress={handleClose}>
+          <Pressable onPress={handleClose} style={styles.headerButton}>
             <Typography variant="body1" color="primary">
               {DELETE_ACCOUNT.UI.BUTTON_CANCEL}
             </Typography>
           </Pressable>
-          <Typography variant="h3" weight="600">
-            {DELETE_ACCOUNT.UI.TITLE}
-          </Typography>
-          <View style={{ width: 40 }} />
+          <View style={styles.headerTitle}>
+            <Typography variant="h3" weight="600">
+              {DELETE_ACCOUNT.UI.TITLE}
+            </Typography>
+          </View>
+          <View style={styles.headerButton} />
         </View>
 
         {/* 컨텐츠 */}
@@ -145,7 +147,10 @@ export function DeleteAccountModal({
                     ]}
                   >
                     <Typography variant="body1" color="error">
-                      ⚠️ {DELETE_ACCOUNT.MESSAGES.OWNED_LEDGERS_WARNING(ownedLedgerCount)}
+                      ⚠️
+                      {DELETE_ACCOUNT.MESSAGES.OWNED_LEDGERS_WARNING(
+                        ownedLedgerCount
+                      )}
                     </Typography>
                     <Typography
                       variant="caption"
@@ -221,8 +226,11 @@ export function DeleteAccountModal({
               <View style={styles.buttonContainer}>
                 <Button
                   variant="secondary"
-                  onPress={() => setStep(1)}
-                  style={styles.button}
+                  onPress={() => {
+                    setStep(1);
+                    setConfirmText('');
+                  }}
+                  fullWidth
                 >
                   {DELETE_ACCOUNT.UI.BUTTON_PREVIOUS}
                 </Button>
@@ -230,7 +238,7 @@ export function DeleteAccountModal({
                   variant="danger"
                   onPress={handleFinalConfirm}
                   disabled={!isConfirmTextValid}
-                  style={styles.button}
+                  fullWidth
                 >
                   {DELETE_ACCOUNT.UI.BUTTON_DELETE}
                 </Button>
@@ -264,6 +272,17 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
+    position: 'relative',
+  },
+  headerButton: {
+    minWidth: 60,
+    alignItems: 'flex-start',
+  },
+  headerTitle: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
   },
   content: {
     flex: 1,
@@ -323,12 +342,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   buttonContainer: {
-    flexDirection: 'row',
     gap: 12,
     marginTop: 24,
     marginBottom: 20,
-  },
-  button: {
-    flex: 1,
   },
 });

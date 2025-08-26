@@ -11,7 +11,7 @@ import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { Typography, Card, ListItem } from '@/components/ui';
+import { Typography, DetailRow, DetailSection } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 import { useServices } from '@/contexts/ServiceContext';
 import { EditTextModal } from '@/components/shared/EditTextModal';
@@ -102,9 +102,7 @@ export default function ProfileSettingsScreen() {
       router.replace('/(auth)/login');
     } catch (error) {
       const errorMessage =
-        error instanceof Error
-          ? error.message
-          : DELETE_ACCOUNT.ERRORS.GENERIC;
+        error instanceof Error ? error.message : DELETE_ACCOUNT.ERRORS.GENERIC;
       Alert.alert('탈퇴 실패', errorMessage);
     }
   };
@@ -122,6 +120,9 @@ export default function ProfileSettingsScreen() {
           options={{
             title: '프로필 설정',
             headerShadowVisible: false,
+            headerStyle: {
+              backgroundColor: colors.backgroundSecondary,
+            },
             headerLeft: () => (
               <Pressable onPress={() => router.back()}>
                 <Ionicons name="chevron-back" size={24} color={colors.text} />
@@ -140,6 +141,9 @@ export default function ProfileSettingsScreen() {
         options={{
           title: '프로필 설정',
           headerShadowVisible: false,
+          headerStyle: {
+            backgroundColor: colors.backgroundSecondary,
+          },
           headerLeft: () => (
             <Pressable onPress={() => router.back()}>
               <Ionicons name="chevron-back" size={24} color={colors.text} />
@@ -155,65 +159,67 @@ export default function ProfileSettingsScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* 프로필 헤더 */}
+        {/* 프로필 사진 */}
         <View
-          style={[styles.profileHeader, { backgroundColor: colors.background }]}
+          style={[
+            styles.profileHeader,
+            { backgroundColor: colors.backgroundSecondary },
+          ]}
         >
           <View style={[styles.profileImage, { backgroundColor: colors.tint }]}>
             <Typography variant="h2" style={{ color: '#FFFFFF' }}>
               {getInitials()}
             </Typography>
           </View>
-          <Typography variant="h3" style={styles.profileName}>
-            {profile?.full_name || '이름 없음'}
-          </Typography>
-          <Typography variant="body1" color="secondary">
-            {profile?.email}
-          </Typography>
         </View>
 
         {/* 프로필 정보 섹션 */}
-        <Card variant="outlined" padding="none" style={styles.section}>
-          <View style={{ opacity: isUpdating ? 0.6 : 1 }}>
-            <ListItem
-              title="닉네임"
-              rightText={profile?.full_name || '설정하기'}
-              onPress={() => setNicknameModalVisible(true)}
-              disabled={isUpdating}
-            />
-          </View>
-          <ListItem
-            title="이메일"
-            rightText={profile?.email || ''}
-            disabled
-            style={{ opacity: 0.7 }}
+        <DetailSection title="프로필 정보">
+          <DetailRow
+            label="닉네임"
+            value={profile?.full_name || '설정하기'}
+            editable={true}
+            actionable={true}
+            onPress={() => setNicknameModalVisible(true)}
+            disabled={isUpdating}
+            loading={isUpdating}
           />
-        </Card>
+          <DetailRow
+            label="이메일"
+            value={profile?.email || ''}
+            editable={false}
+            rightIcon={false}
+            numberOfLines={1}
+          />
+        </DetailSection>
 
         {/* 가계부 정보 섹션 */}
         {profileDetail && (
-          <Card variant="outlined" padding="none" style={styles.section}>
-            <ListItem
-              title="소유한 가계부"
-              rightText={`${profileDetail.ownedLedgerCount || 0}개`}
-              disabled
+          <DetailSection title="가계부 정보">
+            <DetailRow
+              label="소유한 가계부"
+              value={`${profileDetail.ownedLedgerCount || 0}개`}
+              editable={false}
+              rightIcon={false}
             />
-            <ListItem
-              title="참여 중인 가계부"
-              rightText={`${profileDetail.sharedLedgerCount || 0}개`}
-              disabled
+            <DetailRow
+              label="참여 중인 가계부"
+              value={`${profileDetail.sharedLedgerCount || 0}개`}
+              editable={false}
+              rightIcon={false}
             />
-          </Card>
+          </DetailSection>
         )}
 
         {/* 계정 관리 섹션 */}
-        <Card variant="outlined" padding="none" style={styles.section}>
-          <ListItem
-            title="회원 탈퇴"
+        <DetailSection title="계정 관리">
+          <DetailRow
+            label="회원 탈퇴"
             variant="danger"
+            actionable={true}
             onPress={() => setDeleteAccountModalVisible(true)}
           />
-        </Card>
+        </DetailSection>
 
         <View style={styles.footer} />
       </ScrollView>
@@ -265,9 +271,9 @@ const styles = StyleSheet.create({
   },
   profileHeader: {
     alignItems: 'center',
-    paddingVertical: 32,
+    paddingVertical: 24,
     paddingHorizontal: 24,
-    marginBottom: 20,
+    marginBottom: 8,
   },
   profileImage: {
     width: 80,
@@ -275,14 +281,6 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  profileName: {
-    marginBottom: 8,
-  },
-  section: {
-    marginHorizontal: 16,
-    marginBottom: 20,
   },
   footer: {
     height: 40,
