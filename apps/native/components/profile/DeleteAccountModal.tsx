@@ -104,10 +104,10 @@ export function DeleteAccountModal({
                 <View
                   style={[
                     styles.warningIcon,
-                    { backgroundColor: colors.error + '20' },
+                    { backgroundColor: `${colors.expense}15` },
                   ]}
                 >
-                  <Ionicons name="warning" size={32} color={colors.error} />
+                  <Ionicons name="warning" size={32} color={colors.expense} />
                 </View>
               </View>
 
@@ -119,22 +119,12 @@ export function DeleteAccountModal({
                 <View style={styles.warningList}>
                   <View style={styles.warningItem}>
                     <Typography variant="body1" color="secondary">
-                      • {DELETE_ACCOUNT.MESSAGES.GRACE_PERIOD}
-                    </Typography>
-                  </View>
-                  <View style={styles.warningItem}>
-                    <Typography variant="body1" color="secondary">
-                      • {DELETE_ACCOUNT.MESSAGES.PERMANENT_DELETE}
-                    </Typography>
-                  </View>
-                  <View style={styles.warningItem}>
-                    <Typography variant="body1" color="secondary">
                       • {DELETE_ACCOUNT.MESSAGES.LEAVE_LEDGERS}
                     </Typography>
                   </View>
                   <View style={styles.warningItem}>
                     <Typography variant="body1" color="secondary">
-                      • {DELETE_ACCOUNT.MESSAGES.PRIVACY_PROTECTION}
+                      • {DELETE_ACCOUNT.MESSAGES.PERMANENT_DELETE}
                     </Typography>
                   </View>
                 </View>
@@ -178,67 +168,129 @@ export function DeleteAccountModal({
             // Step 2: 최종 확인
             <>
               <View style={styles.stepHeader}>
-                <Typography variant="h3" style={styles.title}>
+                <View
+                  style={[
+                    styles.dangerIconContainer,
+                    { backgroundColor: `${colors.expense}15` },
+                  ]}
+                >
+                  <Ionicons name="warning" size={32} color={colors.expense} />
+                </View>
+                <Typography
+                  variant="h1"
+                  weight="700"
+                  style={{ color: colors.expense, marginTop: 12 }}
+                >
                   {DELETE_ACCOUNT.UI.FINAL_CONFIRM_TITLE}
                 </Typography>
               </View>
 
               <View style={styles.confirmContent}>
-                <Typography variant="body1" style={styles.confirmText}>
+                <Typography
+                  variant="body1"
+                  style={[
+                    styles.confirmText,
+                    { fontSize: 17, marginBottom: 8 },
+                  ]}
+                >
                   {DELETE_ACCOUNT.UI.FINAL_CONFIRM_QUESTION}
                 </Typography>
-                <Typography variant="body1" style={styles.confirmText}>
+                <Typography
+                  variant="body2"
+                  color="secondary"
+                  style={[styles.confirmText, { marginBottom: 20 }]}
+                >
                   {DELETE_ACCOUNT.UI.INPUT_INSTRUCTION}
                 </Typography>
 
                 <View
                   style={[
                     styles.requiredTextBox,
-                    { backgroundColor: colors.backgroundSecondary },
+                    {
+                      backgroundColor: `${colors.expense}10`,
+                      borderColor: colors.expense,
+                      borderWidth: StyleSheet.hairlineWidth,
+                    },
                   ]}
                 >
-                  <Typography variant="body1" style={{ fontWeight: '600' }}>
+                  <Typography
+                    variant="h3"
+                    weight="700"
+                    style={{ color: colors.expense }}
+                  >
                     {requiredText}
                   </Typography>
                 </View>
 
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      backgroundColor: colors.backgroundSecondary,
-                      color: colors.text,
-                      borderColor: isConfirmTextValid
-                        ? colors.success
-                        : colors.border,
-                    },
-                  ]}
-                  value={confirmText}
-                  onChangeText={setConfirmText}
-                  placeholder={DELETE_ACCOUNT.UI.INPUT_PLACEHOLDER}
-                  placeholderTextColor={colors.textSecondary}
-                  autoFocus
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
+                <View style={styles.inputContainer}>
+                  <Typography
+                    variant="caption"
+                    color="secondary"
+                    style={styles.inputLabel}
+                  >
+                    위 문구를 입력해주세요
+                  </Typography>
+                  <View style={styles.inputWrapper}>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        {
+                          backgroundColor: colors.background,
+                          color: colors.text,
+                          borderColor: confirmText
+                            ? isConfirmTextValid
+                              ? colors.success
+                              : colors.expense
+                            : colors.border,
+                          borderWidth:
+                            confirmText && isConfirmTextValid ? 2 : 1,
+                        },
+                      ]}
+                      value={confirmText}
+                      onChangeText={setConfirmText}
+                      placeholder={DELETE_ACCOUNT.CONFIRM_TEXT}
+                      placeholderTextColor={colors.textSecondary}
+                      autoFocus
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                    {confirmText && (
+                      <View style={styles.inputFeedback}>
+                        <Ionicons
+                          name={
+                            isConfirmTextValid
+                              ? 'checkmark-circle'
+                              : 'close-circle'
+                          }
+                          size={20}
+                          color={
+                            isConfirmTextValid ? colors.success : colors.expense
+                          }
+                        />
+                      </View>
+                    )}
+                  </View>
+                </View>
               </View>
 
-              <View style={styles.buttonContainer}>
-                <Button
-                  variant="secondary"
+              <View style={styles.finalButtonContainer}>
+                <Pressable
                   onPress={() => {
                     setStep(1);
                     setConfirmText('');
                   }}
-                  fullWidth
+                  style={styles.textButton}
                 >
-                  {DELETE_ACCOUNT.UI.BUTTON_PREVIOUS}
-                </Button>
+                  <Typography variant="body1" color="secondary">
+                    {DELETE_ACCOUNT.UI.BUTTON_PREVIOUS}
+                  </Typography>
+                </Pressable>
                 <Button
                   variant="danger"
                   onPress={handleFinalConfirm}
                   disabled={!isConfirmTextValid}
                   fullWidth
+                  style={!isConfirmTextValid ? { opacity: 0.4 } : {}}
                 >
                   {DELETE_ACCOUNT.UI.BUTTON_DELETE}
                 </Button>
@@ -343,6 +395,37 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     gap: 12,
+    marginTop: 24,
+    marginBottom: 20,
+  },
+  dangerIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  inputContainer: {
+    marginTop: 20,
+  },
+  inputLabel: {
+    marginBottom: 8,
+  },
+  inputWrapper: {
+    position: 'relative',
+  },
+  inputFeedback: {
+    position: 'absolute',
+    right: 12,
+    top: '50%',
+    transform: [{ translateY: -10 }],
+  },
+  textButton: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  finalButtonContainer: {
+    gap: 8,
     marginTop: 24,
     marginBottom: 20,
   },

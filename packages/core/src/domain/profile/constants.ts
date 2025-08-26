@@ -22,7 +22,6 @@ export const DELETE_ACCOUNT = {
     GRACE_PERIOD: '탈퇴 후 30일 이내 재로그인 시 자동 복구됩니다',
     PERMANENT_DELETE: '30일이 지나면 모든 데이터가 영구 삭제됩니다',
     LEAVE_LEDGERS: '참여 중인 가계부에서 자동으로 나가게 됩니다',
-    PRIVACY_PROTECTION: '개인 정보는 즉시 비공개 처리됩니다',
     OWNED_LEDGERS_WARNING: (count: number) =>
       `소유한 가계부가 ${count}개 있습니다.`,
     TRANSFER_REQUIRED:
@@ -36,7 +35,6 @@ export const DELETE_ACCOUNT = {
     FINAL_CONFIRM_TITLE: '최종 확인',
     FINAL_CONFIRM_QUESTION: '정말로 탈퇴를 진행하시겠습니까?',
     INPUT_INSTRUCTION: '탈퇴하시려면 아래 문구를 입력해주세요:',
-    INPUT_PLACEHOLDER: '위 문구를 입력하세요',
     BUTTON_NEXT: '다음',
     BUTTON_PREVIOUS: '이전',
     BUTTON_DELETE: '탈퇴하기',

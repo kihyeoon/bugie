@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
   valueContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 2,
+    flex: 1,
     justifyContent: 'flex-end',
     marginLeft: 12,
   },
