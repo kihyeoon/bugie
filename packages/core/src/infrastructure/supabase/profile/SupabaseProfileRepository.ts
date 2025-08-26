@@ -88,15 +88,11 @@ export class SupabaseProfileRepository implements ProfileRepository {
 
   /**
    * 프로필 soft delete (회원 탈퇴 시)
+   *
+   * RPC 함수 사용 (SECURITY DEFINER로 RLS 우회)
    */
-  async softDelete(userId: EntityId): Promise<void> {
-    const { error } = await this.supabase
-      .from('profiles')
-      .update({
-        deleted_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', userId);
+  async softDelete(_userId: EntityId): Promise<void> {
+    const { error } = await this.supabase.rpc('soft_delete_profile');
 
     if (error) {
       throw new Error(`프로필 soft delete 실패: ${error.message}`);
