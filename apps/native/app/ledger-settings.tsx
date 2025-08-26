@@ -8,8 +8,7 @@ import {
 } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { Typography, Card } from '@/components/ui';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+import { Typography, DetailRow, DetailSection } from '@/components/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { useLedger } from '@/contexts/LedgerContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,10 +18,6 @@ import { ViewMembersModal } from '@/components/ledger/ViewMembersModal';
 import { InviteMemberModal } from '@/components/ledger/InviteMemberModal';
 import type { LedgerWithMembers, LedgerDetail, MemberRole } from '@repo/core';
 import { PermissionService } from '@repo/core';
-import {
-  getSettingItemColors,
-  getSettingItemStyles,
-} from '@/utils/settingsColors';
 
 export default function LedgerSettingsScreen() {
   const colorScheme = useColorScheme();
@@ -93,10 +88,6 @@ export default function LedgerSettingsScreen() {
 
   const handleEditDescription = () => {
     setDescriptionModalVisible(true);
-  };
-
-  const handleChangeCurrency = () => {
-    Alert.alert('준비 중', '통화 변경 기능은 곧 추가될 예정입니다.');
   };
 
   const handleSaveName = async (name: string) => {
@@ -295,275 +286,74 @@ export default function LedgerSettingsScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* 가계부 정보 섹션 */}
-          <View style={styles.section}>
-            <Typography
-              variant="caption"
-              color="secondary"
-              style={styles.sectionTitle}
-            >
-              가계부 정보
-            </Typography>
-            <Card
-              variant="outlined"
-              padding="none"
-              style={styles.cardContainer}
-            >
-              <Pressable
-                onPress={canEditLedger ? handleEditName : undefined}
-                style={getSettingItemStyles(
-                  !canEditLedger,
-                  [
-                    styles.settingItem,
-                    styles.settingItemBorder,
-                    { borderColor: colors.border },
-                  ],
-                  styles.disabledItem
-                )}
-                disabled={loading || !canEditLedger}
-              >
-                {(() => {
-                  const colors = getSettingItemColors({
-                    isEditable: canEditLedger,
-                    isEnabled: true,
-                    isActionable: canEditLedger,
-                  });
-                  return (
-                    <>
-                      <Typography variant="body1" color={colors.label}>
-                        이름
-                      </Typography>
-                      <View style={styles.settingValue}>
-                        <Typography variant="body1" color={colors.value}>
-                          {ledger.name}
-                        </Typography>
-                        {colors.showChevron && (
-                          <IconSymbol
-                            name="chevron.right"
-                            size={20}
-                            color={
-                              colorScheme === 'dark'
-                                ? Colors.dark.textSecondary
-                                : Colors.light.textSecondary
-                            }
-                          />
-                        )}
-                      </View>
-                    </>
-                  );
-                })()}
-              </Pressable>
-
-              <Pressable
-                onPress={canEditLedger ? handleEditDescription : undefined}
-                style={getSettingItemStyles(
-                  !canEditLedger,
-                  [
-                    styles.settingItem,
-                    styles.settingItemBorder,
-                    { borderColor: colors.border },
-                  ],
-                  styles.disabledItem
-                )}
-                disabled={loading || !canEditLedger}
-              >
-                {(() => {
-                  const colors = getSettingItemColors({
-                    isEditable: canEditLedger,
-                    isEnabled: true,
-                    isActionable: canEditLedger,
-                  });
-                  return (
-                    <>
-                      <Typography variant="body1" color={colors.label}>
-                        설명
-                      </Typography>
-                      <View style={styles.settingValue}>
-                        <Typography
-                          variant="body1"
-                          color={colors.value}
-                          numberOfLines={1}
-                          style={styles.descriptionText}
-                        >
-                          {ledger.description || '설명 없음'}
-                        </Typography>
-                        {colors.showChevron && (
-                          <IconSymbol
-                            name="chevron.right"
-                            size={20}
-                            color={
-                              colorScheme === 'dark'
-                                ? Colors.dark.textSecondary
-                                : Colors.light.textSecondary
-                            }
-                          />
-                        )}
-                      </View>
-                    </>
-                  );
-                })()}
-              </Pressable>
-
-              <Pressable
-                onPress={handleChangeCurrency}
-                style={getSettingItemStyles(
-                  true,
-                  [styles.settingItem],
-                  styles.disabledItem
-                )}
-                disabled={true}
-              >
-                {(() => {
-                  const colors = getSettingItemColors({
-                    isEditable: false,
-                    isEnabled: false,
-                    isActionable: false,
-                  });
-                  return (
-                    <>
-                      <Typography variant="body1" color={colors.label}>
-                        통화
-                      </Typography>
-                      <View style={styles.settingValue}>
-                        <Typography variant="body1" color={colors.value}>
-                          KRW (한국 원화)
-                        </Typography>
-                      </View>
-                    </>
-                  );
-                })()}
-              </Pressable>
-            </Card>
-          </View>
+          <DetailSection title="가계부 정보">
+            <DetailRow
+              label="이름"
+              value={ledger.name}
+              editable={canEditLedger}
+              actionable={canEditLedger}
+              onPress={canEditLedger ? handleEditName : undefined}
+              disabled={loading || !canEditLedger}
+            />
+            <DetailRow
+              label="설명"
+              value={ledger.description || '설명 없음'}
+              editable={canEditLedger}
+              actionable={canEditLedger}
+              onPress={canEditLedger ? handleEditDescription : undefined}
+              disabled={loading || !canEditLedger}
+              numberOfLines={1}
+            />
+            <DetailRow
+              label="통화"
+              value="KRW (한국 원화)"
+              editable={false}
+              enabled={false}
+              rightIcon={false}
+            />
+          </DetailSection>
 
           {/* 멤버 관리 섹션 */}
-          <View style={styles.section}>
-            <Typography
-              variant="caption"
-              color="secondary"
-              style={styles.sectionTitle}
-            >
-              멤버 관리
-            </Typography>
-            <Card
-              variant="outlined"
-              padding="none"
-              style={styles.cardContainer}
-            >
-              <Pressable
-                onPress={handleViewMembers}
-                style={[
-                  styles.settingItem,
-                  canManageMembers && styles.settingItemBorder,
-                  { borderColor: colors.border },
-                ]}
+          <DetailSection title="멤버 관리">
+            <DetailRow
+              label="멤버 보기"
+              value={`${memberCount}명`}
+              actionable={true}
+              onPress={handleViewMembers}
+              disabled={loading}
+              showDivider={canManageMembers}
+            />
+            {canManageMembers && (
+              <DetailRow
+                label="멤버 초대"
+                variant="primary"
+                actionable={true}
+                onPress={handleInviteMember}
                 disabled={loading}
-              >
-                {(() => {
-                  const itemColors = getSettingItemColors({
-                    isEditable: true,
-                    isEnabled: true,
-                    isActionable: true,
-                  });
-                  return (
-                    <>
-                      <Typography variant="body1" color={itemColors.label}>
-                        멤버 보기
-                      </Typography>
-                      <View style={styles.settingValue}>
-                        <Typography variant="body1" color={itemColors.value}>
-                          {memberCount}명
-                        </Typography>
-                        {itemColors.showChevron && (
-                          <IconSymbol
-                            name="chevron.right"
-                            size={20}
-                            color={colors.textSecondary}
-                          />
-                        )}
-                      </View>
-                    </>
-                  );
-                })()}
-              </Pressable>
-
-              {canManageMembers && (
-                <Pressable
-                  onPress={handleInviteMember}
-                  style={styles.settingItem}
-                  disabled={loading}
-                >
-                  {(() => {
-                    const itemColors = getSettingItemColors({
-                      isEditable: false,
-                      isEnabled: true,
-                      isActionable: true,
-                      type: 'primary',
-                    });
-                    return (
-                      <>
-                        <Typography variant="body1" color={itemColors.label}>
-                          멤버 초대
-                        </Typography>
-                        <IconSymbol
-                          name="chevron.right"
-                          size={20}
-                          color={colors.textSecondary}
-                        />
-                      </>
-                    );
-                  })()}
-                </Pressable>
-              )}
-            </Card>
-          </View>
+              />
+            )}
+          </DetailSection>
 
           {/* 위험 구역 섹션 */}
-          <View style={styles.section}>
-            <Typography
-              variant="caption"
-              color="secondary"
-              style={styles.sectionTitle}
-            >
-              위험 구역
-            </Typography>
-            <Card
-              variant="outlined"
-              padding="none"
-              style={styles.cardContainer}
-            >
-              {canDeleteLedger ? (
-                <Pressable
-                  onPress={handleDeleteLedger}
-                  style={styles.settingItem}
-                  disabled={loading}
-                >
-                  <Typography variant="body1" style={styles.dangerText}>
-                    가계부 삭제
-                  </Typography>
-                  <IconSymbol
-                    name="chevron.right"
-                    size={20}
-                    color={colors.expense}
-                  />
-                </Pressable>
-              ) : (
-                <Pressable
-                  onPress={handleLeaveLedger}
-                  style={styles.settingItem}
-                  disabled={loading}
-                >
-                  <Typography variant="body1" style={styles.dangerText}>
-                    가계부 나가기
-                  </Typography>
-                  <IconSymbol
-                    name="chevron.right"
-                    size={20}
-                    color={colors.expense}
-                  />
-                </Pressable>
-              )}
-            </Card>
-          </View>
+          <DetailSection title="위험 구역">
+            {canDeleteLedger ? (
+              <DetailRow
+                label="가계부 삭제"
+                variant="danger"
+                actionable={true}
+                onPress={handleDeleteLedger}
+                disabled={loading}
+              />
+            ) : (
+              <DetailRow
+                label="가계부 나가기"
+                variant="danger"
+                actionable={true}
+                onPress={handleLeaveLedger}
+                disabled={loading}
+              />
+            )}
+          </DetailSection>
 
           {/* 정보 메시지 */}
           <View style={styles.infoSection}>
@@ -631,9 +421,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  disabledItem: {
-    opacity: 0.6,
-  },
   centerContent: {
     flex: 1,
     justifyContent: 'center',
@@ -645,40 +432,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingTop: 16,
     paddingBottom: 40,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  cardContainer: {
-    marginHorizontal: 16,
-  },
-  sectionTitle: {
-    marginLeft: 16,
-    marginBottom: 8,
-    textTransform: 'uppercase',
-  },
-  settingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  settingItemBorder: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  settingValue: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  descriptionText: {
-    maxWidth: 200,
-  },
-  dangerText: {
-    color: Colors.light.expense, // 다크모드에서도 동일한 색상 사용
   },
   infoSection: {
     marginHorizontal: 16,
