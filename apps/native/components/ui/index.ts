@@ -5,3 +5,5 @@ export { AmountDisplay } from './AmountDisplay';
 export { AmountInput } from './AmountInput';
 export { ListItem } from './ListItem';
 export { ToggleSwitch } from './ToggleSwitch';
+export { DetailRow } from './DetailRow';
+export { DetailSection } from './DetailSection';

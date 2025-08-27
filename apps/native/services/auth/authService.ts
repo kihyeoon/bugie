@@ -142,15 +142,3 @@ const checkProfileAndRoute = async (
   }
 };
 
-/**
- * 로그아웃 처리
- */
-export const signOut = async (): Promise<void> => {
-  try {
-    await supabase.auth.signOut();
-    router.replace('/(auth)/login');
-  } catch {
-    // 로그아웃 실패해도 로그인 화면으로 이동
-    router.replace('/(auth)/login');
-  }
-};

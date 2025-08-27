@@ -1,0 +1,121 @@
+name: Process Account Deletions
+
+on:
+  schedule:
+    # 매일 한국시간 새벽 3시 실행 (UTC 18:00)
+    - cron: '0 18 * * *'
+
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run mode (실제 삭제하지 않고 시뮬레이션만)'
+        type: boolean
+        default: false
+        required: false
+
+jobs:
+  process-deletions:
+    name: Process Account Deletions
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      NODE_ENV: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            scripts/process-deletions.js
+            package.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm install @supabase/supabase-js
+
+      - name: Process account deletions
+        id: process
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          DRY_RUN: ${{ inputs.dry_run || 'false' }}
+        run: |
+          echo "🚀 Starting account deletion process..."
+          echo "Dry run mode: $DRY_RUN"
+          echo "Timestamp: $(date)"
+
+          node scripts/process-deletions.js
+
+          echo "✅ Process completed"
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deletion-logs-${{ github.run_id }}
+          path: |
+            deletion-*.log
+          retention-days: 30
+
+      - name: Send success notification
+        if: success() && github.event_name == 'schedule'
+        run: |
+          echo "✅ Account deletion process completed successfully"
+          echo "Run ID: ${{ github.run_id }}"
+          echo "Run Number: ${{ github.run_number }}"
+          # TODO: Slack/Discord/Email 알림 추가 가능
+
+      - name: Send failure notification
+        if: failure()
+        run: |
+          echo "❌ Account deletion process failed"
+          echo "Run ID: ${{ github.run_id }}"
+          echo "Error details available in GitHub Actions logs"
+          # TODO: 긴급 알림 발송 (Slack/Discord/Email)
+
+      - name: Create issue on failure
+        if: failure() && github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚨 Account Deletion Job Failed - ${new Date().toISOString().split('T')[0]}`,
+              body: `## Account Deletion Job Failed
+              
+              **Run ID**: ${context.runId}
+              **Run Number**: ${context.runNumber}
+              **Triggered by**: ${context.eventName}
+              
+              ### Action Required
+              1. Check the [workflow logs](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+              2. Review Supabase logs for errors
+              3. Run manual retry if needed
+              
+              ### Manual Retry
+              \`\`\`bash
+              # Dry run first
+              gh workflow run process-account-deletions.yml -f dry_run=true
+              
+              # Actual run
+              gh workflow run process-account-deletions.yml -f dry_run=false
+              \`\`\`
+              
+              cc @${context.repo.owner}`,
+              labels: ['bug', 'automation', 'priority-high']
+            });
+            console.log(`Created issue #${issue.data.number}`);
+
+# Security notes:
+# - SUPABASE_SERVICE_KEY must be kept secret
+# - Only service_role key should be used (never anon key)
+# - Logs should not contain sensitive information
+# - Consider IP allowlisting for production

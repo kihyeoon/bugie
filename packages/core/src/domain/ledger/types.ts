@@ -109,6 +109,8 @@ export interface LedgerMemberRepository {
   delete(ledgerId: EntityId, userId: EntityId): Promise<void>;
   // RPC 기반 멤버 초대 (SECURITY DEFINER로 RLS 우회)
   inviteMemberByEmail(ledgerId: EntityId, userEmail: string, role: MemberRole): Promise<void>;
+  // 사용자를 모든 가계부에서 제거 (회원 탈퇴 시)
+  removeUserFromAllLedgers(userId: EntityId): Promise<void>;
 }
 
 export interface CategoryRepository {

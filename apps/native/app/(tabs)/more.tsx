@@ -54,8 +54,7 @@ export default function MoreScreen() {
       title: '프로필 설정',
       icon: 'person.fill',
       onPress: () => {
-        // TODO: 프로필 설정 화면으로 이동
-        console.log('프로필 설정');
+        router.push('/profile-settings');
       },
     },
     {

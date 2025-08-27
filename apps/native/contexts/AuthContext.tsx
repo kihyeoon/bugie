@@ -41,6 +41,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // 프로필 데이터 가져오기
   const fetchProfile = useCallback(async (userId: string) => {
     try {
+      // 먼저 계정 복구 시도 (탈퇴한 계정인 경우 자동 복구)
+      const { data: restoreResult, error: restoreError } = (await supabase.rpc(
+        'restore_deleted_account' as any,
+        {
+          target_user_id: userId,
+        }
+      )) as {
+        data: {
+          success: boolean;
+          message: string;
+          days_since_deletion?: number;
+        } | null;
+        error: any;
+      };
+
+      if (restoreError) {
+        console.error('Account restoration check error:', restoreError);
+        // 복구 실패해도 프로필 조회는 계속 진행
+      } else if (restoreResult?.success) {
+        console.log('탈퇴한 계정이 자동으로 복구되었습니다.');
+        console.log(
+          `복구 정보: 탈퇴 후 ${restoreResult.days_since_deletion}일 경과`
+        );
+        // TODO: 필요시 Toast 메시지로 사용자에게 알림
+      }
+
+      // 프로필 조회
       const { data, error } = await supabase
         .from('profiles')
         .select('*')

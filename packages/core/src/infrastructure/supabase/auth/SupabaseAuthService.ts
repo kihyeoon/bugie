@@ -8,15 +8,19 @@ export class SupabaseAuthService implements AuthService {
   constructor(private supabase: SupabaseClient) {}
 
   async getCurrentUser(): Promise<CurrentUser | null> {
-    const { data: { user }, error } = await this.supabase.auth.getUser();
-    
+    const {
+      data: { user },
+      error,
+    } = await this.supabase.auth.getUser();
+
     if (error || !user) {
       return null;
     }
 
     return {
       id: user.id,
-      email: user.email || ''
+      email: user.email || '',
     };
   }
+
 }

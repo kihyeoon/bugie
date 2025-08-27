@@ -22,6 +22,8 @@ export const Colors = {
     border: '#E5E8EB',
     income: '#4E7EFF', // Blue for income
     expense: '#FF5A5F', // Red for expense
+    error: '#FF5A5F', // Error color (same as expense)
+    success: '#10B981', // Success color (green)
   },
   dark: {
     text: '#FFFFFF',
@@ -37,5 +39,7 @@ export const Colors = {
     border: '#2A3F5F',
     income: '#4E7EFF',
     expense: '#FF5A5F',
+    error: '#FF5A5F', // Error color (same as expense)
+    success: '#10B981', // Success color (green)
   },
 };
