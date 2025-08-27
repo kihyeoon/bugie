@@ -254,6 +254,7 @@ export default function ProfileSettingsScreen() {
       <DeleteAccountModal
         visible={deleteAccountModalVisible}
         ownedLedgerCount={profileDetail?.ownedLedgerCount || 0}
+        ownedLedgersWithOtherMembers={profileDetail?.ownedLedgersWithOtherMembers || 0}
         onClose={() => setDeleteAccountModalVisible(false)}
         onConfirm={handleDeleteAccount}
       />

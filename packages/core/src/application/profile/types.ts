@@ -32,4 +32,5 @@ export interface ProfileDetail {
   // 추가 정보
   ownedLedgerCount?: number;
   sharedLedgerCount?: number;
+  ownedLedgersWithOtherMembers?: number; // 다른 멤버가 있는 소유 가계부 수
 }

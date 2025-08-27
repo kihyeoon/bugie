@@ -101,15 +101,18 @@ export class ProfileRules {
 
   /**
    * 회원 탈퇴 가능 여부 확인
+   * @param userId - 사용자 ID
+   * @param ownedLedgersWithOtherMembers - 다른 멤버가 있는 소유 가계부 수
+   * @param sharedLedgerCount - 공유받은 가계부 수
    */
   static canDeleteAccount(
     userId: string,
-    ownedLedgerCount: number,
+    ownedLedgersWithOtherMembers: number,
     sharedLedgerCount: number
   ): void {
-    if (ownedLedgerCount > 0) {
+    if (ownedLedgersWithOtherMembers > 0) {
       throw new BusinessRuleViolationError(
-        `소유한 가계부(${ownedLedgerCount}개)를 먼저 삭제하거나 다른 사용자에게 양도해주세요.`
+        `다른 멤버가 참여 중인 가계부(${ownedLedgersWithOtherMembers}개)를 먼저 삭제하거나 다른 사용자에게 양도해주세요.`
       );
     }
 

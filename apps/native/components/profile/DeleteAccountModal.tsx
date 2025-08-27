@@ -18,6 +18,7 @@ import { DELETE_ACCOUNT } from '@repo/core';
 interface DeleteAccountModalProps {
   visible: boolean;
   ownedLedgerCount: number;
+  ownedLedgersWithOtherMembers: number;
   onClose: () => void;
   onConfirm: () => void;
 }
@@ -25,6 +26,7 @@ interface DeleteAccountModalProps {
 export function DeleteAccountModal({
   visible,
   ownedLedgerCount,
+  ownedLedgersWithOtherMembers,
   onClose,
   onConfirm,
 }: DeleteAccountModalProps) {
@@ -52,8 +54,8 @@ export function DeleteAccountModal({
   };
 
   const handleFirstStep = () => {
-    if (ownedLedgerCount > 0) {
-      // 소유한 가계부가 있으면 탈퇴 불가
+    if (ownedLedgersWithOtherMembers > 0) {
+      // 다른 멤버가 있는 소유 가계부가 있으면 탈퇴 불가
       return;
     }
     setStep(2);
@@ -129,7 +131,7 @@ export function DeleteAccountModal({
                   </View>
                 </View>
 
-                {ownedLedgerCount > 0 && (
+                {ownedLedgersWithOtherMembers > 0 && (
                   <View
                     style={[
                       styles.errorBox,
@@ -139,7 +141,7 @@ export function DeleteAccountModal({
                     <Typography variant="body1" color="error">
                       ⚠️
                       {DELETE_ACCOUNT.MESSAGES.OWNED_LEDGERS_WARNING(
-                        ownedLedgerCount
+                        ownedLedgersWithOtherMembers
                       )}
                     </Typography>
                     <Typography
@@ -151,13 +153,25 @@ export function DeleteAccountModal({
                     </Typography>
                   </View>
                 )}
+                {ownedLedgerCount > 0 && ownedLedgersWithOtherMembers === 0 && (
+                  <View
+                    style={[
+                      styles.infoBox,
+                      { backgroundColor: colors.tint + '10' },
+                    ]}
+                  >
+                    <Typography variant="body2" color="primary">
+                      ℹ️ 혼자 사용 중인 가계부 {ownedLedgerCount}개는 탈퇴 후 30일 뒤에 자동으로 삭제됩니다.
+                    </Typography>
+                  </View>
+                )}
               </View>
 
               <View style={styles.buttonContainer}>
                 <Button
                   variant="danger"
                   onPress={handleFirstStep}
-                  disabled={ownedLedgerCount > 0}
+                  disabled={ownedLedgersWithOtherMembers > 0}
                   fullWidth
                 >
                   {DELETE_ACCOUNT.UI.BUTTON_NEXT}
@@ -369,6 +383,11 @@ const styles = StyleSheet.create({
     paddingLeft: 8,
   },
   errorBox: {
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  infoBox: {
     padding: 12,
     borderRadius: 8,
     marginTop: 16,

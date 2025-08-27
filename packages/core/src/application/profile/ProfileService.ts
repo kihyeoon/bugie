@@ -46,10 +46,16 @@ export class ProfileService {
     const ledgers = await this.ledgerRepo.findByUserIdWithMembers(
       currentUser.id
     );
-    const ownedLedgerCount = ledgers.filter(
+    const ownedLedgers = ledgers.filter(
       ({ ledger }) => ledger.createdBy === currentUser.id
-    ).length;
+    );
+    const ownedLedgerCount = ownedLedgers.length;
     const sharedLedgerCount = ledgers.length - ownedLedgerCount;
+    
+    // 다른 멤버가 있는 소유 가계부 수 계산
+    const ownedLedgersWithOtherMembers = ownedLedgers.filter(
+      ({ members }) => members.length > 1  // owner 본인 외에 다른 멤버가 있는 경우
+    ).length;
 
     return {
       id: profile.id,
@@ -62,6 +68,7 @@ export class ProfileService {
       updatedAt: profile.updatedAt.toISOString(),
       ownedLedgerCount,
       sharedLedgerCount,
+      ownedLedgersWithOtherMembers,
     };
   }
 
@@ -138,10 +145,15 @@ export class ProfileService {
       ({ ledger }) => ledger.createdBy !== currentUser.id
     );
 
-    // 탈퇴 가능 여부 확인
+    // 다른 멤버가 있는 소유 가계부만 체크
+    const ownedLedgersWithOtherMembers = ownedLedgers.filter(
+      ({ members }) => members.length > 1  // owner 본인 외에 다른 멤버가 있는 경우
+    );
+
+    // 탈퇴 가능 여부 확인 (다른 멤버가 있는 소유 가계부가 있으면 불가)
     ProfileRules.canDeleteAccount(
       currentUser.id,
-      ownedLedgers.length,
+      ownedLedgersWithOtherMembers.length,
       sharedLedgers.length
     );
 
