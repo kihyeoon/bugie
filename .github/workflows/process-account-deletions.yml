@@ -28,8 +28,7 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 8
+        # packageManager field from package.json will be used (10.11.0)
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -39,7 +38,16 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pnpm add -D @supabase/supabase-js --filter root
+          # 기존 프로젝트 의존성 설치
+          pnpm install
+          
+          # scripts 디렉토리에서 필요한 의존성 설치
+          cd scripts
+          if [ ! -f package.json ]; then
+            echo '{"name": "scripts", "type": "commonjs"}' > package.json
+          fi
+          pnpm add @supabase/supabase-js
+          cd ..
 
       - name: Process account deletions
         id: process
