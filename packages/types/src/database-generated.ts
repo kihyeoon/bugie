@@ -570,6 +570,14 @@ export interface Database {
         };
         Returns: boolean;
       };
+      force_clean_user: {
+        Args: { target_user_id: string };
+        Returns: Json;
+      };
+      force_delete_auth_user_with_constraints: {
+        Args: { target_user_id: string };
+        Returns: Json;
+      };
       get_ledger_monthly_stats: {
         Args: {
           target_ledger_id: string;
@@ -585,6 +593,19 @@ export interface Database {
           budget_remaining: number;
         }[];
       };
+      get_user_ledgers: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          id: string;
+          name: string;
+          description: string | null;
+          currency: string;
+          created_by: string;
+          role: Database['public']['Enums']['member_role'];
+          created_at: string;
+          updated_at: string | null;
+        }[];
+      };
       initialize_category_templates: {
         Args: Record<PropertyKey, never>;
         Returns: undefined;
@@ -596,6 +617,14 @@ export interface Database {
           member_role?: Database['public']['Enums']['member_role'];
         };
         Returns: boolean;
+      };
+      process_account_deletions: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
+      };
+      process_account_deletions_v2: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
       };
       restore_deleted_account: {
         Args: {
@@ -623,6 +652,18 @@ export interface Database {
       };
       soft_delete_category: {
         Args: { category_id: string };
+        Returns: boolean;
+      };
+      soft_delete_ledger: {
+        Args: { ledger_id: string };
+        Returns: boolean;
+      };
+      soft_delete_profile: {
+        Args: Record<PropertyKey, never>;
+        Returns: boolean;
+      };
+      soft_delete_transaction: {
+        Args: { transaction_id: string };
         Returns: boolean;
       };
     };

@@ -153,18 +153,6 @@ export function DeleteAccountModal({
                     </Typography>
                   </View>
                 )}
-                {ownedLedgerCount > 0 && ownedLedgersWithOtherMembers === 0 && (
-                  <View
-                    style={[
-                      styles.infoBox,
-                      { backgroundColor: colors.tint + '10' },
-                    ]}
-                  >
-                    <Typography variant="body2" color="primary">
-                      ℹ️ 혼자 사용 중인 가계부 {ownedLedgerCount}개는 탈퇴 후 30일 뒤에 자동으로 삭제됩니다.
-                    </Typography>
-                  </View>
-                )}
               </View>
 
               <View style={styles.buttonContainer}>
