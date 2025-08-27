@@ -13,8 +13,14 @@ Supabase 대시보드에서 다음 순서로 마이그레이션을 실행하세�
 -- 2. 추적 테이블 생성
 -- 20250827_02_create_tracking_tables.sql
 
--- 3. RPC 함수 생성
--- 20250827_03_create_deletion_function.sql
+-- 3. 완전 삭제 함수 생성 (Phase 2)
+-- 20250827_04_improve_deletion_process.sql
+
+-- 4. 불필요한 함수 정리
+-- 20250827_05_cleanup_unused_functions.sql
+
+-- 5. ON DELETE SET NULL 최적화 (Phase 3 - 최종)
+-- 20250827_06_optimize_with_set_null.sql
 ```
 
 ### 2. GitHub Secrets 설정
@@ -26,7 +32,44 @@ Repository Settings > Secrets and variables > Actions에서:
 
 ⚠️ **주의**: anon key가 아닌 service_role key를 사용해야 합니다!
 
+### 3. 외래키 제약 확인
+
+```sql
+-- ON DELETE SET NULL로 변경되었는지 확인
+SELECT 
+  tc.table_name,
+  kcu.column_name,
+  rc.delete_rule
+FROM information_schema.referential_constraints rc
+JOIN information_schema.table_constraints tc 
+  ON rc.constraint_name = tc.constraint_name
+JOIN information_schema.key_column_usage kcu
+  ON tc.constraint_name = kcu.constraint_name
+WHERE tc.table_name IN ('transactions', 'budgets', 'ledgers')
+  AND kcu.column_name = 'created_by';
+-- 결과: delete_rule이 'SET NULL'이어야 함
+```
+
 ## 🧪 테스트 시나리오
+
+### 시나리오 0: ON DELETE SET NULL 검증 (최우선)
+
+```sql
+-- 외래키가 SET NULL로 변경되었는지 확인
+SELECT 
+  tc.table_name,
+  kcu.column_name,
+  rc.delete_rule
+FROM information_schema.referential_constraints rc
+JOIN information_schema.table_constraints tc 
+  ON rc.constraint_name = tc.constraint_name
+JOIN information_schema.key_column_usage kcu
+  ON tc.constraint_name = kcu.constraint_name
+WHERE tc.table_name IN ('transactions', 'budgets', 'ledgers')
+  AND kcu.column_name = 'created_by';
+
+-- 결과: delete_rule이 모두 'SET NULL'이어야 함
+```
 
 ### 시나리오 1: CASCADE 제거 확인
 
@@ -45,13 +88,13 @@ WHERE tc.table_name = 'profiles'
 -- 결과: delete_rule이 'NO ACTION'이어야 함
 ```
 
-### 시나리오 2: 테스트 데이터 생성 및 익명화
+### 시나리오 2: 테스트 데이터 생성 및 완전 삭제
 
 ```sql
 -- 1. 31일 전 탈퇴한 테스트 계정 생성
 INSERT INTO profiles (id, email, full_name, deleted_at, created_at)
 VALUES (
-  'test-user-001'::uuid,
+  gen_random_uuid(),
   'test1@example.com',
   'Test User 1',
   NOW() - INTERVAL '31 days',
@@ -61,25 +104,28 @@ VALUES (
 -- 2. 29일 전 탈퇴한 계정 (처리 안 됨)
 INSERT INTO profiles (id, email, full_name, deleted_at, created_at)
 VALUES (
-  'test-user-002'::uuid,
+  gen_random_uuid(),
   'test2@example.com',
   'Test User 2',
   NOW() - INTERVAL '29 days',
   NOW() - INTERVAL '60 days'
 );
 
--- 3. RPC 함수 테스트 실행
+-- 3. RPC 함수 테스트 실행 (완전 삭제)
 SELECT process_account_deletions();
 
 -- 4. 결과 확인
--- test1은 익명화됨, test2는 그대로
+-- test1은 삭제됨, test2는 그대로
 SELECT id, email, full_name, deleted_at
 FROM profiles 
-WHERE id IN ('test-user-001'::uuid, 'test-user-002'::uuid);
+WHERE email IN ('test1@example.com', 'test2@example.com');
 
--- 5. deleted_accounts 테이블 확인
+-- 5. deleted_accounts 테이블 확인 (이메일 해시만 저장)
 SELECT * FROM deleted_accounts 
 ORDER BY created_at DESC;
+
+-- 6. 특정 사용자 강제 삭제 테스트
+SELECT force_clean_user('user-uuid-here');
 ```
 
 ### 시나리오 3: GitHub Actions Dry Run
@@ -159,11 +205,11 @@ ORDER BY executed_at DESC;
 - [ ] Dry run 모드 정상 작동
 - [ ] 실패 시 Issue 생성됨
 
-### 익명화 프로세스
+### 완전 삭제 프로세스
 - [ ] 30일 경과 계정만 처리됨
-- [ ] email이 'deleted-xxxxx@anon.local' 형식으로 변경됨
-- [ ] full_name이 '탈퇴한 사용자'로 변경됨
-- [ ] deleted_accounts에 해시 저장됨
+- [ ] profiles 테이블에서 완전 삭제됨
+- [ ] transactions, budgets, ledgers의 created_by가 NULL로 변경됨
+- [ ] deleted_accounts에 이메일 해시만 저장됨 (재가입 체크용)
 
 ### 재가입 체크
 ```typescript

@@ -4,9 +4,10 @@
  * Account Deletion Processing Script
  *
  * 이 스크립트는 GitHub Actions에서 매일 실행되어:
- * 1. 30일 경과한 탈퇴 계정을 익명화
+ * 1. 30일 경과한 탈퇴 계정을 완전 삭제 (profiles 테이블)
  * 2. auth.users에서 해당 계정 삭제
- * 3. 처리 결과를 로깅
+ * 3. 관련 데이터의 created_by를 NULL로 설정하여 데이터는 보존
+ * 4. 처리 결과를 로깅
  */
 
 const { createClient } = require('@supabase/supabase-js');
@@ -83,8 +84,8 @@ async function processAccountDeletions() {
   const supabase = createSupabaseClient();
 
   try {
-    // Step 1: RPC 함수 호출로 익명화 처리
-    console.log('\n📝 Step 1: Processing anonymization...');
+    // Step 1: RPC 함수 호출로 완전 삭제 처리
+    console.log('\n📝 Step 1: Processing account deletions...');
     const { data: result, error: rpcError } = await supabase.rpc(
       'process_account_deletions'
     );
@@ -97,7 +98,7 @@ async function processAccountDeletions() {
       throw new Error(`Processing failed: ${result?.error || 'Unknown error'}`);
     }
 
-    console.log(`✅ Anonymized ${result.anonymized_count || 0} profiles`);
+    console.log(`✅ Deleted ${result.deleted_count || 0} profiles`);
     console.log(`⏱️  Duration: ${result.duration_ms || 0}ms`);
 
     // Step 2: Auth 계정 삭제
@@ -162,7 +163,7 @@ async function processAccountDeletions() {
       const { error: logError } = await supabase
         .from('deletion_job_logs')
         .insert({
-          anonymized_count: result.anonymized_count || 0,
+          anonymized_count: result.deleted_count || 0,
           deleted_auth_count: deletedAuthCount,
           error_count: errors.length,
           errors: errors.length > 0 ? errors : null,
@@ -187,7 +188,7 @@ async function processAccountDeletions() {
     console.log('\n═══════════════════════════════════════════');
     console.log('📊 Final Report');
     console.log('═══════════════════════════════════════════');
-    console.log(`Anonymized profiles: ${result.anonymized_count || 0}`);
+    console.log(`Deleted profiles: ${result.deleted_count || 0}`);
     console.log(`Deleted auth users: ${deletedAuthCount}`);
     console.log(`Errors: ${errors.length}`);
     console.log(`Total duration: ${duration}ms`);
@@ -200,7 +201,7 @@ async function processAccountDeletions() {
     await writeLog('deletion-report.log', {
       success: true,
       dryRun: isDryRun,
-      anonymizedCount: result.anonymized_count || 0,
+      deletedCount: result.deleted_count || 0,
       deletedAuthCount,
       errorCount: errors.length,
       errors: errors.length > 0 ? errors : undefined,
