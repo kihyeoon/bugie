@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
 import { supabase } from '../../utils/supabase';
-import type { OAuthProvider } from '@repo/types';
+import type { OAuthProvider, AuthProfile as Profile } from '@repo/types';
 import { signInWithGoogle, GoogleAuthError } from './googleAuth';
-import { fetchProfile, isProfileComplete } from './profileService';
+import { ensureProfile, isProfileComplete } from './profileService';
 
 export interface AuthResult {
   success: boolean;
@@ -85,8 +85,21 @@ const handleGoogleSignIn = async (): Promise<AuthResult> => {
       };
     }
 
+    // 프로필 확인 및 자동 생성 (간소화)
+    const profile = await ensureProfile(
+      data.user.id,
+      data.user.email,
+      data.user
+    );
+
+    if (!profile) {
+      console.error('Failed to ensure profile for user');
+      // 프로필 생성 실패해도 로그인은 성공 처리
+      // profile-setup 화면에서 재시도 가능
+    }
+
     // 프로필 확인 및 라우팅
-    const result = await checkProfileAndRoute(data.user.id);
+    const result = await checkProfileAndRoute(data.user.id, profile);
 
     return {
       success: true,
@@ -124,10 +137,17 @@ const handleGoogleSignIn = async (): Promise<AuthResult> => {
  * 프로필 확인 후 적절한 화면으로 라우팅
  */
 const checkProfileAndRoute = async (
-  userId: string
+  userId: string,
+  profile?: Profile | null
 ): Promise<{ needsProfile: boolean }> => {
-  // 프로필 정보 가져오기
-  const profile = await fetchProfile(userId);
+  // 프로필이 전달되지 않은 경우에만 조회
+  if (!profile) {
+    const { ensureProfile } = await import('./profileService');
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    profile = await ensureProfile(userId, user?.email, user);
+  }
 
   // 프로필 완성 여부 확인
   const profileComplete = isProfileComplete(profile);
@@ -141,4 +161,3 @@ const checkProfileAndRoute = async (
     return { needsProfile: false };
   }
 };
-

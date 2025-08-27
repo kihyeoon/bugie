@@ -561,6 +561,15 @@ export interface Database {
         Args: Record<PropertyKey, never>;
         Returns: undefined;
       };
+      create_user_profile: {
+        Args: {
+          p_user_id: string;
+          p_email: string;
+          p_full_name?: string | null;
+          p_avatar_url?: string | null;
+        };
+        Returns: boolean;
+      };
       get_ledger_monthly_stats: {
         Args: {
           target_ledger_id: string;
@@ -587,6 +596,16 @@ export interface Database {
           member_role?: Database['public']['Enums']['member_role'];
         };
         Returns: boolean;
+      };
+      restore_deleted_account: {
+        Args: {
+          target_user_id: string;
+        };
+        Returns: {
+          success: boolean;
+          message: string;
+          days_since_deletion: number | null;
+        };
       };
       set_budget: {
         Args: {

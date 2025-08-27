@@ -15,6 +15,7 @@ import type {
 import { supabase } from '../utils/supabase';
 import { signInWithOAuth as authSignInWithOAuth } from '../services/auth';
 import { signOutFromGoogle } from '../services/auth/googleAuth';
+import { ensureProfile, fetchProfile } from '../services/auth/profileService';
 
 interface AuthContextValue extends AuthState {
   signOut: () => Promise<void>;
@@ -38,50 +39,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isInitialized = useRef(false);
   const isSettingSession = useRef(false);
 
-  // 프로필 데이터 가져오기
-  const fetchProfile = useCallback(async (userId: string) => {
+  // 프로필 데이터 가져오기 (간소화됨)
+  const getProfile = useCallback(async (userId: string, userEmail?: string | null) => {
     try {
-      // 먼저 계정 복구 시도 (탈퇴한 계정인 경우 자동 복구)
-      const { data: restoreResult, error: restoreError } = (await supabase.rpc(
-        'restore_deleted_account' as any,
-        {
-          target_user_id: userId,
-        }
-      )) as {
-        data: {
-          success: boolean;
-          message: string;
-          days_since_deletion?: number;
-        } | null;
-        error: any;
-      };
-
-      if (restoreError) {
-        console.error('Account restoration check error:', restoreError);
-        // 복구 실패해도 프로필 조회는 계속 진행
-      } else if (restoreResult?.success) {
-        console.log('탈퇴한 계정이 자동으로 복구되었습니다.');
-        console.log(
-          `복구 정보: 탈퇴 후 ${restoreResult.days_since_deletion}일 경과`
-        );
-        // TODO: 필요시 Toast 메시지로 사용자에게 알림
-      }
-
-      // 프로필 조회
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.error('Profile fetch error:', error);
-        throw error;
-      }
-
-      return data;
+      // 현재 사용자 정보 가져오기 (메타데이터 포함)
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // ensureProfile로 모든 로직 통합
+      return await ensureProfile(userId, userEmail, user);
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Error getting profile:', error);
       return null;
     }
   }, []);
@@ -97,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 기존 세션 확인
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (session && !isSettingSession.current) {
-        fetchProfile(session.user.id).then((profile) => {
+        getProfile(session.user.id, session.user.email).then((profile) => {
           setAuthState({
             user: session.user,
             profile,
@@ -120,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (event === 'SIGNED_IN' && session) {
-          const profile = await fetchProfile(session.user.id);
+          const profile = await getProfile(session.user.id, session.user.email);
           setAuthState({
             user: session.user,
             profile,
@@ -139,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else if (event === 'TOKEN_REFRESHED' && session) {
           setAuthState((prev: AuthState) => ({ ...prev, session }));
         } else if (event === 'INITIAL_SESSION' && session) {
-          const profile = await fetchProfile(session.user.id);
+          const profile = await getProfile(session.user.id, session.user.email);
           setAuthState({
             user: session.user,
             profile,
@@ -154,7 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [fetchProfile]);
+  }, [getProfile]);
 
   // OAuth 로그인
   const signInWithOAuth = useCallback(async (provider: OAuthProvider) => {
@@ -246,7 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         );
       }
     },
-    [authState.user, fetchProfile]
+    [authState.user]
   );
 
   // 세션 갱신
