@@ -1,6 +1,6 @@
 # 회원 탈퇴 구현 계획
 
-> **최종 업데이트**: 2025-08-27 - ON DELETE SET NULL 최적화 적용
+> **최종 업데이트**: 2025-08-28 - 용어 정리 및 중복 컬럼 제거 (anonymized → processed)
 
 ## 📋 개요
 
@@ -84,7 +84,7 @@ ALTER TABLE profiles
 **CASCADE를 제거하지 않으면:**
 
 1. auth.users 삭제 시 profiles도 삭제됨
-2. 익명화된 데이터 손실
+2. 처리된 데이터 손실
 3. transactions.created_by가 무효한 참조가 됨
 
 ## 📝 구현 상세
@@ -93,6 +93,7 @@ ALTER TABLE profiles
 > 1. **Phase 1 (초기)**: 익명화 전략 - 복잡하고 불완전
 > 2. **Phase 2 (중간)**: NULL 허용 + 수동 UPDATE - 작동하지만 복잡
 > 3. **Phase 3 (최종)**: ON DELETE SET NULL - 간단하고 안정적 ✅
+> 4. **Phase 4 (2025-08-28)**: 용어 정리 - anonymized → processed로 변경
 >
 > **최종 선택 이유**: PostgreSQL의 외래키 제약을 활용하여 자동 처리. 코드 100줄 → 30줄로 감소
 
@@ -143,8 +144,7 @@ CREATE TABLE IF NOT EXISTS deleted_accounts (
   original_user_id UUID NOT NULL,
   email_hash TEXT NOT NULL, -- SHA256 해시로 저장
   deleted_at TIMESTAMPTZ NOT NULL,
-  anonymized_at TIMESTAMPTZ,
-  auth_deleted_at TIMESTAMPTZ,
+  auth_deleted_at TIMESTAMPTZ, -- auth.users에서 삭제된 시점
 
   CONSTRAINT unique_original_user UNIQUE(original_user_id)
 );
@@ -155,8 +155,8 @@ CREATE INDEX idx_deleted_email_hash ON deleted_accounts(email_hash);
 CREATE TABLE IF NOT EXISTS deletion_job_logs (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   executed_at TIMESTAMPTZ DEFAULT NOW(),
-  anonymized_count INTEGER DEFAULT 0,
-  deleted_auth_count INTEGER DEFAULT 0,
+  profiles_processed INTEGER DEFAULT 0, -- 처리된 프로필 수
+  deleted_auth_count INTEGER DEFAULT 0, -- auth.users에서 삭제된 수
   error_count INTEGER DEFAULT 0,
   created_by TEXT DEFAULT 'github-actions'
 );
@@ -166,12 +166,12 @@ COMMIT;
 
 ### Step 2: RPC 함수 생성
 
-> **참고**: 초기 익명화 함수(`process_account_deletions`)는 사용하지 않으므로 건너뜁니다.
-> 최종 완전 삭제 함수는 아래 1-4 섹션을 참조하세요.
+> **참고**: 초기 익명화 전략은 폐기되었고, 완전 삭제 전략을 사용합니다.
+> 최종 구현은 아래 섹션들을 참조하세요.
 
 ```sql
 -- 이 섹션은 의도적으로 비워둠 (익명화 전략 폐기)
--- 최종 구현은 process_account_deletions_clean() 함수 사용
+-- 최종 구현은 process_account_deletions() 함수 사용
 ```
 
 #### 1-4. 완전 삭제 전략 마이그레이션 (Phase 2)
@@ -210,15 +210,13 @@ BEGIN
     INSERT INTO deleted_accounts (
       original_user_id,
       email_hash,
-      deleted_at,
-      anonymized_at
+      deleted_at
     ) VALUES (
       v_result.id,
       encode(sha256(v_result.email::bytea), 'hex'),
-      v_result.deleted_at,
-      NOW()
+      v_result.deleted_at
     ) ON CONFLICT (original_user_id) DO UPDATE
-      SET anonymized_at = NOW();
+      SET email_hash = EXCLUDED.email_hash;
     
     -- 2. created_by를 NULL로 설정 (데이터 보존)
     UPDATE transactions SET created_by = NULL WHERE created_by = v_result.id;
@@ -331,11 +329,49 @@ DROP FUNCTION IF EXISTS process_account_deletions_clean();
 COMMIT;
 ```
 
+#### 1-6. 용어 정리 및 중복 제거 (Phase 4 - 2025-08-28) ✅
+
+```sql
+-- supabase/migrations/20250828_cleanup_account_deletion_system.sql
+-- 레거시 "익명화" 용어를 제거하고 실제 동작에 맞는 네이밍으로 변경
+
+BEGIN;
+
+-- 1. deleted_accounts 테이블 정리
+-- anonymized_at 컬럼 제거 (auth_deleted_at과 중복)
+ALTER TABLE deleted_accounts 
+DROP COLUMN IF EXISTS anonymized_at;
+
+-- 2. deletion_job_logs 테이블 정리
+-- 컬럼명 변경: anonymized_count → profiles_processed
+ALTER TABLE deletion_job_logs 
+RENAME COLUMN anonymized_count TO profiles_processed;
+
+-- 3. 테이블 및 컬럼 설명 추가
+COMMENT ON TABLE deleted_accounts 
+IS '탈퇴 요청된 계정 추적 (30일 유예 기간)';
+
+COMMENT ON COLUMN deleted_accounts.deleted_at 
+IS '탈퇴 요청 시점 (soft delete)';
+
+COMMENT ON COLUMN deleted_accounts.auth_deleted_at 
+IS '30일 후 auth.users에서 삭제된 시점';
+
+COMMENT ON COLUMN deletion_job_logs.profiles_processed 
+IS '성공적으로 처리된 프로필 수';
+
+-- 4. process_account_deletions 함수는 이미 올바른 형태
+-- (Phase 3에서 구현된 버전 유지)
+
+COMMIT;
+```
+
 **개선 효과**:
 - ✅ 코드 복잡도: 100줄 → 30줄로 70% 감소
 - ✅ 유지보수: 새 테이블 추가 시 외래키만 설정하면 자동 처리
 - ✅ 성능: PostgreSQL 최적화된 처리
 - ✅ 안정성: DB 레벨에서 보장
+- ✅ 명확성: 레거시 용어 제거로 코드 이해도 향상 (Phase 4)
 
 ### Step 3: GitHub Actions 워크플로우
 
@@ -435,7 +471,7 @@ async function processAccountDeletions() {
     // 3. 로그 저장
     if (!isDryRun) {
       await supabase.from('deletion_job_logs').insert({
-        anonymized_count: result.count,
+        profiles_processed: result.deleted_count || 0,
         deleted_auth_count: deletedCount,
         error_count: errors.length,
       });
@@ -458,7 +494,7 @@ processAccountDeletions();
 
 - **이메일 해시 저장**: 원본 이메일 대신 SHA256 해시만 저장
 - **최소 정보 원칙**: full_name 등 불필요한 개인정보 저장 안함
-- **익명화**: 식별 불가능한 형태로 변환
+- **개인정보 제거**: created_by를 NULL로 설정하여 식별 불가능
 
 ### 권한 관리
 
@@ -525,7 +561,7 @@ SELECT * FROM deleted_accounts;
 ### 검증
 
 - [ ] CASCADE 제거 확인
-- [ ] 익명화 프로세스 테스트
+- [ ] 완전 삭제 프로세스 테스트
 - [ ] Auth 삭제 테스트
 - [ ] 재가입 시나리오 테스트
 
@@ -544,4 +580,4 @@ SELECT * FROM deleted_accounts;
 
 ---
 
-마지막 업데이트: 2025-08-27
+마지막 업데이트: 2025-08-28
