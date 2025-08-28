@@ -163,7 +163,7 @@ async function processAccountDeletions() {
       const { error: logError } = await supabase
         .from('deletion_job_logs')
         .insert({
-          anonymized_count: result.deleted_count || 0,
+          profiles_processed: result.deleted_count || 0,
           deleted_auth_count: deletedAuthCount,
           error_count: errors.length,
           errors: errors.length > 0 ? errors : null,

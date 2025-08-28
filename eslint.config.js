@@ -73,6 +73,7 @@ module.exports = [
       '**/.turbo/**',
       '**/*.config.js',
       '**/*.config.ts',
+      '**/scripts/**',
     ],
   },
 ];
