@@ -318,6 +318,7 @@ export default function LedgerSettingsScreen() {
             <DetailRow
               label="멤버 보기"
               value={`${memberCount}명`}
+              editable={true}
               actionable={true}
               onPress={handleViewMembers}
               disabled={loading}
@@ -326,7 +327,7 @@ export default function LedgerSettingsScreen() {
             {canManageMembers && (
               <DetailRow
                 label="멤버 초대"
-                variant="primary"
+                editable={true}
                 actionable={true}
                 onPress={handleInviteMember}
                 disabled={loading}
