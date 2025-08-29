@@ -57,14 +57,7 @@ export default function MoreScreen() {
         router.push('/profile-settings');
       },
     },
-    {
-      title: '앱 설정',
-      icon: 'gearshape.fill',
-      onPress: () => {
-        // TODO: 앱 설정 화면으로 이동
-        console.log('앱 설정');
-      },
-    },
+    // 앱 설정은 Phase 2에서 구현 예정 (푸시 알림, 캐시 관리 등)
   ];
 
   return (
