@@ -169,6 +169,25 @@ export default function LedgerSettingsScreen() {
     }
   };
 
+  const handleTransferOwnership = async (newOwnerId: string) => {
+    if (!ledger) return;
+
+    setLoading(true);
+    try {
+      await ledgerService.transferOwnership(ledger.id, newOwnerId);
+      // 권한 이전 후 가계부 목록 및 상세 정보 새로고침
+      await fetchLedgerDetail();
+      await refreshLedgers();
+      // 모달 닫기는 ViewMembersModal에서 처리
+    } catch (error) {
+      console.error('Failed to transfer ownership:', error);
+      // 에러는 ViewMembersModal에서 처리하므로 여기서는 재throw
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDeleteLedger = () => {
     Alert.alert(
       '가계부 삭제',
@@ -403,6 +422,7 @@ export default function LedgerSettingsScreen() {
         currentUserId={user?.id}
         onClose={() => setViewMembersModalVisible(false)}
         onRemoveMember={handleRemoveMember}
+        onTransferOwnership={handleTransferOwnership}
       />
 
       {/* 멤버 초대 모달 */}

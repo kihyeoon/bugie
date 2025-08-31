@@ -309,6 +309,39 @@ export class LedgerService {
   }
 
   /**
+   * 소유자 권한 이전
+   * - 현재 사용자가 owner인지 확인
+   * - 대상 멤버가 존재하는지 확인
+   * - RPC 함수를 통해 권한 이전 처리
+   */
+  async transferOwnership(ledgerId: string, newOwnerId: string): Promise<void> {
+    try {
+      // RPC 함수가 모든 검증과 권한 교체를 처리
+      // - 현재 사용자가 owner인지 확인
+      // - 대상이 멤버인지 확인
+      // - 트랜잭션으로 원자적 처리
+      await this.memberRepo.transferOwnership(ledgerId, newOwnerId);
+    } catch (error) {
+      if (error instanceof Error) {
+        // RPC 함수에서 반환된 구체적인 에러 메시지 활용
+        if (error.message.includes('가계부를 찾을 수 없습니다')) {
+          throw new NotFoundError('가계부를 찾을 수 없습니다.');
+        }
+        if (error.message.includes('소유자만 권한을 이전할 수 있습니다')) {
+          throw new UnauthorizedError('소유자만 권한을 이전할 수 있습니다.');
+        }
+        if (error.message.includes('가계부 멤버가 아닙니다')) {
+          throw new NotFoundError('해당 사용자는 가계부 멤버가 아닙니다.');
+        }
+        if (error.message.includes('자기 자신에게는 권한을 이전할 수 없습니다')) {
+          throw new BusinessRuleViolationError('자기 자신에게는 권한을 이전할 수 없습니다.');
+        }
+      }
+      throw error;
+    }
+  }
+
+  /**
    * 카테고리 목록 조회
    */
   async getCategories(ledgerId: string): Promise<CategoryDetail[]> {

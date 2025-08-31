@@ -186,11 +186,16 @@ export class PermissionService {
 
   /**
    * 멤버 제거 가능 여부 체크
+   * 자기 자신은 제거할 수 없음
    */
   static canRemoveMember(
     currentUserRole: MemberRole | null | undefined,
-    targetUserRole: MemberRole
+    targetUserRole: MemberRole,
+    isCurrentUser: boolean = false
   ): boolean {
+    // 자기 자신은 제거 불가
+    if (isCurrentUser) return false;
+
     // owner만 멤버 제거 가능
     if (!this.isOwner(currentUserRole)) return false;
 
@@ -198,5 +203,52 @@ export class PermissionService {
     if (targetUserRole === 'owner') return false;
 
     return true;
+  }
+
+  /**
+   * 소유권 이전 가능 여부 체크
+   * owner가 다른 멤버에게 owner 권한을 이전할 수 있는지 확인
+   */
+  static canTransferOwnership(
+    currentUserRole: MemberRole | null | undefined,
+    targetUserRole: MemberRole,
+    isCurrentUser: boolean = false
+  ): boolean {
+    // 자기 자신에게는 이전 불가
+    if (isCurrentUser) return false;
+
+    // 현재 사용자가 owner여야 함
+    if (!this.isOwner(currentUserRole)) return false;
+
+    // 대상이 owner가 아니어야 함
+    if (targetUserRole === 'owner') return false;
+
+    return true;
+  }
+
+  /**
+   * 멤버에 대한 액션 가능 여부 체크
+   * 멤버 관리 UI에서 액션 버튼/메뉴 표시 여부 결정
+   */
+  static canPerformMemberActions(
+    currentUserRole: MemberRole | null | undefined,
+    isCurrentUser: boolean
+  ): boolean {
+    // 자기 자신에 대한 액션은 불가
+    if (isCurrentUser) return false;
+
+    // owner만 다른 멤버에 대한 액션 가능
+    if (!this.isOwner(currentUserRole)) return false;
+
+    return true;
+  }
+
+  /**
+   * 가계부 나가기 가능 여부 체크
+   * owner는 나갈 수 없음 (먼저 소유권 이전 필요)
+   */
+  static canLeaveLedger(userRole: MemberRole | null | undefined): boolean {
+    // owner는 나갈 수 없음
+    return !this.isOwner(userRole);
   }
 }

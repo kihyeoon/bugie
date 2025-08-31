@@ -283,6 +283,25 @@ export class LedgerMemberRepository implements ILedgerMemberRepository {
       throw new Error(`가계부 멤버십 제거 실패: ${error.message}`);
     }
   }
+
+  /**
+   * 소유자 권한 이전
+   * - RPC 함수를 사용하여 RLS 우회 및 원자적 처리
+   * - 현재 owner 검증, 대상 멤버 확인, 권한 교체를 트랜잭션으로 처리
+   */
+  async transferOwnership(
+    ledgerId: EntityId,
+    newOwnerId: EntityId
+  ): Promise<void> {
+    const { error } = await this.supabase.rpc('transfer_ledger_ownership', {
+      p_ledger_id: ledgerId,
+      p_new_owner_id: newOwnerId,
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
 }
 
 /**

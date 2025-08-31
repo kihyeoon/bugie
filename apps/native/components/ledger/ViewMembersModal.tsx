@@ -14,7 +14,11 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography } from '@/components/ui/Typography';
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import { PermissionService, type LedgerDetail } from '@repo/core';
+import {
+  PermissionService,
+  type LedgerDetail,
+  type MemberRole,
+} from '@repo/core';
 
 interface ViewMembersModalProps {
   visible: boolean;
@@ -22,6 +26,48 @@ interface ViewMembersModalProps {
   currentUserId: string | undefined;
   onClose: () => void;
   onRemoveMember?: (userId: string) => Promise<void>;
+  onTransferOwnership?: (userId: string) => Promise<void>;
+}
+
+/**
+ * 헬퍼 함수: 멤버 액션 가능 여부 계산
+ */
+function getMemberActions(
+  member: { user_id: string; role: MemberRole },
+  currentUserRole: MemberRole | undefined,
+  currentUserId: string | undefined,
+  callbacks: {
+    onRemoveMember?: (userId: string) => Promise<void>;
+    onTransferOwnership?: (userId: string) => Promise<void>;
+  }
+) {
+  const isCurrentUser = member.user_id === currentUserId;
+
+  // 순수한 권한 체크
+  const canRemoveByPermission = PermissionService.canRemoveMember(
+    currentUserRole,
+    member.role,
+    isCurrentUser
+  );
+
+  const canTransferByPermission = PermissionService.canTransferOwnership(
+    currentUserRole,
+    member.role,
+    isCurrentUser
+  );
+
+  // UI 콜백과 결합
+  const canRemove = canRemoveByPermission && !!callbacks.onRemoveMember;
+  const canTransfer =
+    canTransferByPermission && !!callbacks.onTransferOwnership;
+  const canShowActions = canRemove || canTransfer;
+
+  return {
+    canRemove,
+    canTransfer,
+    canShowActions,
+    isCurrentUser,
+  };
 }
 
 export function ViewMembersModal({
@@ -30,6 +76,7 @@ export function ViewMembersModal({
   currentUserId,
   onClose,
   onRemoveMember,
+  onTransferOwnership,
 }: ViewMembersModalProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -79,8 +126,63 @@ export function ViewMembersModal({
     );
   };
 
+  // 소유자 권한 이전 핸들러
+  const handleTransferOwnership = async (member: (typeof sortedMembers)[0]) => {
+    if (!onTransferOwnership) return;
+
+    const memberName = member.profiles.full_name || member.profiles.email;
+
+    // 2단계 확인 다이얼로그
+    Alert.alert(
+      '소유자 권한 이전',
+      `${memberName}님에게 소유자 권한을 넘기시겠습니까?\n\n⚠️ 주의사항:\n• 소유자 권한을 넘기면 더 이상 가계부를 관리할 수 없습니다\n• 멤버 초대/제거 권한이 없어집니다\n• 이 작업은 되돌릴 수 없습니다`,
+      [
+        {
+          text: '취소',
+          style: 'cancel',
+        },
+        {
+          text: '계속',
+          style: 'destructive',
+          onPress: () => {
+            // 2차 확인
+            Alert.alert(
+              '⚠️ 최종 확인',
+              '정말로 확실하신가요? 이 작업은 취소할 수 없습니다.',
+              [
+                {
+                  text: '취소',
+                  style: 'cancel',
+                },
+                {
+                  text: '권한 이전',
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      await onTransferOwnership(member.user_id);
+                      Alert.alert(
+                        '완료',
+                        '소유자 권한이 성공적으로 이전되었습니다.'
+                      );
+                      onClose();
+                    } catch {
+                      Alert.alert('오류', '권한 이전 중 문제가 발생했습니다.');
+                    }
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
+  };
+
   // 통합 액션 시트 표시 함수
-  const showActionSheet = async (member: (typeof sortedMembers)[0]) => {
+  const showActionSheet = async (
+    member: (typeof sortedMembers)[0],
+    actions: ReturnType<typeof getMemberActions>
+  ) => {
     const memberName = member.profiles.full_name || member.profiles.email;
 
     // 햅틱 피드백 제공 (롱프레스 인식 시)
@@ -88,17 +190,40 @@ export function ViewMembersModal({
 
     if (Platform.OS === 'ios') {
       // iOS: 네이티브 ActionSheet 사용
+      const options: string[] = [];
+      const destructiveIndices: number[] = [];
+
+      if (actions.canTransfer) {
+        options.push('소유자 권한 넘기기');
+      }
+
+      if (actions.canRemove) {
+        options.push('멤버 내보내기');
+        destructiveIndices.push(options.length - 1);
+      }
+
+      // 액션이 없으면 표시하지 않음
+      if (options.length === 0) {
+        return;
+      }
+
+      options.push('취소');
+      const cancelButtonIndex = options.length - 1;
+
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['프로필 보기', '멤버 내보내기', '취소'],
-          destructiveButtonIndex: 1,
-          cancelButtonIndex: 2,
+          options,
+          destructiveButtonIndex: destructiveIndices[0],
+          cancelButtonIndex,
         },
         (buttonIndex) => {
-          if (buttonIndex === 0) {
-            // 프로필 보기 (향후 구현)
-            Alert.alert('준비중', '프로필 보기 기능은 준비중입니다.');
-          } else if (buttonIndex === 1) {
+          if (actions.canTransfer && buttonIndex === 0) {
+            // 소유자 권한 넘기기
+            handleTransferOwnership(member);
+          } else if (
+            actions.canRemove &&
+            buttonIndex === (actions.canTransfer ? 1 : 0)
+          ) {
             // 멤버 내보내기
             handleRemoveMember(member);
           }
@@ -106,28 +231,41 @@ export function ViewMembersModal({
       );
     } else {
       // Android: 네이티브 Alert 사용
-      Alert.alert(
-        memberName,
-        '원하는 작업을 선택하세요',
-        [
-          {
-            text: '프로필 보기',
-            onPress: () => {
-              Alert.alert('준비중', '프로필 보기 기능은 준비중입니다.');
-            },
-          },
-          {
-            text: '멤버 내보내기',
-            onPress: () => handleRemoveMember(member),
-            style: 'destructive',
-          },
-          {
-            text: '취소',
-            style: 'cancel',
-          },
-        ],
-        { cancelable: true }
-      );
+      interface AlertButton {
+        text?: string;
+        onPress?: () => void;
+        style?: 'default' | 'cancel' | 'destructive';
+      }
+      const buttons: AlertButton[] = [];
+
+      if (actions.canTransfer) {
+        buttons.push({
+          text: '소유자 권한 넘기기',
+          onPress: () => handleTransferOwnership(member),
+        });
+      }
+
+      if (actions.canRemove) {
+        buttons.push({
+          text: '멤버 내보내기',
+          onPress: () => handleRemoveMember(member),
+          style: 'destructive',
+        });
+      }
+
+      // 액션이 없으면 표시하지 않음
+      if (buttons.length === 0) {
+        return;
+      }
+
+      buttons.push({
+        text: '취소',
+        style: 'cancel',
+      });
+
+      Alert.alert(memberName, '원하는 작업을 선택하세요', buttons, {
+        cancelable: true,
+      });
     }
   };
 
@@ -166,32 +304,32 @@ export function ViewMembersModal({
           </View>
 
           {sortedMembers.map((member) => {
-            const isCurrentUser = member.user_id === currentUserId;
             const roleInfo = PermissionService.getRoleUIConfig(member.role);
 
-            // 멤버 제거 가능 여부 확인
-            const canRemoveMember = PermissionService.canRemoveMember(
+            // 멤버에 대한 가능한 액션들 확인
+            const memberActions = getMemberActions(
+              member,
               currentUserRole,
-              member.role
+              currentUserId,
+              { onRemoveMember, onTransferOwnership }
             );
 
             return (
               <Pressable
                 key={member.user_id}
                 onLongPress={() => {
-                  // 자기 자신이 아니고 권한이 있을 때만 롱프레스 동작
-                  if (canRemoveMember && !isCurrentUser && onRemoveMember) {
-                    showActionSheet(member);
+                  // 액션이 가능할 때만 롱프레스 동작
+                  if (memberActions.canShowActions) {
+                    showActionSheet(member, memberActions);
                   }
                 }}
                 delayLongPress={600}
-                disabled={!canRemoveMember || isCurrentUser || !onRemoveMember}
+                disabled={!memberActions.canShowActions}
                 style={({ pressed }) => [
                   styles.memberItem,
                   { backgroundColor: colors.backgroundSecondary },
                   pressed &&
-                    canRemoveMember &&
-                    !isCurrentUser &&
+                    memberActions.canShowActions &&
                     styles.memberItemPressed,
                 ]}
               >
@@ -211,7 +349,7 @@ export function ViewMembersModal({
                     <Typography variant="body1" weight="600">
                       {member.profiles.full_name || '이름 없음'}
                     </Typography>
-                    {isCurrentUser && (
+                    {memberActions.isCurrentUser && (
                       <View
                         style={[
                           styles.meBadge,
@@ -256,9 +394,9 @@ export function ViewMembersModal({
                 </View>
 
                 {/* 멤버 관리 버튼 */}
-                {canRemoveMember && !isCurrentUser && onRemoveMember && (
+                {memberActions.canShowActions && (
                   <Pressable
-                    onPress={() => showActionSheet(member)}
+                    onPress={() => showActionSheet(member, memberActions)}
                     style={styles.actionButton}
                     hitSlop={8}
                   >

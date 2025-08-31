@@ -207,7 +207,6 @@ export interface Database {
       }
       deletion_job_logs: {
         Row: {
-          profiles_processed: number | null
           created_by: string | null
           deleted_auth_count: number | null
           details: Json | null
@@ -215,9 +214,9 @@ export interface Database {
           errors: Json | null
           executed_at: string | null
           id: string
+          profiles_processed: number | null
         }
         Insert: {
-          profiles_processed?: number | null
           created_by?: string | null
           deleted_auth_count?: number | null
           details?: Json | null
@@ -225,9 +224,9 @@ export interface Database {
           errors?: Json | null
           executed_at?: string | null
           id?: string
+          profiles_processed?: number | null
         }
         Update: {
-          profiles_processed?: number | null
           created_by?: string | null
           deleted_auth_count?: number | null
           details?: Json | null
@@ -235,6 +234,7 @@ export interface Database {
           errors?: Json | null
           executed_at?: string | null
           id?: string
+          profiles_processed?: number | null
         }
         Relationships: []
       }
@@ -719,6 +719,10 @@ export interface Database {
       soft_delete_transaction: {
         Args: { transaction_id: string }
         Returns: boolean
+      }
+      transfer_ledger_ownership: {
+        Args: { p_ledger_id: string; p_new_owner_id: string }
+        Returns: undefined
       }
     }
     Enums: {

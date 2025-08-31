@@ -111,6 +111,8 @@ export interface LedgerMemberRepository {
   inviteMemberByEmail(ledgerId: EntityId, userEmail: string, role: MemberRole): Promise<void>;
   // 사용자를 모든 가계부에서 제거 (회원 탈퇴 시)
   removeUserFromAllLedgers(userId: EntityId): Promise<void>;
+  // 소유자 권한 이전 (RPC 함수 사용)
+  transferOwnership(ledgerId: EntityId, newOwnerId: EntityId): Promise<void>;
 }
 
 export interface CategoryRepository {
