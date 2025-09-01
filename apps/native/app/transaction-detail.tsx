@@ -438,7 +438,7 @@ export default function TransactionDetailScreen() {
               작성자
             </Typography>
             <Typography variant="body1">
-              {transaction.created_by_name || '알 수 없음'}
+              {transaction.created_by_name || '탈퇴한 사용자'}
             </Typography>
           </View>
         </View>

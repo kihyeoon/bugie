@@ -77,7 +77,7 @@ export interface TransactionWithDetails {
   category_icon: string;
   category_source: 'template' | 'custom';
   ledger_name: string;
-  created_by_name: string;
+  created_by_name: string | null; // 탈퇴한 사용자는 null
 }
 
 export interface CalendarDayData {
