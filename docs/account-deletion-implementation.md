@@ -13,13 +13,18 @@ Bugie 서비스의 회원 탈퇴 프로세스는 사용자의 개인정보를 �
    - 30일 이내 재로그인 시 계정 복구 가능
    - 30일 경과 후 자동으로 완전 삭제
 
-2. **완전 삭제 전략** (ON DELETE SET NULL로 최적화됨)
+2. **즉시 처리 사항** (보안을 위한 즉각 조치)
+   - **ledger_members 즉시 삭제**: 탈퇴 즉시 모든 가계부 접근 권한 제거
+   - 탈퇴한 사용자는 즉시 가계부 접근 불가
+   - ProfileService.deleteAccount()에서 처리
+
+3. **완전 삭제 전략** (ON DELETE SET NULL로 최적화됨)
    - profiles 테이블 완전 삭제
    - auth.users 완전 삭제
    - 거래 기록의 created_by를 자동으로 NULL 처리 (외래키 제약)
    - PostgreSQL이 자동으로 참조 관리
 
-3. **재가입 정책**
+4. **재가입 정책**
    - 동일 이메일로 재가입 가능 (30일 후)
    - 재가입 시 새로운 UUID 발급
    - 이전 데이터와 연결되지 않음
@@ -30,30 +35,32 @@ Bugie 서비스의 회원 탈퇴 프로세스는 사용자의 개인정보를 �
 
 ```mermaid
 graph TD
-    A[유저 탈퇴 요청] --> B[soft_delete_profile RPC]
+    A[유저 탈퇴 요청] --> B[ProfileService.deleteAccount]
     B --> C{가계부 소유자?}
     C -->|Yes| D[탈퇴 거부]
-    C -->|No| E[profiles.deleted_at = NOW]
+    C -->|No| E[즉시: ledger_members 삭제]
+    E --> F[즉시: profiles.deleted_at = NOW]
 
-    E --> F[30일 유예 기간]
-    F --> G{재로그인?}
-    G -->|Yes| H[계정 복구]
-    G -->|No| I[30일 경과]
+    F --> G[30일 유예 기간]
+    G --> H{재로그인?}
+    H -->|Yes| I[계정 복구]
+    H -->|No| J[30일 경과]
 
-    I --> J[GitHub Actions 실행]
-    J --> K[process_account_deletions RPC]
-    K --> L[profiles 삭제 (자동 NULL 처리)]
-    L --> N[auth.users 삭제]
-    N --> O[이메일 재사용 가능]
+    J --> K[GitHub Actions 실행]
+    K --> L[process_account_deletions RPC]
+    L --> M[ledger_members 재삭제 시도]
+    M --> N[profiles 삭제 (자동 NULL 처리)]
+    N --> O[auth.users 삭제]
+    O --> P[이메일 재사용 가능]
 ```
 
 ### 데이터 흐름
 
-| 단계      | profiles        | auth.users | transactions.created_by | budgets.created_by | ledgers.created_by | 처리 방식 |
-| --------- | --------------- | ---------- | ----------------------- | ------------------ | ------------------ | --------- |
-| 탈퇴 요청 | deleted_at 설정 | 유지       | 유효한 참조             | 유효한 참조        | 유효한 참조        | Soft Delete |
-| 30일 후   | 완전 삭제       | 완전 삭제  | NULL (자동 처리)        | NULL (자동 처리)   | NULL (자동 처리)   | ON DELETE SET NULL |
-| UI 표시   | -               | -          | 데이터는 존재           | 데이터는 존재      | 데이터는 존재      | 익명 거래 |
+| 단계      | profiles        | auth.users | ledger_members | transactions.created_by | budgets.created_by | ledgers.created_by | 처리 방식 |
+| --------- | --------------- | ---------- | -------------- | ----------------------- | ------------------ | ------------------ | --------- |
+| 탈퇴 요청 | deleted_at 설정 | 유지       | **즉시 삭제**  | 유효한 참조             | 유효한 참조        | 유효한 참조        | Soft Delete / Hard Delete |
+| 30일 후   | 완전 삭제       | 완전 삭제  | CASCADE 재시도 | NULL (자동 처리)        | NULL (자동 처리)   | NULL (자동 처리)   | ON DELETE SET NULL / CASCADE |
+| UI 표시   | -               | -          | -              | 데이터는 존재           | 데이터는 존재      | 데이터는 존재      | 익명 거래 |
 
 ## ⚠️ 중요 사항: CASCADE 문제
 
@@ -94,6 +101,7 @@ ALTER TABLE profiles
 > 2. **Phase 2 (중간)**: NULL 허용 + 수동 UPDATE - 작동하지만 복잡
 > 3. **Phase 3 (최종)**: ON DELETE SET NULL - 간단하고 안정적 ✅
 > 4. **Phase 4 (2025-08-28)**: 용어 정리 - anonymized → processed로 변경
+> 5. **Phase 5 (현재)**: 즉시 삭제 로직 추가 - ledger_members 즉시 제거로 보안 강화
 >
 > **최종 선택 이유**: PostgreSQL의 외래키 제약을 활용하여 자동 처리. 코드 100줄 → 30줄로 감소
 
@@ -277,6 +285,16 @@ ALTER TABLE ledgers
   REFERENCES profiles(id) 
   ON DELETE SET NULL;
 
+-- ledger_members의 CASCADE 설정 (profiles 삭제 시 자동 삭제)
+-- 참고: 이 설정은 이미 존재하지만 명시적으로 확인
+ALTER TABLE ledger_members
+  DROP CONSTRAINT IF EXISTS ledger_members_user_id_fkey;
+ALTER TABLE ledger_members
+  ADD CONSTRAINT ledger_members_user_id_fkey
+  FOREIGN KEY (user_id)
+  REFERENCES profiles(id)
+  ON DELETE CASCADE;  -- profiles 삭제 시 자동으로 멤버십도 삭제
+
 -- 간소화된 삭제 처리 함수 (30줄!)
 CREATE OR REPLACE FUNCTION process_account_deletions()
 RETURNS json
@@ -373,7 +391,52 @@ COMMIT;
 - ✅ 안정성: DB 레벨에서 보장
 - ✅ 명확성: 레거시 용어 제거로 코드 이해도 향상 (Phase 4)
 
-### Step 3: GitHub Actions 워크플로우
+### Step 3: 애플리케이션 레이어 구현
+
+```typescript
+// packages/core/src/application/profile/ProfileService.ts
+
+async deleteAccount(input: DeleteAccountInput): Promise<void> {
+  const currentUser = await this.authService.getCurrentUser();
+  if (!currentUser) {
+    throw new UnauthorizedError('인증이 필요합니다.');
+  }
+
+  // 소유한 가계부 확인 (다른 멤버가 있으면 탈퇴 불가)
+  const ownedLedgersWithOtherMembers = // ... 체크 로직
+
+  ProfileRules.canDeleteAccount(
+    currentUser.id,
+    ownedLedgersWithOtherMembers.length,
+    sharedLedgers.length
+  );
+
+  // 1. 가계부 멤버십 즉시 제거 (보안상 중요!)
+  await this.ledgerMemberRepo.removeUserFromAllLedgers(currentUser.id);
+
+  // 2. 프로필 soft delete (30일 유예 기간 시작)
+  await this.profileRepo.softDelete(currentUser.id);
+  
+  // 3. 로그아웃은 UI 레이어에서 처리
+}
+```
+
+```typescript
+// packages/core/src/infrastructure/supabase/repositories/LedgerRepository.ts
+
+async removeUserFromAllLedgers(userId: EntityId): Promise<void> {
+  const { error } = await this.supabase
+    .from('ledger_members')
+    .delete()  // 하드 삭제 (즉시 완전 삭제!)
+    .eq('user_id', userId);
+
+  if (error) {
+    throw new Error(`가계부 멤버십 제거 실패: ${error.message}`);
+  }
+}
+```
+
+### Step 4: GitHub Actions 워크플로우
 
 ```yaml
 # .github/workflows/process-account-deletions.yml
@@ -417,7 +480,7 @@ jobs:
           node scripts/process-deletions.js
 ```
 
-### Step 4: 처리 스크립트 (최종 버전)
+### Step 5: 처리 스크립트 (최종 버전)
 
 ```javascript
 // scripts/process-deletions.js
@@ -568,9 +631,11 @@ SELECT * FROM deleted_accounts;
 ## 📌 주의사항
 
 1. **CASCADE 제거는 필수**: 제거하지 않으면 전체 시스템 실패
-2. **개인정보 최소화**: 필요한 정보만 해시로 저장
-3. **배치 크기 조절**: API rate limit 고려
-4. **모니터링**: 실행 로그 정기 확인
+2. **ledger_members CASCADE는 유지**: profiles 삭제 시 자동으로 멤버십 삭제 필요
+3. **즉시 삭제와 30일 후 삭제 중복**: 안전장치로 작동 (이미 없으면 무시)
+4. **개인정보 최소화**: 필요한 정보만 해시로 저장
+5. **배치 크기 조절**: API rate limit 고려
+6. **모니터링**: 실행 로그 정기 확인
 
 ## 🔄 향후 개선사항
 
@@ -580,4 +645,7 @@ SELECT * FROM deleted_accounts;
 
 ---
 
-마지막 업데이트: 2025-08-28
+마지막 업데이트: 2025-09-01
+- ledger_members 즉시 삭제 로직 추가
+- CASCADE 설정 명시
+- 실제 구현과 문서 동기화
