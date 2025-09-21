@@ -8,7 +8,6 @@ import {
 } from 'react-native';
 import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'expo-router';
-import { useAuth } from '../../contexts/AuthContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -19,7 +18,6 @@ import { useMonthlyData } from '../../hooks/useMonthlyData';
 import { LoadingState } from '../../components/shared/LoadingState';
 import { ErrorState } from '../../components/shared/ErrorState';
 import { EmptyState } from '../../components/shared/EmptyState';
-import { LedgerSelector } from '../../components/shared/LedgerSelector';
 import { CreateLedgerModal } from '../../components/ledger/CreateLedgerModal';
 import { format } from 'date-fns';
 
@@ -46,27 +44,7 @@ const CONSTANTS = {
   },
 } as const;
 
-// Utility functions
-// 날짜를 YYYY-MM-DD 형식으로 변환 (추후 거래 목록 화면에서 사용 예정)
-// const formatDateKey = (date: Date): string => {
-//   const year = date.getFullYear();
-//   const month = String(date.getMonth() + 1).padStart(2, '0');
-//   const day = String(date.getDate()).padStart(2, '0');
-//   return `${year}-${month}-${day}`;
-// };
-
-const extractUserName = (
-  user: { user_metadata?: { full_name?: string }; email?: string } | null
-): string => {
-  return (
-    user?.user_metadata?.full_name ||
-    user?.email?.split('@')[0] ||
-    CONSTANTS.DEFAULTS.USERNAME
-  );
-};
-
 export default function HomeScreen() {
-  const { user } = useAuth();
   const router = useRouter();
   const colorScheme = useColorScheme();
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -94,8 +72,6 @@ export default function HomeScreen() {
     error: dataError,
     refetch: refetchData,
   } = useMonthlyData(year, month);
-
-  const userName = extractUserName(user);
 
   // 마지막 리페치 시간 추적 (디바운싱용)
   const lastRefetchTime = useRef(0);
@@ -170,7 +146,7 @@ export default function HomeScreen() {
           actionLabel="가계부 만들기"
           onAction={() => setShowCreateModal(true)}
         />
-        
+
         <CreateLedgerModal
           visible={showCreateModal}
           onClose={() => setShowCreateModal(false)}
@@ -202,10 +178,10 @@ export default function HomeScreen() {
       >
         {/* 헤더 */}
         <View style={styles.header}>
-          <Typography variant="h3" color="secondary">
-            안녕하세요, {userName}님
+          <Typography variant="h4" color="secondary">
+            {currentLedger.name}
           </Typography>
-          <LedgerSelector />
+          {/* <LedgerSelector /> */}
         </View>
 
         {/* 캘린더 */}

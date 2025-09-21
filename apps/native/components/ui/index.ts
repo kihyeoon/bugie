@@ -7,3 +7,4 @@ export { ListItem } from './ListItem';
 export { ToggleSwitch } from './ToggleSwitch';
 export { DetailRow } from './DetailRow';
 export { DetailSection } from './DetailSection';
+export { Dropdown } from './Dropdown';
