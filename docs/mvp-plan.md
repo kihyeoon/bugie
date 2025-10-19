@@ -489,6 +489,10 @@ Native App ←→ WebView Bridge ←→ Next.js Web App
 
 ## 📌 MVP에서 제외된 기능 목록
 
+### 홈
+
+- [ ] 가계부 선택 기능
+
 ### 인증 시스템
 
 - [ ] Apple Sign-In (Google만 구현)
