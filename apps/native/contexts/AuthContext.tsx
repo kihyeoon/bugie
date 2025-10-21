@@ -7,6 +7,7 @@ import React, {
   useRef,
 } from 'react';
 import { Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type {
   AuthState,
   AuthProfile as Profile,
@@ -16,6 +17,8 @@ import { supabase } from '../utils/supabase';
 import { signInWithOAuth as authSignInWithOAuth } from '../services/auth';
 import { signOutFromGoogle } from '../services/auth/googleAuth';
 import { ensureProfile, fetchProfile } from '../services/auth/profileService';
+
+const PROFILE_CACHE_KEY = '@auth/profile_cache';
 
 interface AuthContextValue extends AuthState {
   signOut: () => Promise<void>;
@@ -61,20 +64,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     isInitialized.current = true;
 
-    // 기존 세션 확인
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (session && !isSettingSession.current) {
-        getProfile(session.user.id, session.user.email).then((profile) => {
+    // getSession과 캐시된 프로필을 병렬로 가져오기
+    Promise.all([
+      supabase.auth.getSession(),
+      AsyncStorage.getItem(PROFILE_CACHE_KEY),
+    ]).then(async ([{ data: { session } }, cachedProfileJson]) => {
+      if (!session || isSettingSession.current) {
+        setAuthState((prev) => ({ ...prev, loading: false }));
+        return;
+      }
+
+      // 캐시된 프로필이 있으면 즉시 UI 표시
+      if (cachedProfileJson) {
+        try {
+          const cachedProfile = JSON.parse(cachedProfileJson);
           setAuthState({
             user: session.user,
-            profile,
+            profile: cachedProfile,
             session,
             loading: false,
-            needsProfile: !profile?.full_name,
+            needsProfile: !cachedProfile?.full_name,
           });
+        } catch (e) {
+          console.warn('Failed to parse cached profile:', e);
+        }
+      }
+
+      // 백그라운드에서 최신 프로필 동기화
+      const latestProfile = await getProfile(session.user.id, session.user.email);
+
+      // 최신 프로필로 업데이트 (캐시와 다른 경우에만)
+      if (latestProfile && JSON.stringify(latestProfile) !== cachedProfileJson) {
+        await AsyncStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(latestProfile));
+        setAuthState({
+          user: session.user,
+          profile: latestProfile,
+          session,
+          loading: false,
+          needsProfile: !latestProfile?.full_name,
         });
-      } else if (!isSettingSession.current) {
-        setAuthState((prev) => ({ ...prev, loading: false }));
+      } else if (!cachedProfileJson) {
+        // 캐시도 없고 프로필도 없는 경우 (신규 사용자)
+        setAuthState({
+          user: session.user,
+          profile: latestProfile,
+          session,
+          loading: false,
+          needsProfile: !latestProfile?.full_name,
+        });
       }
     });
 
@@ -88,6 +125,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (event === 'SIGNED_IN' && session) {
           const profile = await getProfile(session.user.id, session.user.email);
+          if (profile) {
+            await AsyncStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile));
+          }
           setAuthState({
             user: session.user,
             profile,
@@ -96,6 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             needsProfile: !profile?.full_name,
           });
         } else if (event === 'SIGNED_OUT') {
+          await AsyncStorage.removeItem(PROFILE_CACHE_KEY);
           setAuthState({
             user: null,
             profile: null,
@@ -107,6 +148,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setAuthState((prev: AuthState) => ({ ...prev, session }));
         } else if (event === 'INITIAL_SESSION' && session) {
           const profile = await getProfile(session.user.id, session.user.email);
+          if (profile) {
+            await AsyncStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile));
+          }
           setAuthState({
             user: session.user,
             profile,
@@ -170,6 +214,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return; // 예상치 못한 에러는 상태 정리하지 않음
       }
     } finally {
+      // 캐시 삭제
+      await AsyncStorage.removeItem(PROFILE_CACHE_KEY);
       // 성공하거나 AuthSessionMissingError인 경우 상태 정리
       setAuthState({
         user: null,
@@ -199,6 +245,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // 프로필 다시 가져오기
         const updatedProfile = await fetchProfile(authState.user.id);
+
+        // 캐시 업데이트
+        if (updatedProfile) {
+          await AsyncStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(updatedProfile));
+        }
+
         setAuthState((prev: AuthState) => ({
           ...prev,
           profile: updatedProfile,

@@ -5,30 +5,52 @@ import type { User } from '@supabase/supabase-js';
 /**
  * 사용자 메타데이터에서 프로필 정보 추출
  */
-export const extractUserMetadata = (user?: User | null): {
+export const extractUserMetadata = (
+  user?: User | null
+): {
   fullName?: string;
   avatarUrl?: string;
 } => {
   if (!user?.user_metadata) return {};
-  
+
   const metadata = user.user_metadata;
   return {
     fullName: metadata.full_name || metadata.name,
-    avatarUrl: metadata.avatar_url || metadata.picture
+    avatarUrl: metadata.avatar_url || metadata.picture,
   };
 };
+
+interface RestoreAccountResult {
+  success: boolean;
+  message?: string;
+  days_since_deletion?: number;
+}
+
+/**
+ * 타입 가드: RPC 응답이 RestoreAccountResult 구조인지 검증
+ */
+function isRestoreAccountResult(data: unknown): data is RestoreAccountResult {
+  if (typeof data !== 'object' || data === null) {
+    return false;
+  }
+
+  const obj = data as Record<string, unknown>;
+  return 'success' in obj && typeof obj.success === 'boolean';
+}
 
 /**
  * 삭제된 계정 복구 시도
  */
-export const restoreDeletedAccount = async (userId: string): Promise<{
+export const restoreDeletedAccount = async (
+  userId: string
+): Promise<{
   success: boolean;
   message?: string;
   daysSinceDeletion?: number;
 }> => {
   try {
-    const { data, error } = await supabase.rpc('restore_deleted_account', { 
-      target_user_id: userId 
+    const { data, error } = await supabase.rpc('restore_deleted_account', {
+      target_user_id: userId,
     });
 
     if (error) {
@@ -36,11 +58,11 @@ export const restoreDeletedAccount = async (userId: string): Promise<{
       return { success: false };
     }
 
-    if (data) {
+    if (data && isRestoreAccountResult(data)) {
       return {
         success: data.success,
         message: data.message,
-        daysSinceDeletion: data.days_since_deletion ?? undefined
+        daysSinceDeletion: data.days_since_deletion ?? undefined,
       };
     }
 
@@ -97,7 +119,7 @@ const createProfileDirectly = async (
       full_name: userData?.fullName || email.split('@')[0],
       avatar_url: userData?.avatarUrl || null,
       currency: 'KRW',
-      timezone: 'Asia/Seoul'
+      timezone: 'Asia/Seoul',
     })
     .select()
     .single();
@@ -108,7 +130,7 @@ const createProfileDirectly = async (
 
   // 기본 가계부 생성 시도 (선택사항)
   await createDefaultLedger(userId, profileData.full_name || '사용자');
-  
+
   return { data: profileData, error: null };
 };
 
@@ -135,8 +157,8 @@ export const createProfile = async (
     const { data: success, error } = await supabase.rpc('create_user_profile', {
       p_user_id: userId,
       p_email: email,
-      p_full_name: userData?.fullName || null,
-      p_avatar_url: userData?.avatarUrl || null
+      p_full_name: userData?.fullName ?? undefined,
+      p_avatar_url: userData?.avatarUrl ?? undefined,
     });
 
     // 1. RPC 함수가 없는 경우 (function does not exist) - 직접 생성 시도
@@ -148,9 +170,10 @@ export const createProfile = async (
     // 2. 다른 에러가 발생한 경우
     if (error) {
       console.error('Profile creation error:', error);
-      const errorMessage = typeof error === 'object' && 'message' in error 
-        ? String(error.message) 
-        : 'Profile creation failed';
+      const errorMessage =
+        typeof error === 'object' && 'message' in error
+          ? String(error.message)
+          : 'Profile creation failed';
       return { data: null, error: new Error(errorMessage) };
     }
 
@@ -167,7 +190,8 @@ export const createProfile = async (
     console.error('Error creating profile:', error);
     return {
       data: null,
-      error: error instanceof Error ? error : new Error('Profile creation failed'),
+      error:
+        error instanceof Error ? error : new Error('Profile creation failed'),
     };
   }
 };
@@ -182,36 +206,43 @@ export const ensureProfile = async (
   user?: User | null
 ): Promise<Profile | null> => {
   try {
-    // 1. 삭제된 계정 복구 시도
-    const restoreResult = await restoreDeletedAccount(userId);
-    if (restoreResult.success) {
-      console.log('탈퇴한 계정이 자동으로 복구되었습니다.');
-      if (restoreResult.daysSinceDeletion) {
-        console.log(`복구 정보: 탈퇴 후 ${restoreResult.daysSinceDeletion}일 경과`);
+    // 1. 기존 프로필 조회
+    let profile = await fetchProfile(userId);
+
+    // 2. 프로필이 없으면 복구 시도 후 생성
+    if (!profile) {
+      // 탈퇴한 계정일 수 있으므로 복구 시도
+      const restoreResult = await restoreDeletedAccount(userId);
+      if (restoreResult.success) {
+        console.log('탈퇴한 계정이 자동으로 복구되었습니다.');
+        if (restoreResult.daysSinceDeletion) {
+          console.log(
+            `복구 정보: 탈퇴 후 ${restoreResult.daysSinceDeletion}일 경과`
+          );
+        }
+        // 복구 후 프로필 다시 조회
+        profile = await fetchProfile(userId);
       }
     }
 
-    // 2. 기존 프로필 조회
-    let profile = await fetchProfile(userId);
-    
-    // 3. 프로필이 없으면 생성
+    // 3. 여전히 프로필이 없으면 신규 생성
     if (!profile && email) {
       console.log('Profile not found, creating new profile...');
-      
+
       // 사용자 메타데이터 추출
       const userData = user ? extractUserMetadata(user) : undefined;
-      
+
       const { data: newProfile, error } = await createProfile(
         userId,
         email,
         userData
       );
-      
+
       if (error) {
         console.error('Failed to create profile:', error);
         return null;
       }
-      
+
       console.log('Profile created successfully');
       profile = newProfile;
     }
@@ -226,15 +257,17 @@ export const ensureProfile = async (
 /**
  * 기본 가계부 생성 (프로필 생성 시 옵션)
  */
-const createDefaultLedger = async (userId: string, userName: string): Promise<void> => {
+const createDefaultLedger = async (
+  userId: string,
+  userName: string
+): Promise<void> => {
   try {
     // setup_new_user 함수가 있으면 호출
-    const { error } = await supabase
-      .rpc('setup_new_user', {
-        user_uuid: userId,
-        user_email: '', // 이미 프로필에 있음
-        user_name: userName
-      });
+    const { error } = await supabase.rpc('setup_new_user', {
+      user_uuid: userId,
+      user_email: '', // 이미 프로필에 있음
+      user_name: userName,
+    });
 
     if (error) {
       // 실패해도 프로필 생성은 성공으로 처리
