@@ -203,7 +203,11 @@ export const createProfile = async (
 export const ensureProfile = async (
   userId: string,
   email?: string | null,
-  user?: User | null
+  user?: User | null,
+  userData?: {
+    fullName?: string;
+    avatarUrl?: string;
+  }
 ): Promise<Profile | null> => {
   try {
     // 1. 기존 프로필 조회
@@ -229,13 +233,17 @@ export const ensureProfile = async (
     if (!profile && email) {
       console.log('Profile not found, creating new profile...');
 
-      // 사용자 메타데이터 추출
-      const userData = user ? extractUserMetadata(user) : undefined;
+      // 사용자 메타데이터 추출 (전달된 userData 우선 사용)
+      const metadataFromUser = user ? extractUserMetadata(user) : undefined;
+      const finalUserData = {
+        fullName: userData?.fullName || metadataFromUser?.fullName,
+        avatarUrl: userData?.avatarUrl || metadataFromUser?.avatarUrl,
+      };
 
       const { data: newProfile, error } = await createProfile(
         userId,
         email,
-        userData
+        finalUserData
       );
 
       if (error) {

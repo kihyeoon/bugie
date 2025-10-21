@@ -63,6 +63,17 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.buttonSection}>
+            {Platform.OS === 'ios' && (
+              <>
+                <SocialLoginButton
+                  provider="apple"
+                  onPress={() => handleSocialLogin('apple')}
+                  loading={loadingProvider === 'apple'}
+                  disabled={loadingProvider !== null}
+                />
+                <View style={styles.buttonSpacing} />
+              </>
+            )}
             <SocialLoginButton
               provider="google"
               onPress={() => handleSocialLogin('google')}
@@ -133,6 +144,9 @@ const styles = StyleSheet.create({
     flex: 0.4,
     justifyContent: 'center',
     paddingVertical: 48,
+  },
+  buttonSpacing: {
+    height: 12,
   },
   footerSection: {
     flex: 0.2,
