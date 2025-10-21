@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Platform,
   Dimensions,
 } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
 import { useAuth } from '../../hooks/useAuth';
 import { SocialLoginButton } from '../../components/auth/SocialLoginButton';
 import type { OAuthProvider } from '@repo/types';
@@ -19,6 +20,18 @@ export default function LoginScreen() {
   const [loadingProvider, setLoadingProvider] = useState<OAuthProvider | null>(
     null
   );
+
+  // 로그인 화면 마운트 시 스플래시 숨김
+  useEffect(() => {
+    async function hideSplash() {
+      try {
+        await SplashScreen.hideAsync();
+      } catch (e) {
+        console.warn('SplashScreen hide error:', e);
+      }
+    }
+    hideSplash();
+  }, []);
 
   const handleSocialLogin = async (provider: OAuthProvider) => {
     try {
@@ -39,7 +52,6 @@ export default function LoginScreen() {
         style={styles.keyboardView}
       >
         <View style={styles.content}>
-          {/* 상단 영역 - 로고와 인사말 */}
           <View style={styles.headerSection}>
             <View style={styles.logoContainer}>
               <View style={styles.logoPlaceholder}>
@@ -50,7 +62,6 @@ export default function LoginScreen() {
             <Text style={styles.subtitle}>Bugie와 함께 시작해보세요</Text>
           </View>
 
-          {/* 중앙 영역 - 소셜 로그인 버튼들 */}
           <View style={styles.buttonSection}>
             <SocialLoginButton
               provider="google"
@@ -60,7 +71,6 @@ export default function LoginScreen() {
             />
           </View>
 
-          {/* 하단 영역 - 약관 안내 */}
           <View style={styles.footerSection}>
             <Text style={styles.termsText}>
               로그인하면 <Text style={styles.termsLink}>서비스 이용약관</Text>에

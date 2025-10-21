@@ -6,16 +6,16 @@ import {
   Platform,
   SafeAreaView,
 } from 'react-native';
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
+import * as SplashScreen from 'expo-splash-screen';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography, Card, AmountDisplay } from '@/components/ui';
 import { Calendar } from '@/components/shared/calendar';
 import { useLedger } from '../../contexts/LedgerContext';
 import { useMonthlyData } from '../../hooks/useMonthlyData';
-import { LoadingState } from '../../components/shared/LoadingState';
 import { ErrorState } from '../../components/shared/ErrorState';
 import { EmptyState } from '../../components/shared/EmptyState';
 import { CreateLedgerModal } from '../../components/ledger/CreateLedgerModal';
@@ -39,9 +39,6 @@ const CONSTANTS = {
     CALENDAR_TOP: 8,
     CALENDAR_BOTTOM: 16,
   },
-  DEFAULTS: {
-    USERNAME: '사용자',
-  },
 } as const;
 
 export default function HomeScreen() {
@@ -60,11 +57,9 @@ export default function HomeScreen() {
     refreshLedgers,
   } = useLedger();
 
-  // Extract year and month for API calls
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth() + 1;
 
-  // Fetch monthly data (calendar + summary)
   const {
     calendarData,
     monthlySummary,
@@ -73,8 +68,23 @@ export default function HomeScreen() {
     refetch: refetchData,
   } = useMonthlyData(year, month);
 
-  // 마지막 리페치 시간 추적 (디바운싱용)
   const lastRefetchTime = useRef(0);
+  const [appReady, setAppReady] = useState(false);
+
+  useEffect(() => {
+    async function prepare() {
+      try {
+        if (!ledgerLoading && !dataLoading && !appReady) {
+          setAppReady(true);
+          await SplashScreen.hideAsync();
+        }
+      } catch (e) {
+        console.warn('SplashScreen hide error:', e);
+      }
+    }
+
+    prepare();
+  }, [ledgerLoading, dataLoading, appReady]);
 
   // 화면 포커스 시 데이터 새로고침 (디바운싱 적용)
   useFocusEffect(
@@ -88,7 +98,6 @@ export default function HomeScreen() {
     }, [refetchData])
   );
 
-  // Refresh handler
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
@@ -98,34 +107,29 @@ export default function HomeScreen() {
     }
   }, [refreshLedgers, refetchData]);
 
-  // 날짜 선택 핸들러
   const handleDateSelect = (date: Date) => {
     if (!calendarData) return;
 
     const dateStr = format(date, 'yyyy-MM-dd');
-
     const dayTransactions = calendarData[dateStr];
     const hasTransactions =
       dayTransactions &&
       (dayTransactions.income > 0 || dayTransactions.expense > 0);
 
     if (hasTransactions) {
-      // 거래 목록 화면으로 네비게이션
       router.push(`/transactions?date=${dateStr}`);
     }
   };
 
-  // 월 변경 핸들러
   const handleMonthChange = (year: number, month: number) => {
     setCurrentMonth(new Date(year, month));
   };
 
-  // Show loading state (첫 로딩 시에만)
-  if (ledgerLoading || (currentLedger && dataLoading && !calendarData)) {
-    return <LoadingState message="데이터를 불러오는 중..." />;
+  // 초기 로딩 중에는 스플래시 화면이 표시되므로 여기서는 null 반환
+  if (!appReady) {
+    return null;
   }
 
-  // Show error state
   if (ledgerError || dataError) {
     return (
       <ErrorState
@@ -135,7 +139,6 @@ export default function HomeScreen() {
     );
   }
 
-  // Show empty state if no ledgers
   if (!currentLedger || ledgers.length === 0) {
     return (
       <>
@@ -150,8 +153,7 @@ export default function HomeScreen() {
         <CreateLedgerModal
           visible={showCreateModal}
           onClose={() => setShowCreateModal(false)}
-          onSuccess={(ledgerId) => {
-            // 가계부 생성 성공 시 목록 새로고침
+          onSuccess={() => {
             refreshLedgers();
             setShowCreateModal(false);
           }}
@@ -176,15 +178,12 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* 헤더 */}
         <View style={styles.header}>
           <Typography variant="h4" color="secondary">
             {currentLedger.name}
           </Typography>
-          {/* <LedgerSelector /> */}
         </View>
 
-        {/* 캘린더 */}
         <Calendar
           mode="static"
           viewType="month"

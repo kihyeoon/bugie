@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
 import { useAuth } from '../../contexts/AuthContext';
 import { router } from 'expo-router';
 
@@ -15,6 +16,18 @@ export default function ProfileSetupScreen() {
   const { updateProfile } = useAuth();
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // 프로필 설정 화면 마운트 시 스플래시 숨김
+  useEffect(() => {
+    async function hideSplash() {
+      try {
+        await SplashScreen.hideAsync();
+      } catch (e) {
+        console.warn('SplashScreen hide error:', e);
+      }
+    }
+    hideSplash();
+  }, []);
 
   const handleSaveProfile = async () => {
     if (!fullName.trim()) {
@@ -27,8 +40,6 @@ export default function ProfileSetupScreen() {
       await updateProfile({
         full_name: fullName.trim(),
       });
-
-      // 프로필 설정 완료 후 홈으로 이동
       router.replace('/(tabs)');
     } catch (error) {
       console.error('Profile update error:', error);
