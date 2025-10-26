@@ -7,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Dimensions,
+  Image,
 } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useAuth } from '../../hooks/useAuth';
@@ -54,12 +55,14 @@ export default function LoginScreen() {
         <View style={styles.content}>
           <View style={styles.headerSection}>
             <View style={styles.logoContainer}>
-              <View style={styles.logoPlaceholder}>
-                <Text style={styles.logoText}>B</Text>
-              </View>
+              <Image
+                source={require('../../assets/images/icon.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
             </View>
-            <Text style={styles.greeting}>안녕하세요!</Text>
-            <Text style={styles.subtitle}>Bugie와 함께 시작해보세요</Text>
+            <Text style={styles.greeting}>Bugie</Text>
+            <Text style={styles.subtitle}>함께 만드는 우리의 가계부</Text>
           </View>
 
           <View style={styles.buttonSection}>
@@ -80,13 +83,6 @@ export default function LoginScreen() {
               loading={loadingProvider === 'google'}
               disabled={loadingProvider !== null}
             />
-          </View>
-
-          <View style={styles.footerSection}>
-            <Text style={styles.termsText}>
-              로그인하면 <Text style={styles.termsLink}>서비스 이용약관</Text>에
-              동의하게 됩니다
-            </Text>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -115,18 +111,9 @@ const styles = StyleSheet.create({
   logoContainer: {
     marginBottom: 24,
   },
-  logoPlaceholder: {
-    width: 72,
-    height: 72,
-    borderRadius: 18,
-    backgroundColor: '#191919',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoText: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+  logo: {
+    width: 96,
+    height: 96,
   },
   greeting: {
     fontSize: 32,
@@ -147,20 +134,5 @@ const styles = StyleSheet.create({
   },
   buttonSpacing: {
     height: 12,
-  },
-  footerSection: {
-    flex: 0.2,
-    justifyContent: 'flex-end',
-    paddingBottom: 32,
-  },
-  termsText: {
-    fontSize: 14,
-    color: '#8B8B8B',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  termsLink: {
-    color: '#191919',
-    textDecorationLine: 'underline',
   },
 });
