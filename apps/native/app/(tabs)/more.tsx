@@ -1,4 +1,5 @@
 import { StyleSheet, View, ScrollView, Alert } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { ComponentProps } from 'react';
 import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
@@ -42,6 +43,14 @@ export default function MoreScreen() {
     ]);
   };
 
+  const handleOpenURL = async (url: string) => {
+    try {
+      await WebBrowser.openBrowserAsync(url);
+    } catch {
+      Alert.alert('오류', '링크를 열 수 없습니다.');
+    }
+  };
+
   const menuItems: MenuItem[] = [
     {
       title: '가계부 관리',
@@ -60,6 +69,25 @@ export default function MoreScreen() {
     // 앱 설정은 Phase 2에서 구현 예정 (푸시 알림, 캐시 관리 등)
   ];
 
+  const policyItems: MenuItem[] = [
+    {
+      title: '개인정보 처리방침',
+      icon: 'lock.shield.fill',
+      onPress: () =>
+        handleOpenURL(
+          'https://imkion.notion.site/2d5e1b1c6cbb80a4a6efe15714c1aa80'
+        ),
+    },
+    {
+      title: '서비스 이용약관',
+      icon: 'doc.text.fill',
+      onPress: () =>
+        handleOpenURL(
+          'https://imkion.notion.site/2d5e1b1c6cbb809caa06e73a5095042b'
+        ),
+    },
+  ];
+
   return (
     <ScrollView
       style={[
@@ -76,6 +104,17 @@ export default function MoreScreen() {
 
       <Card variant="outlined" padding="none" style={styles.menuSection}>
         {menuItems.map((item, index) => (
+          <ListItem
+            key={index}
+            title={item.title}
+            leftIcon={item.icon}
+            onPress={item.onPress}
+          />
+        ))}
+      </Card>
+
+      <Card variant="outlined" padding="none" style={styles.policySection}>
+        {policyItems.map((item, index) => (
           <ListItem
             key={index}
             title={item.title}
@@ -118,6 +157,10 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   menuSection: {
+    marginHorizontal: 16,
+  },
+  policySection: {
+    marginTop: 20,
     marginHorizontal: 16,
   },
   signOutSection: {

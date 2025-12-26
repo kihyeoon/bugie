@@ -28,15 +28,18 @@ const MAPPING = {
   'rectangle.portrait.and.arrow.right': 'exit-to-app',
   // 가계부 관리 아이콘들
   'checkmark.circle.fill': 'check-circle',
-  'circle': 'radio-button-off',
+  circle: 'radio-button-off',
   'plus.circle.fill': 'add-circle',
   // 체크마크 단독 아이콘
-  'checkmark': 'check',
+  checkmark: 'check',
   // 멤버 관리 아이콘들
   'crown.fill': 'star', // owner
   'shield.fill': 'shield', // admin
   'eye.fill': 'visibility', // viewer
-  'xmark': 'close', // close modal
+  xmark: 'close', // close modal
+  // 약관 및 정책 아이콘
+  'lock.shield.fill': 'security', // 개인정보 처리방침
+  'doc.text.fill': 'description', // 서비스 이용약관
 } as const;
 
 export type IconSymbolName = keyof typeof MAPPING;
