@@ -29,6 +29,49 @@ interface UseTransactionDetailReturn {
   deleteTransaction: () => Promise<void>;
 }
 
+function applyTransactionUpdates(
+  prev: TransactionWithDetails | null,
+  updates: UpdateTransactionInputWithCategoryDetails
+): TransactionWithDetails | null {
+  if (!prev) return prev;
+
+  const {
+    categoryId,
+    paidBy,
+    transactionDate,
+    category_name,
+    category_color,
+    category_icon,
+    paid_by,
+    paid_by_name,
+    ...otherUpdates
+  } = updates;
+
+  return {
+    ...prev,
+    ...otherUpdates,
+    // 카테고리 ID가 변경되면 관련 필드도 업데이트
+    ...(categoryId
+      ? {
+          category_id: categoryId,
+          category_name: category_name || prev.category_name,
+          category_color: category_color || prev.category_color,
+          category_icon: category_icon || prev.category_icon,
+        }
+      : {}),
+    // 지출자가 변경되면 관련 필드도 업데이트
+    ...(paidBy
+      ? {
+          paid_by: paid_by || paidBy,
+          paid_by_name:
+            paid_by_name !== undefined ? paid_by_name : prev.paid_by_name,
+        }
+      : {}),
+    // 날짜는 형식 맞춰서 업데이트
+    transaction_date: transactionDate || prev.transaction_date,
+  };
+}
+
 export function useTransactionDetail(
   transactionId: string | undefined
 ): UseTransactionDetailReturn {
@@ -81,6 +124,14 @@ export function useTransactionDetail(
         throw new Error('거래 ID가 없습니다.');
       }
 
+      const previousTransaction = transaction;
+      const isPaidByUpdate = Boolean(updates.paidBy);
+
+      // 지출자 변경은 서버 응답 전 화면을 먼저 갱신
+      if (isPaidByUpdate) {
+        setTransaction((prev) => applyTransactionUpdates(prev, updates));
+      }
+
       try {
         // 서버에는 기본 UpdateTransactionInput만 전송
         const serverUpdates: UpdateTransactionInput = {
@@ -98,59 +149,24 @@ export function useTransactionDetail(
           serverUpdates
         );
 
-        // 낙관적 업데이트 (UI에 즉시 반영)
-        setTransaction((prev) => {
-          if (!prev) return prev;
-
-          const {
-            categoryId,
-            paidBy,
-            transactionDate,
-            category_id,
-            category_name,
-            category_color,
-            category_icon,
-            paid_by,
-            paid_by_name,
-            ...otherUpdates
-          } = updates;
-
-          return {
-            ...prev,
-            ...otherUpdates,
-            // 카테고리 ID가 변경되면 관련 필드도 업데이트
-            ...(categoryId
-              ? {
-                  category_id: categoryId,
-                  category_name: category_name || prev.category_name,
-                  category_color: category_color || prev.category_color,
-                  category_icon: category_icon || prev.category_icon,
-                }
-              : {}),
-            // 지출자가 변경되면 관련 필드도 업데이트
-            ...(paidBy
-              ? {
-                  paid_by: paid_by || paidBy,
-                  paid_by_name:
-                    paid_by_name !== undefined
-                      ? paid_by_name
-                      : prev.paid_by_name,
-                }
-              : {}),
-            // 날짜는 형식 맞춰서 업데이트
-            transaction_date: transactionDate || prev.transaction_date,
-          };
-        });
+        // 지출자 변경 외에는 기존 방식(서버 응답 후 상태 반영) 유지
+        if (!isPaidByUpdate) {
+          setTransaction((prev) => applyTransactionUpdates(prev, updates));
+        }
 
         // 백그라운드에서 데이터 재검증 (로딩 화면 없이)
         fetchTransaction(false);
       } catch (err) {
+        // 지출자 낙관적 반영 실패 시 직전 상태로 롤백
+        if (isPaidByUpdate) {
+          setTransaction(previousTransaction);
+        }
         throw err instanceof Error
           ? err
           : new Error('거래를 수정할 수 없습니다.');
       }
     },
-    [transactionId, transactionService, fetchTransaction]
+    [transactionId, transactionService, fetchTransaction, transaction]
   );
 
   const deleteTransaction = async () => {
