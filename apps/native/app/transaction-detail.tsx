@@ -6,8 +6,6 @@ import {
   Pressable,
   ActivityIndicator,
   Alert,
-  Modal,
-  FlatList,
 } from 'react-native';
 import { Stack, useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +19,7 @@ import { getIoniconName } from '@/constants/categories';
 import { formatDateKorean } from '@/utils/dateFormatter';
 import { EditAmountModal } from '@/components/transaction/EditAmountModal';
 import { EditTextModal } from '@/components/shared/EditTextModal';
+import { PaidByBottomSheet } from '@/components/shared/PaidByBottomSheet';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { format } from 'date-fns';
 import { CategoryBottomSheet } from '@/components/shared/CategorySelector/CategoryBottomSheet';
@@ -158,7 +157,6 @@ export default function TransactionDetailScreen() {
           paid_by: paidByUserId,
           paid_by_name: selectedMember?.full_name ?? null,
         });
-        setPaidByModalVisible(false);
       } catch {
         Alert.alert('오류', '지출자 변경에 실패했습니다.');
       }
@@ -478,8 +476,8 @@ export default function TransactionDetailScreen() {
               <View style={styles.valueContainer}>
                 <Typography variant="body1">
                   {transaction.paid_by
-                    ? (transaction.paid_by_name || DELETED_USER_LABEL)
-                    : (transaction.created_by_name || DELETED_USER_LABEL)}
+                    ? transaction.paid_by_name || DELETED_USER_LABEL
+                    : transaction.created_by_name || DELETED_USER_LABEL}
                 </Typography>
                 {canUpdateTransaction && (
                   <Ionicons
@@ -597,66 +595,15 @@ export default function TransactionDetailScreen() {
             cancelTextIOS="취소"
           />
 
-          {/* 지출자 선택 모달 */}
-          <Modal
+          {/* 지출자 선택 바텀시트 */}
+          <PaidByBottomSheet
             visible={paidByModalVisible}
-            transparent
-            animationType="slide"
-            onRequestClose={() => setPaidByModalVisible(false)}
-          >
-            <Pressable
-              style={modalStyles.overlay}
-              onPress={() => setPaidByModalVisible(false)}
-            >
-              <Pressable
-                style={[
-                  modalStyles.content,
-                  { backgroundColor: colors.background },
-                ]}
-                onPress={(e) => e.stopPropagation()}
-              >
-                <Typography variant="h3" style={modalStyles.title}>
-                  지출자 변경
-                </Typography>
-                <FlatList
-                  data={members}
-                  keyExtractor={(item) => item.user_id}
-                  renderItem={({ item }) => {
-                    const isSelected =
-                      (transaction.paid_by || transaction.created_by) ===
-                      item.user_id;
-                    return (
-                      <Pressable
-                        style={[
-                          modalStyles.memberItem,
-                          {
-                            backgroundColor: isSelected
-                              ? colors.tint + '15'
-                              : 'transparent',
-                          },
-                        ]}
-                        onPress={() => handlePaidBySave(item.user_id)}
-                      >
-                        <Typography
-                          variant="body1"
-                          weight={isSelected ? '600' : '400'}
-                        >
-                          {item.full_name || '멤버'}
-                        </Typography>
-                        {isSelected && (
-                          <Ionicons
-                            name="checkmark"
-                            size={20}
-                            color={colors.tint}
-                          />
-                        )}
-                      </Pressable>
-                    );
-                  }}
-                />
-              </Pressable>
-            </Pressable>
-          </Modal>
+            members={members}
+            selectedUserId={transaction.paid_by || transaction.created_by}
+            currentUserId={user?.id}
+            onSelect={handlePaidBySave}
+            onClose={() => setPaidByModalVisible(false)}
+          />
         </>
       )}
     </>
@@ -744,31 +691,5 @@ const styles = StyleSheet.create({
   },
   disabledRow: {
     opacity: 0.6,
-  },
-});
-
-const modalStyles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
-  },
-  content: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingBottom: 40,
-    maxHeight: '50%',
-  },
-  title: {
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 12,
-  },
-  memberItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
   },
 });

@@ -17,6 +17,7 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography, ToggleSwitch, Button, AmountInput } from '@/components/ui';
 import { CategorySelector } from '@/components/shared/CategorySelector';
+import { PaidByBottomSheet } from '@/components/shared/PaidByBottomSheet';
 import { useCategories } from '@/hooks/useCategories';
 import { useLedger } from '@/contexts/LedgerContext';
 import { useServices } from '@/contexts/ServiceContext';
@@ -39,6 +40,7 @@ export default function AddTransactionScreen() {
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedPaidBy, setSelectedPaidBy] = useState<string | null>(null);
+  const [paidBySheetVisible, setPaidBySheetVisible] = useState(false);
 
   // Input refs for focus management
   const titleInputRef = useRef<TextInput>(null);
@@ -277,48 +279,45 @@ export default function AddTransactionScreen() {
           {/* 지출자 선택 (공유 가계부에서만 표시) */}
           {currentLedger && currentLedger.ledger_members.length > 1 && (
             <View style={styles.paidBySection}>
-              <Typography
-                variant="caption"
-                color="secondary"
-                style={styles.paidByLabel}
+              <TouchableOpacity
+                style={[
+                  styles.paidByInput,
+                  { backgroundColor: colors.backgroundSecondary },
+                ]}
+                onPress={() => setPaidBySheetVisible(true)}
+                activeOpacity={0.7}
               >
-                지출자
-              </Typography>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.paidByList}
-              >
-                {currentLedger.ledger_members.map((member) => {
-                  const isSelected = selectedPaidBy === member.user_id;
-                  return (
-                    <TouchableOpacity
-                      key={member.user_id}
-                      style={[
-                        styles.paidByChip,
-                        {
-                          backgroundColor: isSelected
-                            ? colors.tint
-                            : colors.backgroundSecondary,
-                        },
-                      ]}
-                      onPress={() => setSelectedPaidBy(member.user_id)}
-                      activeOpacity={0.7}
+                <Ionicons
+                  name="person-outline"
+                  size={20}
+                  color={colors.textSecondary}
+                  style={styles.paidByIcon}
+                />
+                <Text style={[styles.paidByText, { color: colors.text }]}>
+                  {currentLedger.ledger_members.find(
+                    (m) => m.user_id === selectedPaidBy
+                  )?.full_name || '지출자 선택'}
+                </Text>
+                {selectedPaidBy === user?.id && (
+                  <View
+                    style={[
+                      styles.paidByBadge,
+                      { backgroundColor: colors.tint + '15' },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.paidByBadgeText, { color: colors.tint }]}
                     >
-                      <Text
-                        style={[
-                          styles.paidByChipText,
-                          {
-                            color: isSelected ? '#fff' : colors.text,
-                          },
-                        ]}
-                      >
-                        {member.full_name || '멤버'}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
+                      나
+                    </Text>
+                  </View>
+                )}
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
             </View>
           )}
 
@@ -393,6 +392,20 @@ export default function AddTransactionScreen() {
         confirmTextIOS="완료"
         cancelTextIOS="취소"
       />
+
+      {/* 지출자 선택 바텀시트 */}
+      {currentLedger && currentLedger.ledger_members.length > 1 && (
+        <PaidByBottomSheet
+          visible={paidBySheetVisible}
+          members={currentLedger.ledger_members}
+          selectedUserId={selectedPaidBy}
+          currentUserId={user?.id}
+          onSelect={(userId) => {
+            setSelectedPaidBy(userId);
+          }}
+          onClose={() => setPaidBySheetVisible(false)}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -499,21 +512,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     marginBottom: 12,
   },
-  paidByLabel: {
-    marginBottom: 8,
+  paidByInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    padding: 16,
+    height: 52,
   },
-  paidByList: {
-    gap: 8,
+  paidByIcon: {
+    marginRight: 10,
   },
-  paidByChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  paidByChipText: {
-    fontSize: 14,
-    fontWeight: '500',
+  paidByText: {
+    fontSize: 15,
     letterSpacing: -0.3,
+    flex: 1,
+  },
+  paidByBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  paidByBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   saveButtonContainer: {
     paddingHorizontal: 24,
