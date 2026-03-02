@@ -20,6 +20,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "prettier": "^3.1.1",
     "prettier-plugin-tailwindcss": "^0.5.14",
+    "supabase": "^2.76.15",
     "turbo": "^2.5.4",
     "typescript": "^5.8.3",
     "typescript-eslint": "^7.16.0"

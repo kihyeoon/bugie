@@ -45,14 +45,7 @@ CREATE INDEX idx_ledgers_created_by ON ledgers(created_by) WHERE deleted_at IS N
 -- Enable RLS for ledgers
 ALTER TABLE ledgers ENABLE ROW LEVEL SECURITY;
 
--- RLS Policy for ledgers
-CREATE POLICY "ledgers_policy" ON ledgers FOR ALL USING (
-  deleted_at IS NULL AND
-  id IN (
-    SELECT ledger_id FROM ledger_members
-    WHERE user_id = auth.uid() AND deleted_at IS NULL
-  )
-);
+-- RLS Policy for ledgers: ledger_members 생성 후 아래에서 정의
 
 -- 4. Create ledger_members table
 CREATE TABLE ledger_members (
@@ -72,6 +65,15 @@ CREATE INDEX idx_ledger_members_ledger ON ledger_members(ledger_id) WHERE delete
 
 -- Enable RLS for ledger_members
 ALTER TABLE ledger_members ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policy for ledgers (ledger_members 테이블 생성 후 정의)
+CREATE POLICY "ledgers_policy" ON ledgers FOR ALL USING (
+  deleted_at IS NULL AND
+  id IN (
+    SELECT ledger_id FROM ledger_members
+    WHERE user_id = auth.uid() AND deleted_at IS NULL
+  )
+);
 
 -- RLS Policy for ledger_members
 CREATE POLICY "ledger_members_policy" ON ledger_members FOR ALL USING (
