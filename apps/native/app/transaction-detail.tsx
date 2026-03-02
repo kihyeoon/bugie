@@ -30,6 +30,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { PermissionService } from '@repo/core';
 import type { MemberRole } from '@repo/core';
 
+const DELETED_USER_LABEL = '탈퇴한 사용자';
+
 export default function TransactionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colorScheme = useColorScheme();
@@ -475,9 +477,9 @@ export default function TransactionDetailScreen() {
               </Typography>
               <View style={styles.valueContainer}>
                 <Typography variant="body1">
-                  {transaction.paid_by_name ||
-                    transaction.created_by_name ||
-                    '탈퇴한 사용자'}
+                  {transaction.paid_by
+                    ? (transaction.paid_by_name || DELETED_USER_LABEL)
+                    : (transaction.created_by_name || DELETED_USER_LABEL)}
                 </Typography>
                 {canUpdateTransaction && (
                   <Ionicons
@@ -496,7 +498,7 @@ export default function TransactionDetailScreen() {
               작성자
             </Typography>
             <Typography variant="body1">
-              {transaction.created_by_name || '탈퇴한 사용자'}
+              {transaction.created_by_name || DELETED_USER_LABEL}
             </Typography>
           </View>
         </View>
