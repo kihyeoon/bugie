@@ -8,16 +8,20 @@ import {
   Platform,
   Dimensions,
   Image,
+  Pressable,
+  Alert,
 } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
+import { router } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
 import { SocialLoginButton } from '../../components/auth/SocialLoginButton';
+import { supabase } from '../../utils/supabase';
 import type { OAuthProvider } from '@repo/types';
 
 const { height } = Dimensions.get('window');
 
 export default function LoginScreen() {
-  const { signInWithOAuth } = useAuth();
+  const { signInWithOAuth, user, needsProfile, loading } = useAuth();
   const [loadingProvider, setLoadingProvider] = useState<OAuthProvider | null>(
     null
   );
@@ -33,6 +37,26 @@ export default function LoginScreen() {
     }
     hideSplash();
   }, []);
+
+  // 인증 완료 시 리다이렉트 (패스워드 로그인 대응)
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace(needsProfile ? '/(auth)/profile-setup' : '/(tabs)');
+    }
+  }, [loading, user, needsProfile]);
+
+  const devLogin = async (email: string) => {
+    try {
+      setLoadingProvider('google');
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password: 'password123',
+      });
+      if (error) Alert.alert('로그인 실패', error.message);
+    } finally {
+      setLoadingProvider(null);
+    }
+  };
 
   const handleSocialLogin = async (provider: OAuthProvider) => {
     try {
@@ -83,6 +107,28 @@ export default function LoginScreen() {
               loading={loadingProvider === 'google'}
               disabled={loadingProvider !== null}
             />
+
+            {__DEV__ && (
+              <View style={styles.devSection}>
+                <Text style={styles.devLabel}>개발용 테스트 로그인</Text>
+                <View style={styles.devButtons}>
+                  <Pressable
+                    style={styles.devButton}
+                    onPress={() => devLogin('husband@test.com')}
+                    disabled={loadingProvider !== null}
+                  >
+                    <Text style={styles.devButtonText}>김철수</Text>
+                  </Pressable>
+                  <Pressable
+                    style={styles.devButton}
+                    onPress={() => devLogin('wife@test.com')}
+                    disabled={loadingProvider !== null}
+                  >
+                    <Text style={styles.devButtonText}>이영희</Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -134,5 +180,34 @@ const styles = StyleSheet.create({
   },
   buttonSpacing: {
     height: 12,
+  },
+  devSection: {
+    marginTop: 32,
+    paddingTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E8EB',
+    alignItems: 'center',
+  },
+  devLabel: {
+    fontSize: 13,
+    color: '#8B95A1',
+    marginBottom: 12,
+  },
+  devButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  devButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E8EB',
+    alignItems: 'center',
+  },
+  devButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#191F28',
   },
 });
