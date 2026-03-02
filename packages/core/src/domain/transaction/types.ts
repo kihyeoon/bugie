@@ -13,6 +13,7 @@ export interface TransactionEntity {
   ledgerId: EntityId;
   categoryId: EntityId;
   createdBy: EntityId;
+  paidBy?: EntityId;
   amount: number;
   type: CategoryType;
   title: string;
@@ -28,6 +29,7 @@ export interface CreateTransactionCommand {
   ledgerId: EntityId;
   categoryId: EntityId;
   createdBy: EntityId;
+  paidBy?: EntityId;
   amount: number;
   type: CategoryType;
   title: string;
@@ -38,6 +40,7 @@ export interface CreateTransactionCommand {
 export interface UpdateTransactionCommand {
   id: EntityId;
   categoryId?: EntityId;
+  paidBy?: EntityId;
   amount?: number;
   type?: CategoryType;
   title?: string;
@@ -84,17 +87,30 @@ export interface CategorySummary {
 // 리포지토리 인터페이스
 export interface TransactionRepository {
   findById(id: EntityId): Promise<TransactionEntity | null>;
-  findByFilter(filter: TransactionFilter): Promise<{ data: TransactionEntity[]; total: number }>;
+  findByFilter(
+    filter: TransactionFilter
+  ): Promise<{ data: TransactionEntity[]; total: number }>;
   create(transaction: Omit<TransactionEntity, 'id'>): Promise<EntityId>;
   update(transaction: TransactionEntity): Promise<void>;
   delete(id: EntityId): Promise<void>;
-  
+
   // 카테고리 관련 메서드
   countByCategoryId(categoryId: EntityId): Promise<number>;
-  updateCategoryBatch(fromCategoryId: EntityId, toCategoryId: EntityId): Promise<number>;
-  
+  updateCategoryBatch(
+    fromCategoryId: EntityId,
+    toCategoryId: EntityId
+  ): Promise<number>;
+
   // 집계 메서드
   getDailySummary(ledgerId: EntityId, date: DomainDate): Promise<DailySummary>;
-  getMonthlySummary(ledgerId: EntityId, year: number, month: number): Promise<MonthlySummary>;
-  getCategorySummary(ledgerId: EntityId, startDate: DomainDate, endDate: DomainDate): Promise<CategorySummary[]>;
+  getMonthlySummary(
+    ledgerId: EntityId,
+    year: number,
+    month: number
+  ): Promise<MonthlySummary>;
+  getCategorySummary(
+    ledgerId: EntityId,
+    startDate: DomainDate,
+    endDate: DomainDate
+  ): Promise<CategorySummary[]>;
 }

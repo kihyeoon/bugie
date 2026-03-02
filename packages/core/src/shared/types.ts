@@ -13,6 +13,7 @@ export interface LedgerWithMembers {
   ledger_members: Array<{
     role: MemberRole;
     user_id: string;
+    full_name: string | null;
   }>;
 }
 
@@ -64,6 +65,7 @@ export interface TransactionWithDetails {
   ledger_id: string;
   category_id: string;
   created_by: string;
+  paid_by: string | null;
   amount: string | number;
   type: CategoryType;
   title: string;
@@ -78,6 +80,7 @@ export interface TransactionWithDetails {
   category_source: 'template' | 'custom';
   ledger_name: string;
   created_by_name: string | null; // 탈퇴한 사용자는 null
+  paid_by_name: string | null;
 }
 
 export interface CalendarDayData {

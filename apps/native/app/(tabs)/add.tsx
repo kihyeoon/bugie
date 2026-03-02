@@ -20,6 +20,7 @@ import { CategorySelector } from '@/components/shared/CategorySelector';
 import { useCategories } from '@/hooks/useCategories';
 import { useLedger } from '@/contexts/LedgerContext';
 import { useServices } from '@/contexts/ServiceContext';
+import { useAuth } from '@/contexts/AuthContext';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -37,6 +38,7 @@ export default function AddTransactionScreen() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [selectedPaidBy, setSelectedPaidBy] = useState<string | null>(null);
 
   // Input refs for focus management
   const titleInputRef = useRef<TextInput>(null);
@@ -47,6 +49,14 @@ export default function AddTransactionScreen() {
   const router = useRouter();
   const { currentLedger } = useLedger();
   const { transactionService } = useServices();
+  const { user } = useAuth();
+
+  // 현재 유저를 기본 지출자로 설정
+  useEffect(() => {
+    if (user && !selectedPaidBy) {
+      setSelectedPaidBy(user.id);
+    }
+  }, [user, selectedPaidBy]);
 
   // 실제 DB에서 카테고리 가져오기
   const {
@@ -87,8 +97,9 @@ export default function AddTransactionScreen() {
     setTitle('');
     setMemo('');
     setSelectedDate(new Date());
+    setSelectedPaidBy(user?.id ?? null);
     // transactionType은 사용자 편의를 위해 유지
-  }, []);
+  }, [user]);
 
   // 카테고리가 수정/삭제되면 선택된 카테고리도 자동 업데이트
   useEffect(() => {
@@ -136,6 +147,7 @@ export default function AddTransactionScreen() {
       const transactionInput = {
         ledgerId: currentLedger.id,
         categoryId: selectedCategory.id,
+        paidBy: selectedPaidBy ?? undefined,
         amount: amount,
         type: transactionType,
         title: title.trim(),
@@ -261,6 +273,54 @@ export default function AddTransactionScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+
+          {/* 지출자 선택 (공유 가계부에서만 표시) */}
+          {currentLedger && currentLedger.ledger_members.length > 1 && (
+            <View style={styles.paidBySection}>
+              <Typography
+                variant="caption"
+                color="secondary"
+                style={styles.paidByLabel}
+              >
+                지출자
+              </Typography>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.paidByList}
+              >
+                {currentLedger.ledger_members.map((member) => {
+                  const isSelected = selectedPaidBy === member.user_id;
+                  return (
+                    <TouchableOpacity
+                      key={member.user_id}
+                      style={[
+                        styles.paidByChip,
+                        {
+                          backgroundColor: isSelected
+                            ? colors.tint
+                            : colors.backgroundSecondary,
+                        },
+                      ]}
+                      onPress={() => setSelectedPaidBy(member.user_id)}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={[
+                          styles.paidByChipText,
+                          {
+                            color: isSelected ? '#fff' : colors.text,
+                          },
+                        ]}
+                      >
+                        {member.full_name || '멤버'}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
 
           {/* 제목 입력 */}
           <View style={styles.titleSection}>
@@ -434,6 +494,26 @@ const styles = StyleSheet.create({
     fontSize: 15,
     letterSpacing: -0.3,
     height: 52,
+  },
+  paidBySection: {
+    paddingHorizontal: 24,
+    marginBottom: 12,
+  },
+  paidByLabel: {
+    marginBottom: 8,
+  },
+  paidByList: {
+    gap: 8,
+  },
+  paidByChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  paidByChipText: {
+    fontSize: 14,
+    fontWeight: '500',
+    letterSpacing: -0.3,
   },
   saveButtonContainer: {
     paddingHorizontal: 24,

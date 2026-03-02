@@ -54,7 +54,13 @@ export class LedgerRepository implements ILedgerRepository {
   async findByUserIdWithMembers(userId: EntityId): Promise<
     Array<{
       ledger: LedgerEntity;
-      members: LedgerMemberEntity[];
+      members: Array<{
+        member: LedgerMemberEntity;
+        profile: {
+          id: string;
+          fullName?: string;
+        };
+      }>;
     }>
   > {
     // Step 1: 사용자가 속한 가계부 ID 목록 가져오기
@@ -69,13 +75,16 @@ export class LedgerRepository implements ILedgerRepository {
 
     const ledgerIds = userMemberships.map((m) => m.ledger_id);
 
-    // Step 2: 해당 가계부들과 모든 멤버 정보 가져오기
+    // Step 2: 해당 가계부들과 모든 멤버 + 프로필 정보 가져오기
     const { data, error } = await this.supabase
       .from('ledgers')
       .select(
         `
         *,
-        ledger_members(*)
+        ledger_members(
+          *,
+          profiles(id, full_name)
+        )
       `
       )
       .in('id', ledgerIds)
@@ -84,11 +93,18 @@ export class LedgerRepository implements ILedgerRepository {
 
     if (error) throw error;
 
-    // Group members by ledger
     return (data || []).map((item) => ({
       ledger: LedgerMapper.toDomain(item),
-      members: (item.ledger_members || []).map((m: DbLedgerMember) =>
-        LedgerMemberMapper.toDomain(m)
+      members: (item.ledger_members || []).map(
+        (
+          m: DbLedgerMember & { profiles: { id: string; full_name?: string } }
+        ) => ({
+          member: LedgerMemberMapper.toDomain(m),
+          profile: {
+            id: m.profiles.id,
+            fullName: m.profiles.full_name || undefined,
+          },
+        })
       ),
     }));
   }
@@ -276,7 +292,7 @@ export class LedgerMemberRepository implements ILedgerMemberRepository {
   async removeUserFromAllLedgers(userId: EntityId): Promise<void> {
     const { error } = await this.supabase
       .from('ledger_members')
-      .delete()  // 하드 삭제
+      .delete() // 하드 삭제
       .eq('user_id', userId);
 
     if (error) {

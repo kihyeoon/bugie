@@ -86,15 +86,25 @@ export interface CreateCategoryCommand {
 export interface LedgerRepository {
   findById(id: EntityId): Promise<LedgerEntity | null>;
   findByUserId(userId: EntityId): Promise<LedgerEntity[]>;
-  findByUserIdWithMembers(userId: EntityId): Promise<Array<{
-    ledger: LedgerEntity;
-    members: LedgerMemberEntity[];
-  }>>;
+  findByUserIdWithMembers(userId: EntityId): Promise<
+    Array<{
+      ledger: LedgerEntity;
+      members: Array<{
+        member: LedgerMemberEntity;
+        profile: { id: string; fullName?: string };
+      }>;
+    }>
+  >;
   findByIdWithMembers(id: EntityId): Promise<{
     ledger: LedgerEntity;
     members: Array<{
       member: LedgerMemberEntity;
-      profile: { id: string; email: string; fullName?: string; avatarUrl?: string };
+      profile: {
+        id: string;
+        email: string;
+        fullName?: string;
+        avatarUrl?: string;
+      };
     }>;
   } | null>;
   create(ledger: Omit<LedgerEntity, 'id'>): Promise<EntityId>;
@@ -103,12 +113,19 @@ export interface LedgerRepository {
 }
 
 export interface LedgerMemberRepository {
-  findByLedgerAndUser(ledgerId: EntityId, userId: EntityId): Promise<LedgerMemberEntity | null>;
+  findByLedgerAndUser(
+    ledgerId: EntityId,
+    userId: EntityId
+  ): Promise<LedgerMemberEntity | null>;
   findByLedger(ledgerId: EntityId): Promise<LedgerMemberEntity[]>;
   save(member: LedgerMemberEntity): Promise<void>;
   delete(ledgerId: EntityId, userId: EntityId): Promise<void>;
   // RPC 기반 멤버 초대 (SECURITY DEFINER로 RLS 우회)
-  inviteMemberByEmail(ledgerId: EntityId, userEmail: string, role: MemberRole): Promise<void>;
+  inviteMemberByEmail(
+    ledgerId: EntityId,
+    userEmail: string,
+    role: MemberRole
+  ): Promise<void>;
   // 사용자를 모든 가계부에서 제거 (회원 탈퇴 시)
   removeUserFromAllLedgers(userId: EntityId): Promise<void>;
   // 소유자 권한 이전 (RPC 함수 사용)
@@ -118,7 +135,10 @@ export interface LedgerMemberRepository {
 export interface CategoryRepository {
   findByLedger(ledgerId: EntityId): Promise<CategoryEntity[]>;
   findById(id: EntityId): Promise<CategoryEntity | null>;
-  findFallbackCategory(ledgerId: EntityId, type: CategoryType): Promise<CategoryEntity | null>;
+  findFallbackCategory(
+    ledgerId: EntityId,
+    type: CategoryType
+  ): Promise<CategoryEntity | null>;
   create(category: Omit<CategoryEntity, 'id'>): Promise<EntityId>;
   update(category: CategoryEntity): Promise<void>;
   updatePartial(id: EntityId, updates: Partial<CategoryEntity>): Promise<void>;

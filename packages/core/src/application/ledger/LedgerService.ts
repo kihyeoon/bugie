@@ -70,8 +70,9 @@ export class LedgerService {
       updated_at: ledger.updatedAt.toISOString(),
       deleted_at: ledger.isDeleted ? new Date().toISOString() : null,
       ledger_members: members.map((m) => ({
-        role: m.role,
-        user_id: m.userId,
+        role: m.member.role,
+        user_id: m.member.userId,
+        full_name: m.profile.fullName ?? null,
       })),
     }));
   }
@@ -221,7 +222,9 @@ export class LedgerService {
           throw new BusinessRuleViolationError('이미 가계부 멤버입니다.');
         }
         if (error.message.includes('권한이 없습니다')) {
-          throw new BusinessRuleViolationError('멤버를 초대할 권한이 없습니다.');
+          throw new BusinessRuleViolationError(
+            '멤버를 초대할 권한이 없습니다.'
+          );
         }
       }
       throw error;
@@ -333,8 +336,12 @@ export class LedgerService {
         if (error.message.includes('가계부 멤버가 아닙니다')) {
           throw new NotFoundError('해당 사용자는 가계부 멤버가 아닙니다.');
         }
-        if (error.message.includes('자기 자신에게는 권한을 이전할 수 없습니다')) {
-          throw new BusinessRuleViolationError('자기 자신에게는 권한을 이전할 수 없습니다.');
+        if (
+          error.message.includes('자기 자신에게는 권한을 이전할 수 없습니다')
+        ) {
+          throw new BusinessRuleViolationError(
+            '자기 자신에게는 권한을 이전할 수 없습니다.'
+          );
         }
       }
       throw error;
@@ -376,16 +383,18 @@ export class LedgerService {
   ): Promise<string> {
     // 현재 가계부의 카테고리들을 조회하여 최대 sort_order 값을 찾음
     const existingCategories = await this.categoryRepo.findByLedger(ledgerId);
-    
+
     // 같은 타입의 카테고리 중 최대 sort_order 찾기
-    const sameTypeCategories = existingCategories.filter(cat => cat.type === type);
+    const sameTypeCategories = existingCategories.filter(
+      (cat) => cat.type === type
+    );
     const maxSortOrder = sameTypeCategories.reduce((max, cat) => {
       return Math.max(max, cat.sortOrder || 0);
     }, 99); // 템플릿 카테고리의 최대값인 99부터 시작
-    
+
     // 새 카테고리는 최대값 + 10으로 설정 (나중에 중간 삽입 가능하도록 간격 확보)
     const newSortOrder = maxSortOrder + 10;
-    
+
     const category = CategoryRules.createCustomCategory({
       ledgerId,
       name,

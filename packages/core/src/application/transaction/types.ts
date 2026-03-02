@@ -7,6 +7,7 @@ import type { CategoryType } from '../../domain/ledger/types';
 export interface CreateTransactionInput {
   ledgerId: string;
   categoryId: string;
+  paidBy?: string;
   amount: number;
   type: CategoryType;
   title: string;
@@ -16,6 +17,7 @@ export interface CreateTransactionInput {
 
 export interface UpdateTransactionInput {
   categoryId?: string;
+  paidBy?: string;
   amount?: number;
   type?: CategoryType;
   title?: string;

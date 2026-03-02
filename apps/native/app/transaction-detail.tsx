@@ -6,6 +6,8 @@ import {
   Pressable,
   ActivityIndicator,
   Alert,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { Stack, useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -62,12 +64,17 @@ export default function TransactionDetailScreen() {
     userRole
   );
 
+  // 멤버 목록 (지출자 변경용)
+  const members = currentLedger?.ledger_members ?? [];
+  const isSharedLedger = members.length > 1;
+
   // 모달 상태들
   const [amountModalVisible, setAmountModalVisible] = useState(false);
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
   const [titleModalVisible, setTitleModalVisible] = useState(false);
   const [memoModalVisible, setMemoModalVisible] = useState(false);
   const [datePickerVisible, setDatePickerVisible] = useState(false);
+  const [paidByModalVisible, setPaidByModalVisible] = useState(false);
 
   // 편집 핸들러들
   const handleAmountSave = useCallback(
@@ -138,6 +145,23 @@ export default function TransactionDetailScreen() {
       }
     },
     [updateTransaction]
+  );
+
+  const handlePaidBySave = useCallback(
+    async (paidByUserId: string) => {
+      try {
+        const selectedMember = members.find((m) => m.user_id === paidByUserId);
+        await updateTransaction({
+          paidBy: paidByUserId,
+          paid_by: paidByUserId,
+          paid_by_name: selectedMember?.full_name ?? null,
+        });
+        setPaidByModalVisible(false);
+      } catch {
+        Alert.alert('오류', '지출자 변경에 실패했습니다.');
+      }
+    },
+    [updateTransaction, members]
   );
 
   const handleDateConfirm = useCallback(
@@ -432,6 +456,40 @@ export default function TransactionDetailScreen() {
             </View>
           </Pressable>
 
+          {/* 지출자 - 공유 가계부에서만 수정 가능 */}
+          {isSharedLedger ? (
+            <Pressable
+              style={[
+                styles.infoRow,
+                !canUpdateTransaction && styles.disabledRow,
+              ]}
+              onPress={
+                canUpdateTransaction
+                  ? () => setPaidByModalVisible(true)
+                  : undefined
+              }
+              disabled={!canUpdateTransaction}
+            >
+              <Typography variant="body1" color="secondary" weight="500">
+                지출자
+              </Typography>
+              <View style={styles.valueContainer}>
+                <Typography variant="body1">
+                  {transaction.paid_by_name ||
+                    transaction.created_by_name ||
+                    '탈퇴한 사용자'}
+                </Typography>
+                {canUpdateTransaction && (
+                  <Ionicons
+                    name="chevron-forward"
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                )}
+              </View>
+            </Pressable>
+          ) : null}
+
           {/* 작성자 - 수정 불가 */}
           <View style={styles.infoRow}>
             <Typography variant="body1" color="secondary" weight="500">
@@ -536,6 +594,67 @@ export default function TransactionDetailScreen() {
             confirmTextIOS="완료"
             cancelTextIOS="취소"
           />
+
+          {/* 지출자 선택 모달 */}
+          <Modal
+            visible={paidByModalVisible}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setPaidByModalVisible(false)}
+          >
+            <Pressable
+              style={modalStyles.overlay}
+              onPress={() => setPaidByModalVisible(false)}
+            >
+              <Pressable
+                style={[
+                  modalStyles.content,
+                  { backgroundColor: colors.background },
+                ]}
+                onPress={(e) => e.stopPropagation()}
+              >
+                <Typography variant="h3" style={modalStyles.title}>
+                  지출자 변경
+                </Typography>
+                <FlatList
+                  data={members}
+                  keyExtractor={(item) => item.user_id}
+                  renderItem={({ item }) => {
+                    const isSelected =
+                      (transaction.paid_by || transaction.created_by) ===
+                      item.user_id;
+                    return (
+                      <Pressable
+                        style={[
+                          modalStyles.memberItem,
+                          {
+                            backgroundColor: isSelected
+                              ? colors.tint + '15'
+                              : 'transparent',
+                          },
+                        ]}
+                        onPress={() => handlePaidBySave(item.user_id)}
+                      >
+                        <Typography
+                          variant="body1"
+                          weight={isSelected ? '600' : '400'}
+                        >
+                          {item.full_name || '멤버'}
+                        </Typography>
+                        {isSelected && (
+                          <Ionicons
+                            name="checkmark"
+                            size={20}
+                            color={colors.tint}
+                          />
+                        )}
+                      </Pressable>
+                    );
+                  }}
+                />
+              </Pressable>
+            </Pressable>
+          </Modal>
         </>
       )}
     </>
@@ -623,5 +742,31 @@ const styles = StyleSheet.create({
   },
   disabledRow: {
     opacity: 0.6,
+  },
+});
+
+const modalStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  content: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 40,
+    maxHeight: '50%',
+  },
+  title: {
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 12,
+  },
+  memberItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
   },
 });

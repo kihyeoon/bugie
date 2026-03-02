@@ -123,6 +123,7 @@ export class TransactionService {
       ledgerId: input.ledgerId,
       categoryId: input.categoryId,
       createdBy: currentUser.id,
+      paidBy: input.paidBy ?? currentUser.id,
       amount: input.amount,
       type: input.type,
       title: input.title,
@@ -173,6 +174,7 @@ export class TransactionService {
     const updatedTransaction = TransactionRules.updateTransaction(transaction, {
       id: transactionId,
       categoryId: input.categoryId,
+      paidBy: input.paidBy,
       amount: input.amount,
       type: input.type,
       title: input.title,

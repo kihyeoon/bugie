@@ -72,6 +72,7 @@ export interface Transaction {
   ledger_id: string;
   category_id: string;
   created_by: string;
+  paid_by?: string | null;
   amount: number;
   type: CategoryType;
   title: string;
