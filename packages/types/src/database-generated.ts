@@ -10,7 +10,7 @@ export interface Database {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: '12.2.3 (519615d)';
+    PostgrestVersion: "12.2.3 (519615d)";
   };
   public: {
     Tables: {
@@ -24,7 +24,7 @@ export interface Database {
           id: string;
           ledger_id: string;
           month: number | null;
-          period: Database['public']['Enums']['budget_period'] | null;
+          period: Database["public"]["Enums"]["budget_period"] | null;
           updated_at: string | null;
           year: number;
         };
@@ -37,7 +37,7 @@ export interface Database {
           id?: string;
           ledger_id: string;
           month?: number | null;
-          period?: Database['public']['Enums']['budget_period'] | null;
+          period?: Database["public"]["Enums"]["budget_period"] | null;
           updated_at?: string | null;
           year: number;
         };
@@ -50,38 +50,38 @@ export interface Database {
           id?: string;
           ledger_id?: string;
           month?: number | null;
-          period?: Database['public']['Enums']['budget_period'] | null;
+          period?: Database["public"]["Enums"]["budget_period"] | null;
           updated_at?: string | null;
           year?: number;
         };
         Relationships: [
           {
-            foreignKeyName: 'budgets_category_id_fkey';
-            columns: ['category_id'];
+            foreignKeyName: "budgets_category_id_fkey";
+            columns: ["category_id"];
             isOneToOne: false;
-            referencedRelation: 'categories';
-            referencedColumns: ['id'];
+            referencedRelation: "categories";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: 'budgets_category_id_fkey';
-            columns: ['category_id'];
+            foreignKeyName: "budgets_category_id_fkey";
+            columns: ["category_id"];
             isOneToOne: false;
-            referencedRelation: 'category_details';
-            referencedColumns: ['id'];
+            referencedRelation: "category_details";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: 'budgets_created_by_fkey';
-            columns: ['created_by'];
+            foreignKeyName: "budgets_created_by_fkey";
+            columns: ["created_by"];
             isOneToOne: false;
-            referencedRelation: 'profiles';
-            referencedColumns: ['id'];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: 'budgets_ledger_id_fkey';
-            columns: ['ledger_id'];
+            foreignKeyName: "budgets_ledger_id_fkey";
+            columns: ["ledger_id"];
             isOneToOne: false;
-            referencedRelation: 'ledgers';
-            referencedColumns: ['id'];
+            referencedRelation: "ledgers";
+            referencedColumns: ["id"];
           },
         ];
       };
@@ -97,7 +97,7 @@ export interface Database {
           name: string | null;
           sort_order: number | null;
           template_id: string | null;
-          type: Database['public']['Enums']['category_type'];
+          type: Database["public"]["Enums"]["category_type"];
           updated_at: string | null;
         };
         Insert: {
@@ -111,7 +111,7 @@ export interface Database {
           name?: string | null;
           sort_order?: number | null;
           template_id?: string | null;
-          type: Database['public']['Enums']['category_type'];
+          type: Database["public"]["Enums"]["category_type"];
           updated_at?: string | null;
         };
         Update: {
@@ -125,23 +125,23 @@ export interface Database {
           name?: string | null;
           sort_order?: number | null;
           template_id?: string | null;
-          type?: Database['public']['Enums']['category_type'];
+          type?: Database["public"]["Enums"]["category_type"];
           updated_at?: string | null;
         };
         Relationships: [
           {
-            foreignKeyName: 'categories_ledger_id_fkey';
-            columns: ['ledger_id'];
+            foreignKeyName: "categories_ledger_id_fkey";
+            columns: ["ledger_id"];
             isOneToOne: false;
-            referencedRelation: 'ledgers';
-            referencedColumns: ['id'];
+            referencedRelation: "ledgers";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: 'categories_template_id_fkey';
-            columns: ['template_id'];
+            foreignKeyName: "categories_template_id_fkey";
+            columns: ["template_id"];
             isOneToOne: false;
-            referencedRelation: 'category_templates';
-            referencedColumns: ['id'];
+            referencedRelation: "category_templates";
+            referencedColumns: ["id"];
           },
         ];
       };
@@ -153,7 +153,7 @@ export interface Database {
           id: string;
           name: string;
           sort_order: number | null;
-          type: Database['public']['Enums']['category_type'];
+          type: Database["public"]["Enums"]["category_type"];
           updated_at: string | null;
         };
         Insert: {
@@ -163,7 +163,7 @@ export interface Database {
           id?: string;
           name: string;
           sort_order?: number | null;
-          type: Database['public']['Enums']['category_type'];
+          type: Database["public"]["Enums"]["category_type"];
           updated_at?: string | null;
         };
         Update: {
@@ -173,7 +173,7 @@ export interface Database {
           id?: string;
           name?: string;
           sort_order?: number | null;
-          type?: Database['public']['Enums']['category_type'];
+          type?: Database["public"]["Enums"]["category_type"];
           updated_at?: string | null;
         };
         Relationships: [];
@@ -244,7 +244,7 @@ export interface Database {
           id: string;
           joined_at: string | null;
           ledger_id: string;
-          role: Database['public']['Enums']['member_role'] | null;
+          role: Database["public"]["Enums"]["member_role"] | null;
           user_id: string;
         };
         Insert: {
@@ -252,7 +252,7 @@ export interface Database {
           id?: string;
           joined_at?: string | null;
           ledger_id: string;
-          role?: Database['public']['Enums']['member_role'] | null;
+          role?: Database["public"]["Enums"]["member_role"] | null;
           user_id: string;
         };
         Update: {
@@ -260,23 +260,23 @@ export interface Database {
           id?: string;
           joined_at?: string | null;
           ledger_id?: string;
-          role?: Database['public']['Enums']['member_role'] | null;
+          role?: Database["public"]["Enums"]["member_role"] | null;
           user_id?: string;
         };
         Relationships: [
           {
-            foreignKeyName: 'ledger_members_ledger_id_fkey';
-            columns: ['ledger_id'];
+            foreignKeyName: "ledger_members_ledger_id_fkey";
+            columns: ["ledger_id"];
             isOneToOne: false;
-            referencedRelation: 'ledgers';
-            referencedColumns: ['id'];
+            referencedRelation: "ledgers";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: 'ledger_members_user_id_fkey';
-            columns: ['user_id'];
+            foreignKeyName: "ledger_members_user_id_fkey";
+            columns: ["user_id"];
             isOneToOne: false;
-            referencedRelation: 'profiles';
-            referencedColumns: ['id'];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
         ];
       };
@@ -313,11 +313,11 @@ export interface Database {
         };
         Relationships: [
           {
-            foreignKeyName: 'ledgers_created_by_fkey';
-            columns: ['created_by'];
+            foreignKeyName: "ledgers_created_by_fkey";
+            columns: ["created_by"];
             isOneToOne: false;
-            referencedRelation: 'profiles';
-            referencedColumns: ['id'];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
         ];
       };
@@ -394,7 +394,7 @@ export interface Database {
           paid_by: string | null;
           title: string;
           transaction_date: string;
-          type: Database['public']['Enums']['category_type'];
+          type: Database["public"]["Enums"]["category_type"];
           updated_at: string | null;
         };
         Insert: {
@@ -409,7 +409,7 @@ export interface Database {
           paid_by?: string | null;
           title: string;
           transaction_date?: string;
-          type: Database['public']['Enums']['category_type'];
+          type: Database["public"]["Enums"]["category_type"];
           updated_at?: string | null;
         };
         Update: {
@@ -424,37 +424,44 @@ export interface Database {
           paid_by?: string | null;
           title?: string;
           transaction_date?: string;
-          type?: Database['public']['Enums']['category_type'];
+          type?: Database["public"]["Enums"]["category_type"];
           updated_at?: string | null;
         };
         Relationships: [
           {
-            foreignKeyName: 'transactions_category_id_fkey';
-            columns: ['category_id'];
+            foreignKeyName: "transactions_category_id_fkey";
+            columns: ["category_id"];
             isOneToOne: false;
-            referencedRelation: 'categories';
-            referencedColumns: ['id'];
+            referencedRelation: "categories";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: 'transactions_category_id_fkey';
-            columns: ['category_id'];
+            foreignKeyName: "transactions_category_id_fkey";
+            columns: ["category_id"];
             isOneToOne: false;
-            referencedRelation: 'category_details';
-            referencedColumns: ['id'];
+            referencedRelation: "category_details";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: 'transactions_created_by_fkey';
-            columns: ['created_by'];
+            foreignKeyName: "transactions_created_by_fkey";
+            columns: ["created_by"];
             isOneToOne: false;
-            referencedRelation: 'profiles';
-            referencedColumns: ['id'];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: 'transactions_ledger_id_fkey';
-            columns: ['ledger_id'];
+            foreignKeyName: "transactions_ledger_id_fkey";
+            columns: ["ledger_id"];
             isOneToOne: false;
-            referencedRelation: 'ledgers';
-            referencedColumns: ['id'];
+            referencedRelation: "ledgers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "transactions_paid_by_fkey";
+            columns: ["paid_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
         ];
       };
@@ -480,37 +487,44 @@ export interface Database {
           paid_by_name: string | null;
           title: string | null;
           transaction_date: string | null;
-          type: Database['public']['Enums']['category_type'] | null;
+          type: Database["public"]["Enums"]["category_type"] | null;
           updated_at: string | null;
         };
         Relationships: [
           {
-            foreignKeyName: 'transactions_category_id_fkey';
-            columns: ['category_id'];
+            foreignKeyName: "transactions_category_id_fkey";
+            columns: ["category_id"];
             isOneToOne: false;
-            referencedRelation: 'categories';
-            referencedColumns: ['id'];
+            referencedRelation: "categories";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: 'transactions_category_id_fkey';
-            columns: ['category_id'];
+            foreignKeyName: "transactions_category_id_fkey";
+            columns: ["category_id"];
             isOneToOne: false;
-            referencedRelation: 'category_details';
-            referencedColumns: ['id'];
+            referencedRelation: "category_details";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: 'transactions_created_by_fkey';
-            columns: ['created_by'];
+            foreignKeyName: "transactions_created_by_fkey";
+            columns: ["created_by"];
             isOneToOne: false;
-            referencedRelation: 'profiles';
-            referencedColumns: ['id'];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: 'transactions_ledger_id_fkey';
-            columns: ['ledger_id'];
+            foreignKeyName: "transactions_ledger_id_fkey";
+            columns: ["ledger_id"];
             isOneToOne: false;
-            referencedRelation: 'ledgers';
-            referencedColumns: ['id'];
+            referencedRelation: "ledgers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "transactions_paid_by_fkey";
+            columns: ["paid_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
         ];
       };
@@ -525,32 +539,32 @@ export interface Database {
           category_name: string | null;
           ledger_id: string | null;
           month: number | null;
-          period: Database['public']['Enums']['budget_period'] | null;
+          period: Database["public"]["Enums"]["budget_period"] | null;
           remaining_amount: number | null;
           usage_percentage: number | null;
           year: number | null;
         };
         Relationships: [
           {
-            foreignKeyName: 'budgets_category_id_fkey';
-            columns: ['category_id'];
+            foreignKeyName: "budgets_category_id_fkey";
+            columns: ["category_id"];
             isOneToOne: false;
-            referencedRelation: 'categories';
-            referencedColumns: ['id'];
+            referencedRelation: "categories";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: 'budgets_category_id_fkey';
-            columns: ['category_id'];
+            foreignKeyName: "budgets_category_id_fkey";
+            columns: ["category_id"];
             isOneToOne: false;
-            referencedRelation: 'category_details';
-            referencedColumns: ['id'];
+            referencedRelation: "category_details";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: 'budgets_ledger_id_fkey';
-            columns: ['ledger_id'];
+            foreignKeyName: "budgets_ledger_id_fkey";
+            columns: ["ledger_id"];
             isOneToOne: false;
-            referencedRelation: 'ledgers';
-            referencedColumns: ['id'];
+            referencedRelation: "ledgers";
+            referencedColumns: ["id"];
           },
         ];
       };
@@ -566,23 +580,23 @@ export interface Database {
           sort_order: number | null;
           source_type: string | null;
           template_id: string | null;
-          type: Database['public']['Enums']['category_type'] | null;
+          type: Database["public"]["Enums"]["category_type"] | null;
           updated_at: string | null;
         };
         Relationships: [
           {
-            foreignKeyName: 'categories_ledger_id_fkey';
-            columns: ['ledger_id'];
+            foreignKeyName: "categories_ledger_id_fkey";
+            columns: ["ledger_id"];
             isOneToOne: false;
-            referencedRelation: 'ledgers';
-            referencedColumns: ['id'];
+            referencedRelation: "ledgers";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: 'categories_template_id_fkey';
-            columns: ['template_id'];
+            foreignKeyName: "categories_template_id_fkey";
+            columns: ["template_id"];
             isOneToOne: false;
-            referencedRelation: 'category_templates';
-            referencedColumns: ['id'];
+            referencedRelation: "category_templates";
+            referencedColumns: ["id"];
           },
         ];
       };
@@ -592,16 +606,16 @@ export interface Database {
           month: number | null;
           total_amount: number | null;
           transaction_count: number | null;
-          type: Database['public']['Enums']['category_type'] | null;
+          type: Database["public"]["Enums"]["category_type"] | null;
           year: number | null;
         };
         Relationships: [
           {
-            foreignKeyName: 'transactions_ledger_id_fkey';
-            columns: ['ledger_id'];
+            foreignKeyName: "transactions_ledger_id_fkey";
+            columns: ["ledger_id"];
             isOneToOne: false;
-            referencedRelation: 'ledgers';
-            referencedColumns: ['id'];
+            referencedRelation: "ledgers";
+            referencedColumns: ["id"];
           },
         ];
       };
@@ -617,15 +631,12 @@ export interface Database {
           category_icon?: string;
           category_name: string;
           category_sort_order?: number;
-          category_type: Database['public']['Enums']['category_type'];
+          category_type: Database["public"]["Enums"]["category_type"];
           target_ledger_id: string;
         };
         Returns: string;
       };
-      cleanup_old_deleted_data: {
-        Args: Record<PropertyKey, never>;
-        Returns: undefined;
-      };
+      cleanup_old_deleted_data: { Args: never; Returns: undefined };
       create_user_profile: {
         Args: {
           p_avatar_url?: string;
@@ -635,10 +646,7 @@ export interface Database {
         };
         Returns: boolean;
       };
-      force_clean_user: {
-        Args: { target_user_id: string };
-        Returns: Json;
-      };
+      force_clean_user: { Args: { target_user_id: string }; Returns: Json };
       force_delete_auth_user_with_constraints: {
         Args: { target_user_id: string };
         Returns: Json;
@@ -659,7 +667,7 @@ export interface Database {
         }[];
       };
       get_user_ledgers: {
-        Args: Record<PropertyKey, never>;
+        Args: never;
         Returns: {
           created_at: string;
           created_by: string;
@@ -667,30 +675,22 @@ export interface Database {
           description: string;
           id: string;
           name: string;
-          role: Database['public']['Enums']['member_role'];
+          role: Database["public"]["Enums"]["member_role"];
           updated_at: string;
         }[];
       };
-      initialize_category_templates: {
-        Args: Record<PropertyKey, never>;
-        Returns: undefined;
-      };
+      initialize_category_templates: { Args: never; Returns: undefined };
       invite_member_to_ledger: {
         Args: {
-          member_role?: Database['public']['Enums']['member_role'];
+          member_role?: Database["public"]["Enums"]["member_role"];
           target_ledger_id: string;
           target_user_email: string;
         };
         Returns: boolean;
       };
-      process_account_deletions: {
-        Args: Record<PropertyKey, never>;
-        Returns: Json;
-      };
-      process_account_deletions_v2: {
-        Args: Record<PropertyKey, never>;
-        Returns: Json;
-      };
+      process_account_deletions: { Args: never; Returns: Json };
+      process_account_deletions_clean: { Args: never; Returns: Json };
+      process_account_deletions_v2: { Args: never; Returns: Json };
       restore_deleted_account: {
         Args: { target_user_id: string };
         Returns: Json;
@@ -713,14 +713,8 @@ export interface Database {
         Args: { category_id: string };
         Returns: boolean;
       };
-      soft_delete_ledger: {
-        Args: { ledger_id: string };
-        Returns: boolean;
-      };
-      soft_delete_profile: {
-        Args: Record<PropertyKey, never>;
-        Returns: boolean;
-      };
+      soft_delete_ledger: { Args: { ledger_id: string }; Returns: boolean };
+      soft_delete_profile: { Args: never; Returns: boolean };
       soft_delete_transaction: {
         Args: { transaction_id: string };
         Returns: boolean;
@@ -731,9 +725,9 @@ export interface Database {
       };
     };
     Enums: {
-      budget_period: 'monthly' | 'yearly';
-      category_type: 'income' | 'expense';
-      member_role: 'owner' | 'admin' | 'member' | 'viewer';
+      budget_period: "monthly" | "yearly";
+      category_type: "income" | "expense";
+      member_role: "owner" | "admin" | "member" | "viewer";
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -741,36 +735,34 @@ export interface Database {
   };
 }
 
-type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>;
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">;
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<
-  keyof Database,
-  'public'
->];
+type DefaultSchema =
+  DatabaseWithoutInternals[Extract<keyof Database, "public">];
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals;
 }
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])[TableName] extends {
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R;
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema['Tables'] &
-        DefaultSchema['Views'])
-    ? (DefaultSchema['Tables'] &
-        DefaultSchema['Views'])[DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R;
       }
       ? R
@@ -779,23 +771,23 @@ export type Tables<
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema['Tables']
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals;
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I;
     }
     ? I
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
-    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I;
       }
       ? I
@@ -804,23 +796,23 @@ export type TablesInsert<
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema['Tables']
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals;
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U;
     }
     ? U
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
-    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U;
       }
       ? U
@@ -829,44 +821,44 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema['Enums']
+    | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums']
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals;
 }
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums'][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums']
-    ? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never;
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema['CompositeTypes']
+    | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals;
 }
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema['CompositeTypes']
-    ? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never;
 
 export const Constants = {
   public: {
     Enums: {
-      budget_period: ['monthly', 'yearly'],
-      category_type: ['income', 'expense'],
-      member_role: ['owner', 'admin', 'member', 'viewer'],
+      budget_period: ["monthly", "yearly"],
+      category_type: ["income", "expense"],
+      member_role: ["owner", "admin", "member", "viewer"],
     },
   },
 } as const;
