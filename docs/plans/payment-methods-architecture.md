@@ -575,52 +575,53 @@ export interface TransactionWithDetails {
 
 ## 9. 구현 순서
 
-### 1단계: DB + 기본 CRUD
+### 1단계: DB + 기본 CRUD ✅
 
-- [ ] `payment_methods` 테이블 마이그레이션 생성
-- [ ] `transactions.payment_method_id` 컬럼 추가
-- [ ] `check_payment_method_expense_only` 제약 조건 추가
-- [ ] Cross-ledger 참조 방지 트리거 (`check_payment_method_ledger_match`)
-- [ ] ledger_id 변경 방지 트리거 (`prevent_ledger_id_change` — payment_methods + categories)
-- [ ] RLS 정책 (SELECT, INSERT, UPDATE — DELETE 제외)
-- [ ] 인덱스 생성
-- [ ] `soft_delete_payment_method` 함수 + GRANT 설정
-- [ ] `active_transactions` 뷰 갱신
-- [ ] `cleanup_old_deleted_data`에 `payment_methods` 추가
-- [ ] `force_clean_user`에 `payment_methods.owner_id` NULL 처리 추가
+- [x] `payment_methods` 테이블 마이그레이션 생성
+- [x] `transactions.payment_method_id` 컬럼 추가
+- [x] `check_payment_method_expense_only` 제약 조건 추가
+- [x] Cross-ledger 참조 방지 트리거 (`check_payment_method_ledger_match`)
+- [x] ledger_id 변경 방지 트리거 (`prevent_ledger_id_change` — payment_methods + categories)
+- [x] RLS 정책 (SELECT, INSERT, UPDATE — DELETE 제외)
+- [x] 인덱스 생성
+- [x] `soft_delete_payment_method` 함수 + GRANT 설정
+- [x] `active_transactions` 뷰 갱신
+- [x] `cleanup_old_deleted_data`에 `payment_methods` 추가
+- [x] `force_clean_user`에 `payment_methods.owner_id` NULL 처리 추가
 
 > **NOTE: 기존 `categories` RLS — 이미 적용됨**
 >
 > `schema.sql` 확인 결과, `categories` INSERT/UPDATE RLS에 이미 `role IN ('owner', 'admin', 'member')`로
 > viewer 역할이 제외되어 있다. 결제 수단 RLS와 일관성이 확보되어 있으므로 별도 작업이 불필요하다.
 
-### 2단계: core 패키지 + 서비스 연결
+### 2단계: core 패키지 + 서비스 연결 ✅
 
 **신규 파일:**
 
-- [ ] `domain/payment-method/types.ts` — `PaymentMethodEntity` 타입
-- [ ] `domain/payment-method/rules.ts` — `PaymentMethodRules` 비즈니스 규칙
-- [ ] `application/payment-method/types.ts` — `CreatePaymentMethodInput`, `UpdatePaymentMethodInput`
-- [ ] `application/payment-method/PaymentMethodService.ts` — CRUD 서비스
-- [ ] `infrastructure/supabase/repositories/SupabasePaymentMethodRepository.ts`
-- [ ] `infrastructure/supabase/mappers/PaymentMethodMapper.ts`
+- [x] `domain/payment-method/types.ts` — `PaymentMethodEntity`, `PaymentMethodRepository`, Command 타입
+- [x] `domain/payment-method/rules.ts` — `PaymentMethodRules` (validateName, canAttachPaymentMethod, sanitize, create, update)
+- [x] `application/payment-method/types.ts` — `CreatePaymentMethodInput`, `UpdatePaymentMethodInput`
+- [x] `application/payment-method/PaymentMethodService.ts` — getByLedger, create, update, softDelete + 권한 체크
+- [x] `infrastructure/supabase/repositories/SupabasePaymentMethodRepository.ts` — `PaymentMethodRepository` 구현
+- [x] `infrastructure/supabase/mappers/PaymentMethodMapper.ts` — toDomain, toDb, toDbForCreate
 
 **기존 파일 수정:**
 
-- [ ] `domain/transaction/types.ts` — `TransactionEntity`에 `paymentMethodId` 추가
-- [ ] `domain/transaction/rules.ts` — `TransactionRules.createTransaction`에 `paymentMethodId` 전달
-- [ ] `application/transaction/types.ts` — `CreateTransactionInput`, `UpdateTransactionInput`에 `paymentMethodId` 추가
-- [ ] `application/transaction/TransactionService.ts` — create/update에 `paymentMethodId` 전달
-- [ ] `application/permission/PermissionService.ts` — PERMISSIONS에 결제 수단 권한 추가
-- [ ] `infrastructure/supabase/mappers/TransactionMapper.ts` — toDomain/toDb에 `paymentMethodId` 매핑
-- [ ] `shared/types.ts` — `TransactionWithDetails`에 `payment_method_name`, `payment_method_icon`, `payment_method_is_shared` 추가
-- [ ] `packages/core/src/index.ts` — `createPaymentMethodService` 팩토리 + 타입 re-export
+- [x] `domain/transaction/types.ts` — `TransactionEntity`, `Create/UpdateTransactionCommand`에 `paymentMethodId` 추가
+- [x] `domain/transaction/rules.ts` — create/update에서 `PaymentMethodRules.sanitizePaymentMethodOnTypeChange` 호출 (순서: type → paidBy → paymentMethodId → sanitize → updatedAt)
+- [x] `application/transaction/types.ts` — `CreateTransactionInput`, `UpdateTransactionInput`에 `paymentMethodId` 추가
+- [x] `application/transaction/TransactionService.ts` — create/update에 `paymentMethodId` 전달
+- [x] `application/permission/PermissionService.ts` — PERMISSIONS에 `createPaymentMethod`, `updatePaymentMethod`, `deletePaymentMethod`, `viewPaymentMethods` 추가
+- [x] `infrastructure/supabase/mappers/TransactionMapper.ts` — toDomain/toDb/toDbForCreate에 `paymentMethodId` ↔ `payment_method_id` 매핑
+- [x] `shared/types.ts` — `TransactionWithDetails`에 `payment_method_id`, `payment_method_name`, `payment_method_icon`, `payment_method_is_shared` 추가
+- [x] `packages/core/src/index.ts` — `createPaymentMethodService` 팩토리 + `PaymentMethodService`, `PaymentMethodEntity`, `PaymentMethodRules` 등 타입 re-export
+- [x] `domain/shared/constants.ts` — `PAYMENT_METHOD_MAX_NAME_LENGTH = 30` 추가
 
 **네이티브 앱 서비스 연결:**
 
-- [ ] `apps/native/services/core/types.ts` — `CoreServices`에 `paymentMethodService` 추가
-- [ ] `apps/native/services/core/createServices.ts` — `createPaymentMethodService` 팩토리 호출 추가
-- [ ] `@repo/types`에 DB 타입 반영
+- [x] `apps/native/services/core/types.ts` — `CoreServices`에 `paymentMethodService` 추가
+- [x] `apps/native/services/core/createServices.ts` — `createPaymentMethodService` 팩토리 호출 추가
+- [x] `@repo/types` — `PaymentMethod` 인터페이스 추가, `Transaction`에 `payment_method_id` 추가
 
 ### 3단계: UI
 

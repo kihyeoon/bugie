@@ -81,6 +81,10 @@ export interface TransactionWithDetails {
   ledger_name: string;
   created_by_name: string | null; // 탈퇴한 사용자는 null
   paid_by_name: string | null;
+  payment_method_id: string | null;
+  payment_method_name: string | null;
+  payment_method_icon: string | null;
+  payment_method_is_shared: boolean | null;
 }
 
 export interface CalendarDayData {

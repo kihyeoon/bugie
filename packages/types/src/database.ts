@@ -66,6 +66,20 @@ export interface Category {
   deleted_at?: string;
 }
 
+// 결제 수단
+export interface PaymentMethod {
+  id: string;
+  ledger_id: string;
+  owner_id: string | null;
+  is_shared: boolean;
+  name: string;
+  icon: string | null;
+  sort_order: number | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
 // 거래
 export interface Transaction {
   id: string;
@@ -73,6 +87,7 @@ export interface Transaction {
   category_id: string;
   created_by: string;
   paid_by?: string | null;
+  payment_method_id?: string | null;
   amount: number;
   type: CategoryType;
   title: string;

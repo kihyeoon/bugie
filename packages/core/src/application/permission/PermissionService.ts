@@ -40,6 +40,12 @@ export class PermissionService {
     deleteCategory: ['owner', 'member'],
     viewCategories: ['owner', 'member'],
 
+    // 결제 수단 관리
+    createPaymentMethod: ['owner', 'member'],
+    updatePaymentMethod: ['owner', 'member'],
+    deletePaymentMethod: ['owner', 'member'],
+    viewPaymentMethods: ['owner', 'member'],
+
     // 예산 관리 (향후 구현)
     manageBudget: ['owner', 'member'],
     viewBudget: ['owner', 'member'],

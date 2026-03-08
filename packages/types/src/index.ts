@@ -18,6 +18,7 @@ export type {
   LedgerMember,
   Category,
   CategoryTemplate,
+  PaymentMethod,
   Transaction,
   Budget
 } from './database';

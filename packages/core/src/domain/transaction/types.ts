@@ -14,6 +14,7 @@ export interface TransactionEntity {
   categoryId: EntityId;
   createdBy: EntityId;
   paidBy?: EntityId;
+  paymentMethodId?: EntityId;
   amount: number;
   type: CategoryType;
   title: string;
@@ -30,6 +31,7 @@ export interface CreateTransactionCommand {
   categoryId: EntityId;
   createdBy: EntityId;
   paidBy?: EntityId;
+  paymentMethodId?: EntityId;
   amount: number;
   type: CategoryType;
   title: string;
@@ -41,6 +43,7 @@ export interface UpdateTransactionCommand {
   id: EntityId;
   categoryId?: EntityId;
   paidBy?: EntityId;
+  paymentMethodId?: EntityId;
   amount?: number;
   type?: CategoryType;
   title?: string;

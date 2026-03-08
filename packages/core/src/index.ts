@@ -9,6 +9,7 @@ export * from './domain/shared/errors';
 export * from './domain/auth/types';
 export * from './domain/ledger/types';
 export * from './domain/transaction/types';
+export * from './domain/payment-method/types';
 export * from './domain/profile/types';
 
 // 도메인 규칙
@@ -18,6 +19,7 @@ export {
   CategoryRules,
 } from './domain/ledger/rules';
 export { TransactionRules } from './domain/transaction/rules';
+export { PaymentMethodRules } from './domain/payment-method/rules';
 export { ProfileRules } from './domain/profile/rules';
 
 // 도메인 상수
@@ -37,6 +39,11 @@ export type {
   UpdateTransactionInput,
   TransactionFilterInput,
 } from './application/transaction/types';
+
+export type {
+  CreatePaymentMethodInput,
+  UpdatePaymentMethodInput,
+} from './application/payment-method/types';
 
 export type {
   UpdateProfileInput,
@@ -60,6 +67,7 @@ export type {
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { LedgerService } from './application/ledger/LedgerService';
 import { TransactionService } from './application/transaction/TransactionService';
+import { PaymentMethodService } from './application/payment-method/PaymentMethodService';
 import { ProfileService } from './application/profile/ProfileService';
 
 // Infrastructure imports
@@ -70,6 +78,7 @@ import {
 } from './infrastructure/supabase/repositories/LedgerRepository';
 import { TransactionRepository } from './infrastructure/supabase/repositories/TransactionRepository';
 import { TransactionViewRepository } from './infrastructure/supabase/repositories/TransactionViewRepository';
+import { SupabasePaymentMethodRepository } from './infrastructure/supabase/repositories/SupabasePaymentMethodRepository';
 import { SupabaseAuthService } from './infrastructure/supabase/auth/SupabaseAuthService';
 import { SupabaseProfileRepository } from './infrastructure/supabase/profile/SupabaseProfileRepository';
 
@@ -105,6 +114,16 @@ export function createTransactionService(
   );
 }
 
+export function createPaymentMethodService(
+  supabase: SupabaseClient
+): PaymentMethodService {
+  const paymentMethodRepo = new SupabasePaymentMethodRepository(supabase);
+  const memberRepo = new LedgerMemberRepository(supabase);
+  const authService = new SupabaseAuthService(supabase);
+
+  return new PaymentMethodService(paymentMethodRepo, memberRepo, authService);
+}
+
 export function createProfileService(supabase: SupabaseClient): ProfileService {
   const profileRepo = new SupabaseProfileRepository(supabase);
   const ledgerRepo = new LedgerRepository(supabase);
@@ -120,7 +139,7 @@ export function createProfileService(supabase: SupabaseClient): ProfileService {
 }
 
 // 서비스 클래스 Export (타입용)
-export type { LedgerService, TransactionService, ProfileService };
+export type { LedgerService, TransactionService, PaymentMethodService, ProfileService };
 
 // 권한 관리 서비스 Export
 export { PermissionService } from './application/permission/PermissionService';
