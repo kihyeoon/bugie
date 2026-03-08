@@ -171,7 +171,7 @@ export const TransactionRules = {
     }
 
     if (command.paymentMethodId !== undefined) {
-      updated.paymentMethodId = command.paymentMethodId;
+      updated.paymentMethodId = command.paymentMethodId ?? undefined;
     }
 
     // sanitize: 수입 타입이면 paymentMethodId 제거 (DB CHECK 제약과 정합성 보장)

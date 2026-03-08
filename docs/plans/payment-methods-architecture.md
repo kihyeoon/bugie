@@ -623,11 +623,27 @@ export interface TransactionWithDetails {
 - [x] `apps/native/services/core/createServices.ts` — `createPaymentMethodService` 팩토리 호출 추가
 - [x] `@repo/types` — `PaymentMethod` 인터페이스 추가, `Transaction`에 `payment_method_id` 추가
 
-### 3단계: UI
+### 3단계: UI ✅
 
-- [ ] 가계부 설정 > 결제 수단 관리 화면
-- [ ] 거래 입력 시 결제 수단 선택 UI (지출 전용)
-- [ ] `usePaymentMethods` hook 구현
+**신규 파일:**
+
+- [x] `apps/native/constants/paymentMethods.ts` — 결제 수단 아이콘 상수 (Ionicons 기반)
+- [x] `apps/native/hooks/usePaymentMethods.ts` — 데이터 hook + `groupPaymentMethods` 유틸 (공동/내 수단/파트너 그룹핑)
+- [x] `apps/native/app/payment-methods.tsx` — 결제 수단 관리 화면 (SectionList, 권한 기반 CRUD)
+- [x] `apps/native/components/payment-method/PaymentMethodItem.tsx` — 리스트 아이템 (아이콘 + 이름 + 뱃지)
+- [x] `apps/native/components/payment-method/AddPaymentMethodModal.tsx` — 추가 모달 (이름, 아이콘 그리드, 공동 토글)
+- [x] `apps/native/components/payment-method/EditPaymentMethodModal.tsx` — 수정 모달 (변경된 필드만 전송)
+- [x] `apps/native/components/shared/PaymentMethodBottomSheet.tsx` — 선택 바텀시트 (PaidByBottomSheet 패턴 + ScrollView)
+
+**기존 파일 수정:**
+
+- [x] `apps/native/app/ledger-settings.tsx` — 가계부 설정에 "결제 수단 관리" 진입점 추가
+- [x] `apps/native/app/(tabs)/add.tsx` — 거래 입력에 결제 수단 선택 버튼/state 추가 (지출 전용, 수입 전환 시 초기화)
+- [x] `apps/native/app/transaction-detail.tsx` — 거래 상세에 결제 수단 표시/변경/해제 추가
+- [x] `apps/native/hooks/useTransactionDetail.ts` — `paymentMethodId` 낙관적 업데이트 + 롤백 분기 추가
+- [x] `packages/core/src/application/transaction/types.ts` — `UpdateTransactionInput.paymentMethodId: string | null` (null=해제)
+- [x] `packages/core/src/domain/transaction/types.ts` — `UpdateTransactionCommand.paymentMethodId: EntityId | null`
+- [x] `packages/core/src/domain/transaction/rules.ts` — null → undefined 변환 (도메인 엔티티 타입 정합성)
 
 ---
 

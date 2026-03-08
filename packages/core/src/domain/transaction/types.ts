@@ -43,7 +43,7 @@ export interface UpdateTransactionCommand {
   id: EntityId;
   categoryId?: EntityId;
   paidBy?: EntityId;
-  paymentMethodId?: EntityId;
+  paymentMethodId?: EntityId | null;
   amount?: number;
   type?: CategoryType;
   title?: string;

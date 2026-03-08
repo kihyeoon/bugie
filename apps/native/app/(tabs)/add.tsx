@@ -18,7 +18,9 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography, ToggleSwitch, Button, AmountInput } from '@/components/ui';
 import { CategorySelector } from '@/components/shared/CategorySelector';
 import { PaidByBottomSheet } from '@/components/shared/PaidByBottomSheet';
+import { PaymentMethodBottomSheet } from '@/components/shared/PaymentMethodBottomSheet';
 import { useCategories } from '@/hooks/useCategories';
+import { usePaymentMethods } from '@/hooks/usePaymentMethods';
 import { useLedger } from '@/contexts/LedgerContext';
 import { useServices } from '@/contexts/ServiceContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -41,6 +43,11 @@ export default function AddTransactionScreen() {
   const [saving, setSaving] = useState(false);
   const [selectedPaidBy, setSelectedPaidBy] = useState<string | null>(null);
   const [paidBySheetVisible, setPaidBySheetVisible] = useState(false);
+  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<
+    string | null
+  >(null);
+  const [paymentMethodSheetVisible, setPaymentMethodSheetVisible] =
+    useState(false);
 
   // Input refs for focus management
   const titleInputRef = useRef<TextInput>(null);
@@ -52,6 +59,7 @@ export default function AddTransactionScreen() {
   const { currentLedger } = useLedger();
   const { transactionService } = useServices();
   const { user } = useAuth();
+  const { paymentMethods } = usePaymentMethods();
 
   // 현재 유저를 기본 지출자로 설정
   useEffect(() => {
@@ -100,6 +108,7 @@ export default function AddTransactionScreen() {
     setMemo('');
     setSelectedDate(new Date());
     setSelectedPaidBy(user?.id ?? null);
+    setSelectedPaymentMethodId(null);
     // transactionType은 사용자 편의를 위해 유지
   }, [user]);
 
@@ -150,6 +159,7 @@ export default function AddTransactionScreen() {
         ledgerId: currentLedger.id,
         categoryId: selectedCategory.id,
         paidBy: selectedPaidBy ?? undefined,
+        paymentMethodId: selectedPaymentMethodId ?? undefined,
         amount: amount,
         type: transactionType,
         title: title.trim(),
@@ -209,6 +219,10 @@ export default function AddTransactionScreen() {
                 // 타입이 변경되면 선택된 카테고리 초기화
                 if (selectedCategory && selectedCategory.type !== newType) {
                   setSelectedCategory(null);
+                }
+                // 수입 전환 시 결제 수단 초기화
+                if (newType === 'income') {
+                  setSelectedPaymentMethodId(null);
                 }
               }}
               fullWidth
@@ -321,6 +335,36 @@ export default function AddTransactionScreen() {
             </View>
           )}
 
+          {/* 결제 수단 선택 (지출일 때만) */}
+          {transactionType === 'expense' && (
+            <View style={styles.paidBySection}>
+              <TouchableOpacity
+                style={[
+                  styles.paidByInput,
+                  { backgroundColor: colors.backgroundSecondary },
+                ]}
+                onPress={() => setPaymentMethodSheetVisible(true)}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name="card-outline"
+                  size={20}
+                  color={colors.textSecondary}
+                  style={styles.paidByIcon}
+                />
+                <Text style={[styles.paidByText, { color: selectedPaymentMethodId ? colors.text : colors.textSecondary }]}>
+                  {paymentMethods.find((m) => m.id === selectedPaymentMethodId)
+                    ?.name || '결제 수단 (선택)'}
+                </Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* 제목 입력 */}
           <View style={styles.titleSection}>
             <TextInput
@@ -406,6 +450,16 @@ export default function AddTransactionScreen() {
           onClose={() => setPaidBySheetVisible(false)}
         />
       )}
+      {/* 결제 수단 선택 바텀시트 */}
+      <PaymentMethodBottomSheet
+        visible={paymentMethodSheetVisible}
+        paymentMethods={paymentMethods}
+        selectedId={selectedPaymentMethodId}
+        currentUserId={user?.id}
+        onSelect={(id) => setSelectedPaymentMethodId(id)}
+        onClear={() => setSelectedPaymentMethodId(null)}
+        onClose={() => setPaymentMethodSheetVisible(false)}
+      />
     </SafeAreaView>
   );
 }

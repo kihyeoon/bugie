@@ -14,6 +14,10 @@ interface UpdateTransactionInputWithCategoryDetails
   category_icon?: string;
   paid_by?: string;
   paid_by_name?: string | null;
+  payment_method_id?: string | null;
+  payment_method_name?: string | null;
+  payment_method_icon?: string | null;
+  payment_method_is_shared?: boolean | null;
 }
 
 interface UseTransactionDetailReturn {
@@ -38,12 +42,17 @@ function applyTransactionUpdates(
   const {
     categoryId,
     paidBy,
+    paymentMethodId,
     transactionDate,
     category_name,
     category_color,
     category_icon,
     paid_by,
     paid_by_name,
+    payment_method_id,
+    payment_method_name,
+    payment_method_icon,
+    payment_method_is_shared,
     ...otherUpdates
   } = updates;
 
@@ -65,6 +74,15 @@ function applyTransactionUpdates(
           paid_by: paid_by || paidBy,
           paid_by_name:
             paid_by_name !== undefined ? paid_by_name : prev.paid_by_name,
+        }
+      : {}),
+    // 결제 수단이 변경되면 관련 필드도 업데이트
+    ...(paymentMethodId !== undefined
+      ? {
+          payment_method_id: payment_method_id ?? paymentMethodId ?? null,
+          payment_method_name: payment_method_name ?? null,
+          payment_method_icon: payment_method_icon ?? null,
+          payment_method_is_shared: payment_method_is_shared ?? null,
         }
       : {}),
     // 날짜는 형식 맞춰서 업데이트
@@ -126,9 +144,10 @@ export function useTransactionDetail(
 
       const previousTransaction = transaction;
       const isPaidByUpdate = Boolean(updates.paidBy);
+      const isPaymentMethodUpdate = updates.paymentMethodId !== undefined;
 
-      // 지출자 변경은 서버 응답 전 화면을 먼저 갱신
-      if (isPaidByUpdate) {
+      // 지출자/결제 수단 변경은 서버 응답 전 화면을 먼저 갱신
+      if (isPaidByUpdate || isPaymentMethodUpdate) {
         setTransaction((prev) => applyTransactionUpdates(prev, updates));
       }
 
@@ -137,6 +156,7 @@ export function useTransactionDetail(
         const serverUpdates: UpdateTransactionInput = {
           categoryId: updates.categoryId,
           paidBy: updates.paidBy,
+          paymentMethodId: updates.paymentMethodId,
           amount: updates.amount,
           type: updates.type,
           title: updates.title,
@@ -149,16 +169,16 @@ export function useTransactionDetail(
           serverUpdates
         );
 
-        // 지출자 변경 외에는 기존 방식(서버 응답 후 상태 반영) 유지
-        if (!isPaidByUpdate) {
+        // 지출자/결제 수단 변경 외에는 기존 방식(서버 응답 후 상태 반영) 유지
+        if (!isPaidByUpdate && !isPaymentMethodUpdate) {
           setTransaction((prev) => applyTransactionUpdates(prev, updates));
         }
 
         // 백그라운드에서 데이터 재검증 (로딩 화면 없이)
         fetchTransaction(false);
       } catch (err) {
-        // 지출자 낙관적 반영 실패 시 직전 상태로 롤백
-        if (isPaidByUpdate) {
+        // 지출자/결제 수단 낙관적 반영 실패 시 직전 상태로 롤백
+        if (isPaidByUpdate || isPaymentMethodUpdate) {
           setTransaction(previousTransaction);
         }
         throw err instanceof Error

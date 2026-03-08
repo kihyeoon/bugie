@@ -354,6 +354,22 @@ export default function LedgerSettingsScreen() {
             )}
           </DetailSection>
 
+          {/* 결제 수단 섹션 */}
+          <DetailSection title="결제 수단">
+            <DetailRow
+              label="결제 수단 관리"
+              editable={true}
+              actionable={true}
+              onPress={() =>
+                router.push({
+                  pathname: '/payment-methods',
+                  params: { ledgerId: ledger.id },
+                })
+              }
+              disabled={loading}
+            />
+          </DetailSection>
+
           {/* 위험 구역 섹션 */}
           <DetailSection title="위험 구역">
             {canDeleteLedger ? (
