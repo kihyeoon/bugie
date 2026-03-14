@@ -13,7 +13,11 @@ export const PAYMENT_METHOD_ICONS: {
   { name: 'cash-outline', dbValue: 'cash', label: '현금' },
   { name: 'wallet-outline', dbValue: 'wallet', label: '지갑' },
   { name: 'home-outline', dbValue: 'home', label: '집' },
-  { name: 'phone-portrait-outline', dbValue: 'phone-portrait', label: '모바일페이' },
+  {
+    name: 'phone-portrait-outline',
+    dbValue: 'phone-portrait',
+    label: '모바일페이',
+  },
 
   { name: 'briefcase-outline', dbValue: 'briefcase', label: '서류가방' },
   { name: 'gift-outline', dbValue: 'gift', label: '상품권' },
@@ -30,3 +34,4 @@ export const PAYMENT_METHOD_ICONS: {
 
 /** DB 기본값과 동일 */
 export const DEFAULT_PAYMENT_METHOD_ICON = 'card';
+

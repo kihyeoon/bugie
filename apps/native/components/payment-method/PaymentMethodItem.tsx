@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography } from '@/components/ui/Typography';
-import { getIoniconName } from '@/constants/categories';
+import { getIoniconName, DEFAULT_CATEGORY_COLOR } from '@/constants/categories';
 import type { PaymentMethodEntity } from '@repo/core';
 
 interface PaymentMethodItemProps {
@@ -40,13 +40,13 @@ export function PaymentMethodItem({
         <View
           style={[
             styles.iconContainer,
-            { backgroundColor: colors.tint + '15' },
+            { backgroundColor: DEFAULT_CATEGORY_COLOR + '15' },
           ]}
         >
           <Ionicons
             name={getIoniconName(paymentMethod.icon)}
             size={20}
-            color={colors.tint}
+            color={DEFAULT_CATEGORY_COLOR}
           />
         </View>
         <View style={styles.textContainer}>

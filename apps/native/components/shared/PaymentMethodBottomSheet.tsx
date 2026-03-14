@@ -9,7 +9,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { getIoniconName } from '@/constants/categories';
+import { getIoniconName, DEFAULT_CATEGORY_COLOR } from '@/constants/categories';
 import { groupPaymentMethods } from '@/hooks/usePaymentMethods';
 import {
   BaseBottomSheet,
@@ -73,12 +73,15 @@ export function PaymentMethodBottomSheet({
       >
         <View style={styles.itemLeft}>
           <View
-            style={[styles.itemIcon, { backgroundColor: colors.tint + '15' }]}
+            style={[
+              styles.itemIcon,
+              { backgroundColor: DEFAULT_CATEGORY_COLOR + '15' },
+            ]}
           >
             <Ionicons
               name={getIoniconName(method.icon)}
               size={18}
-              color={colors.tint}
+              color={DEFAULT_CATEGORY_COLOR}
             />
           </View>
           <Text

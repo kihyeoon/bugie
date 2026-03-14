@@ -16,7 +16,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography } from '@/components/ui/Typography';
 import { Button } from '@/components/ui/Button';
 import { PAYMENT_METHOD_ICONS } from '@/constants/paymentMethods';
-import { getIoniconName } from '@/constants/categories';
+import { getIoniconName, DEFAULT_CATEGORY_COLOR } from '@/constants/categories';
 import type { PaymentMethodEntity, UpdatePaymentMethodInput } from '@repo/core';
 import { PaymentMethodRules } from '@repo/core';
 
@@ -113,13 +113,13 @@ export function EditPaymentMethodModal({
             <View
               style={[
                 styles.previewIcon,
-                { backgroundColor: colors.tint + '15' },
+                { backgroundColor: DEFAULT_CATEGORY_COLOR + '15' },
               ]}
             >
               <Ionicons
                 name={getIoniconName(selectedIcon)}
                 size={28}
-                color={colors.tint}
+                color={DEFAULT_CATEGORY_COLOR}
               />
             </View>
             <Typography variant="body1" weight="600">
