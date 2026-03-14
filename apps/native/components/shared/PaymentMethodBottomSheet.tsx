@@ -172,15 +172,6 @@ export function PaymentMethodBottomSheet({
           >
             {method.name}
           </Text>
-          {method.isShared && (
-            <View
-              style={[styles.badge, { backgroundColor: colors.tint + '15' }]}
-            >
-              <Text style={[styles.badgeText, { color: colors.tint }]}>
-                공동
-              </Text>
-            </View>
-          )}
         </View>
         <AnimatedCheck visible={isSelected} color={colors.tint} />
       </TouchableOpacity>
@@ -367,16 +358,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     letterSpacing: -0.3,
     flex: 1,
-  },
-  badge: {
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 4,
-    flexShrink: 0,
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: '700',
   },
   sectionHeader: {
     fontSize: 12,

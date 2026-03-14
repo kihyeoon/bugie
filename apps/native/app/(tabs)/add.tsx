@@ -393,6 +393,21 @@ export default function AddTransactionScreen() {
                   {paymentMethods.find((m) => m.id === selectedPaymentMethodId)
                     ?.name || '결제 수단 (선택)'}
                 </Text>
+                {paymentMethods.find((m) => m.id === selectedPaymentMethodId)
+                  ?.isShared && (
+                  <View
+                    style={[
+                      styles.paidByBadge,
+                      { backgroundColor: colors.tint + '15' },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.paidByBadgeText, { color: colors.tint }]}
+                    >
+                      공동
+                    </Text>
+                  </View>
+                )}
                 <Ionicons
                   name="chevron-forward"
                   size={18}
