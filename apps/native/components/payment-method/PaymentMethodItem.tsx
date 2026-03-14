@@ -9,32 +9,39 @@ import type { PaymentMethodEntity } from '@repo/core';
 
 interface PaymentMethodItemProps {
   paymentMethod: PaymentMethodEntity;
-  isCurrentUser: boolean;
   onPress?: () => void;
   onDelete?: () => void;
   canEdit: boolean;
+  showDivider?: boolean;
 }
 
 export function PaymentMethodItem({
   paymentMethod,
-  isCurrentUser,
   onPress,
   onDelete,
   canEdit,
+  showDivider = false,
 }: PaymentMethodItemProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
 
   return (
     <Pressable
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={[
+        styles.container,
+        showDivider && styles.containerBorder,
+        showDivider && { borderColor: colors.border },
+      ]}
       onPress={canEdit ? onPress : undefined}
       onLongPress={canEdit ? onDelete : undefined}
       disabled={!canEdit}
     >
       <View style={styles.left}>
         <View
-          style={[styles.iconContainer, { backgroundColor: colors.tint + '15' }]}
+          style={[
+            styles.iconContainer,
+            { backgroundColor: colors.tint + '15' },
+          ]}
         >
           <Ionicons
             name={getIoniconName(paymentMethod.icon)}
@@ -45,30 +52,6 @@ export function PaymentMethodItem({
         <View style={styles.textContainer}>
           <Typography variant="body1">{paymentMethod.name}</Typography>
         </View>
-        {paymentMethod.isShared && (
-          <View
-            style={[styles.badge, { backgroundColor: colors.tint + '15' }]}
-          >
-            <Typography
-              variant="caption"
-              style={{ color: colors.tint, fontWeight: '700' }}
-            >
-              공동
-            </Typography>
-          </View>
-        )}
-        {!paymentMethod.isShared && isCurrentUser && (
-          <View
-            style={[styles.badge, { backgroundColor: colors.tint + '15' }]}
-          >
-            <Typography
-              variant="caption"
-              style={{ color: colors.tint, fontWeight: '700' }}
-            >
-              나
-            </Typography>
-          </View>
-        )}
       </View>
       {canEdit && (
         <Ionicons
@@ -89,6 +72,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
   },
+  containerBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
   left: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -104,10 +90,5 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     flex: 1,
-  },
-  badge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
   },
 });

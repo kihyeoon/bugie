@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   View,
   StyleSheet,
-  SectionList,
+  ScrollView,
   Pressable,
   ActivityIndicator,
 } from 'react-native';
@@ -11,7 +11,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography } from '@/components/ui/Typography';
-import { usePaymentMethods, groupPaymentMethods } from '@/hooks/usePaymentMethods';
+import { Card } from '@/components/ui/Card';
+import {
+  usePaymentMethods,
+  groupPaymentMethods,
+} from '@/hooks/usePaymentMethods';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLedger } from '@/contexts/LedgerContext';
 import { PermissionService } from '@repo/core';
@@ -27,16 +31,13 @@ export default function PaymentMethodsScreen() {
   const { user } = useAuth();
   const { currentLedger } = useLedger();
 
-  const {
-    paymentMethods,
-    loading,
-    create,
-    update,
-    softDelete,
-  } = usePaymentMethods(ledgerId);
+  const { paymentMethods, loading, create, update, softDelete } =
+    usePaymentMethods(ledgerId);
 
   const [addModalVisible, setAddModalVisible] = useState(false);
-  const [editTarget, setEditTarget] = useState<PaymentMethodEntity | null>(null);
+  const [editTarget, setEditTarget] = useState<PaymentMethodEntity | null>(
+    null
+  );
 
   // 권한 확인
   const getUserRole = (): MemberRole | null => {
@@ -132,41 +133,49 @@ export default function PaymentMethodsScreen() {
                 style={[styles.addButton, { backgroundColor: colors.tint }]}
                 onPress={() => setAddModalVisible(true)}
               >
-                <Typography variant="body2" style={{ color: '#fff', fontWeight: '600' }}>
+                <Typography
+                  variant="body2"
+                  style={{ color: '#fff', fontWeight: '600' }}
+                >
                   추가하기
                 </Typography>
               </Pressable>
             )}
           </View>
         ) : (
-          <SectionList
-            sections={sections}
-            keyExtractor={(item) => item.id}
-            renderSectionHeader={({ section }) => (
-              <View
-                style={[
-                  styles.sectionHeader,
-                  { backgroundColor: colors.backgroundSecondary },
-                ]}
-              >
-                <Typography variant="caption" color="secondary" weight="600">
-                  {section.title}
-                </Typography>
-              </View>
-            )}
-            renderItem={({ item }) => (
-              <PaymentMethodItem
-                paymentMethod={item}
-                isCurrentUser={item.ownerId === user?.id}
-                canEdit={canEdit}
-                onPress={() => setEditTarget(item)}
-                onDelete={() => canDelete && softDelete(item.id)}
-              />
-            )}
-            contentContainerStyle={styles.listContent}
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
-            stickySectionHeadersEnabled={false}
-          />
+          >
+            {sections.map((section, sectionIndex) => (
+              <View
+                key={section.title}
+                style={sectionIndex > 0 && styles.sectionSpacing}
+              >
+                <View style={styles.sectionHeader}>
+                  <Typography variant="caption" color="secondary" weight="600">
+                    {section.title}
+                  </Typography>
+                </View>
+                <Card
+                  variant="outlined"
+                  padding="none"
+                  style={styles.sectionCard}
+                >
+                  {section.data.map((item, index) => (
+                    <PaymentMethodItem
+                      key={item.id}
+                      paymentMethod={item}
+                      canEdit={canEdit}
+                      showDivider={index < section.data.length - 1}
+                      onPress={() => setEditTarget(item)}
+                      onDelete={() => canDelete && softDelete(item.id)}
+                    />
+                  ))}
+                </Card>
+              </View>
+            ))}
+          </ScrollView>
         )}
       </View>
 
@@ -198,13 +207,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 24,
   },
+  scrollContent: {
+    paddingTop: 16,
+    paddingBottom: 40,
+  },
   sectionHeader: {
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 6,
+    paddingBottom: 8,
   },
-  listContent: {
-    paddingBottom: 40,
+  sectionSpacing: {
+    marginTop: 20,
+  },
+  sectionCard: {
+    marginHorizontal: 16,
   },
   addButton: {
     marginTop: 16,
