@@ -15,13 +15,20 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography } from '@/components/ui/Typography';
 import { Button } from '@/components/ui/Button';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
-import { PAYMENT_METHOD_ICONS, DEFAULT_PAYMENT_METHOD_ICON } from '@/constants/paymentMethods';
+import {
+  PAYMENT_METHOD_ICONS,
+  DEFAULT_PAYMENT_METHOD_ICON,
+} from '@/constants/paymentMethods';
 import { getIoniconName } from '@/constants/categories';
 import { PaymentMethodRules } from '@repo/core';
 
 interface AddPaymentMethodModalProps {
   visible: boolean;
-  onSave: (input: { name: string; icon: string; isShared: boolean }) => Promise<void>;
+  onSave: (input: {
+    name: string;
+    icon: string;
+    isShared: boolean;
+  }) => Promise<void>;
   onClose: () => void;
 }
 
@@ -86,8 +93,18 @@ export function AddPaymentMethodModal({
           showsVerticalScrollIndicator={false}
         >
           {/* 미리보기 */}
-          <View style={[styles.preview, { backgroundColor: colors.backgroundSecondary }]}>
-            <View style={[styles.previewIcon, { backgroundColor: colors.tint + '15' }]}>
+          <View
+            style={[
+              styles.preview,
+              { backgroundColor: colors.backgroundSecondary },
+            ]}
+          >
+            <View
+              style={[
+                styles.previewIcon,
+                { backgroundColor: colors.tint + '15' },
+              ]}
+            >
               <Ionicons
                 name={getIoniconName(selectedIcon)}
                 size={28}
@@ -98,8 +115,16 @@ export function AddPaymentMethodModal({
               {name || '결제 수단 이름'}
             </Typography>
             {isShared && (
-              <View style={[styles.previewBadge, { backgroundColor: colors.tint + '15' }]}>
-                <Typography variant="caption" style={{ color: colors.tint, fontWeight: '700' }}>
+              <View
+                style={[
+                  styles.previewBadge,
+                  { backgroundColor: colors.tint + '15' },
+                ]}
+              >
+                <Typography
+                  variant="caption"
+                  style={{ color: colors.tint, fontWeight: '700' }}
+                >
                   공동
                 </Typography>
               </View>
@@ -108,13 +133,20 @@ export function AddPaymentMethodModal({
 
           {/* 이름 입력 */}
           <View style={styles.section}>
-            <Typography variant="body2" color="secondary" style={styles.sectionLabel}>
+            <Typography
+              variant="body2"
+              color="secondary"
+              style={styles.sectionLabel}
+            >
               이름
             </Typography>
             <TextInput
               style={[
                 styles.input,
-                { backgroundColor: colors.backgroundSecondary, color: colors.text },
+                {
+                  backgroundColor: colors.backgroundSecondary,
+                  color: colors.text,
+                },
               ]}
               value={name}
               onChangeText={setName}
@@ -126,7 +158,11 @@ export function AddPaymentMethodModal({
 
           {/* 아이콘 선택 */}
           <View style={styles.section}>
-            <Typography variant="body2" color="secondary" style={styles.sectionLabel}>
+            <Typography
+              variant="body2"
+              color="secondary"
+              style={styles.sectionLabel}
+            >
               아이콘
             </Typography>
             <View style={styles.iconGrid}>
@@ -148,16 +184,9 @@ export function AddPaymentMethodModal({
                   >
                     <Ionicons
                       name={icon.name}
-                      size={24}
+                      size={28}
                       color={isSelected ? colors.tint : colors.textSecondary}
                     />
-                    <Typography
-                      variant="caption"
-                      color={isSelected ? 'primary' : 'secondary'}
-                      style={{ marginTop: 4 }}
-                    >
-                      {icon.label}
-                    </Typography>
                   </Pressable>
                 );
               })}
@@ -166,10 +195,19 @@ export function AddPaymentMethodModal({
 
           {/* 공동 여부 토글 */}
           <View style={styles.section}>
-            <Typography variant="body2" color="secondary" style={styles.sectionLabel}>
+            <Typography
+              variant="body2"
+              color="secondary"
+              style={styles.sectionLabel}
+            >
               공동 결제 수단
             </Typography>
-            <View style={[styles.toggleRow, { backgroundColor: colors.backgroundSecondary }]}>
+            <View
+              style={[
+                styles.toggleRow,
+                { backgroundColor: colors.backgroundSecondary },
+              ]}
+            >
               <View style={styles.toggleTextContainer}>
                 <Typography variant="body1">공동 수단으로 설정</Typography>
                 <Typography variant="caption" color="secondary">
@@ -264,11 +302,11 @@ const styles = StyleSheet.create({
   iconGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 12,
   },
   iconItem: {
-    width: 72,
-    height: 72,
+    width: 52,
+    height: 52,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',

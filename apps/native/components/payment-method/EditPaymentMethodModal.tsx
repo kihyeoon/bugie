@@ -103,8 +103,18 @@ export function EditPaymentMethodModal({
           showsVerticalScrollIndicator={false}
         >
           {/* 미리보기 */}
-          <View style={[styles.preview, { backgroundColor: colors.backgroundSecondary }]}>
-            <View style={[styles.previewIcon, { backgroundColor: colors.tint + '15' }]}>
+          <View
+            style={[
+              styles.preview,
+              { backgroundColor: colors.backgroundSecondary },
+            ]}
+          >
+            <View
+              style={[
+                styles.previewIcon,
+                { backgroundColor: colors.tint + '15' },
+              ]}
+            >
               <Ionicons
                 name={getIoniconName(selectedIcon)}
                 size={28}
@@ -115,8 +125,16 @@ export function EditPaymentMethodModal({
               {name || '결제 수단 이름'}
             </Typography>
             {isShared && (
-              <View style={[styles.previewBadge, { backgroundColor: colors.tint + '15' }]}>
-                <Typography variant="caption" style={{ color: colors.tint, fontWeight: '700' }}>
+              <View
+                style={[
+                  styles.previewBadge,
+                  { backgroundColor: colors.tint + '15' },
+                ]}
+              >
+                <Typography
+                  variant="caption"
+                  style={{ color: colors.tint, fontWeight: '700' }}
+                >
                   공동
                 </Typography>
               </View>
@@ -125,13 +143,20 @@ export function EditPaymentMethodModal({
 
           {/* 이름 입력 */}
           <View style={styles.section}>
-            <Typography variant="body2" color="secondary" style={styles.sectionLabel}>
+            <Typography
+              variant="body2"
+              color="secondary"
+              style={styles.sectionLabel}
+            >
               이름
             </Typography>
             <TextInput
               style={[
                 styles.input,
-                { backgroundColor: colors.backgroundSecondary, color: colors.text },
+                {
+                  backgroundColor: colors.backgroundSecondary,
+                  color: colors.text,
+                },
               ]}
               value={name}
               onChangeText={setName}
@@ -143,7 +168,11 @@ export function EditPaymentMethodModal({
 
           {/* 아이콘 선택 */}
           <View style={styles.section}>
-            <Typography variant="body2" color="secondary" style={styles.sectionLabel}>
+            <Typography
+              variant="body2"
+              color="secondary"
+              style={styles.sectionLabel}
+            >
               아이콘
             </Typography>
             <View style={styles.iconGrid}>
@@ -165,16 +194,9 @@ export function EditPaymentMethodModal({
                   >
                     <Ionicons
                       name={icon.name}
-                      size={24}
+                      size={28}
                       color={isSelected ? colors.tint : colors.textSecondary}
                     />
-                    <Typography
-                      variant="caption"
-                      color={isSelected ? 'primary' : 'secondary'}
-                      style={{ marginTop: 4 }}
-                    >
-                      {icon.label}
-                    </Typography>
                   </Pressable>
                 );
               })}
@@ -183,10 +205,19 @@ export function EditPaymentMethodModal({
 
           {/* 공동 여부 토글 */}
           <View style={styles.section}>
-            <Typography variant="body2" color="secondary" style={styles.sectionLabel}>
+            <Typography
+              variant="body2"
+              color="secondary"
+              style={styles.sectionLabel}
+            >
               공동 결제 수단
             </Typography>
-            <View style={[styles.toggleRow, { backgroundColor: colors.backgroundSecondary }]}>
+            <View
+              style={[
+                styles.toggleRow,
+                { backgroundColor: colors.backgroundSecondary },
+              ]}
+            >
               <View style={styles.toggleTextContainer}>
                 <Typography variant="body1">공동 수단으로 설정</Typography>
                 <Typography variant="caption" color="secondary">
@@ -281,11 +312,11 @@ const styles = StyleSheet.create({
   iconGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 12,
   },
   iconItem: {
-    width: 72,
-    height: 72,
+    width: 52,
+    height: 52,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
