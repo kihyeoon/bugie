@@ -173,7 +173,6 @@ export default function PaymentMethodsScreen() {
                       canEdit={canEdit}
                       showDivider={index < section.data.length - 1}
                       onPress={() => setEditTarget(item)}
-                      onDelete={() => canDelete && softDelete(item.id)}
                     />
                   ))}
                 </Card>
@@ -195,6 +194,8 @@ export default function PaymentMethodsScreen() {
         visible={editTarget !== null}
         paymentMethod={editTarget}
         onSave={update}
+        onDelete={softDelete}
+        canDelete={canDelete}
         onClose={() => setEditTarget(null)}
       />
     </>

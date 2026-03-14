@@ -24,6 +24,8 @@ interface EditPaymentMethodModalProps {
   visible: boolean;
   paymentMethod: PaymentMethodEntity | null;
   onSave: (id: string, input: UpdatePaymentMethodInput) => Promise<void>;
+  onDelete?: (id: string) => Promise<boolean>;
+  canDelete?: boolean;
   onClose: () => void;
 }
 
@@ -31,6 +33,8 @@ export function EditPaymentMethodModal({
   visible,
   paymentMethod,
   onSave,
+  onDelete,
+  canDelete = false,
   onClose,
 }: EditPaymentMethodModalProps) {
   const colorScheme = useColorScheme();
@@ -233,6 +237,21 @@ export function EditPaymentMethodModal({
               />
             </View>
           </View>
+
+          {/* 삭제 버튼 — ScrollView 내부에 배치하여 키보드에 영향받지 않도록 */}
+          {canDelete && onDelete && paymentMethod && (
+            <Pressable
+              style={styles.deleteButton}
+              onPress={async () => {
+                const deleted = await onDelete(paymentMethod.id);
+                if (deleted) onClose();
+              }}
+            >
+              <Typography variant="body1" style={{ color: colors.error }}>
+                삭제하기
+              </Typography>
+            </Pressable>
+          )}
         </ScrollView>
 
         {/* 저장 버튼 */}
@@ -332,6 +351,11 @@ const styles = StyleSheet.create({
   toggleTextContainer: {
     flex: 1,
     marginRight: 12,
+  },
+  deleteButton: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    marginBottom: 12,
   },
   footer: {
     paddingHorizontal: 24,

@@ -10,7 +10,6 @@ import type { PaymentMethodEntity } from '@repo/core';
 interface PaymentMethodItemProps {
   paymentMethod: PaymentMethodEntity;
   onPress?: () => void;
-  onDelete?: () => void;
   canEdit: boolean;
   showDivider?: boolean;
 }
@@ -18,7 +17,6 @@ interface PaymentMethodItemProps {
 export function PaymentMethodItem({
   paymentMethod,
   onPress,
-  onDelete,
   canEdit,
   showDivider = false,
 }: PaymentMethodItemProps) {
@@ -33,7 +31,6 @@ export function PaymentMethodItem({
         showDivider && { borderColor: colors.border },
       ]}
       onPress={canEdit ? onPress : undefined}
-      onLongPress={canEdit ? onDelete : undefined}
       disabled={!canEdit}
     >
       <View style={styles.left}>
