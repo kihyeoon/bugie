@@ -121,7 +121,6 @@ export function AddPaymentMethodModal({
               placeholder="예: 국민카드, 현금"
               placeholderTextColor={colors.textSecondary}
               maxLength={PaymentMethodRules.MAX_NAME_LENGTH}
-              autoFocus
             />
           </View>
 
