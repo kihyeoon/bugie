@@ -5,32 +5,57 @@ import { useLedger } from '../contexts/LedgerContext';
 import { useServices } from '../contexts/ServiceContext';
 import { useAuth } from '../contexts/AuthContext';
 
+export interface OwnerGroup {
+  ownerId: string;
+  ownerName: string;
+  methods: PaymentMethodEntity[];
+}
+
 interface GroupedPaymentMethods {
   shared: PaymentMethodEntity[];
   mine: PaymentMethodEntity[];
-  others: PaymentMethodEntity[];
+  othersByOwner: OwnerGroup[];
 }
 
-/** 결제 수단을 공동/내 수단/파트너 수단으로 분류 */
+interface MemberInfo {
+  user_id: string;
+  full_name: string | null;
+}
+
+/** 결제 수단을 공동/내 수단/소유자별 수단으로 분류 */
 export function groupPaymentMethods(
   methods: PaymentMethodEntity[],
-  currentUserId: string | undefined
+  currentUserId: string | undefined,
+  members?: MemberInfo[],
 ): GroupedPaymentMethods {
   const shared: PaymentMethodEntity[] = [];
   const mine: PaymentMethodEntity[] = [];
-  const others: PaymentMethodEntity[] = [];
+  const othersMap = new Map<string, PaymentMethodEntity[]>();
 
   for (const method of methods) {
     if (method.isShared) {
       shared.push(method);
     } else if (method.ownerId === currentUserId) {
       mine.push(method);
-    } else {
-      others.push(method);
+    } else if (method.ownerId) {
+      const list = othersMap.get(method.ownerId) ?? [];
+      list.push(method);
+      othersMap.set(method.ownerId, list);
     }
   }
 
-  return { shared, mine, others };
+  const othersByOwner: OwnerGroup[] = Array.from(othersMap.entries()).map(
+    ([ownerId, ownerMethods]) => {
+      const member = members?.find((m) => m.user_id === ownerId);
+      return {
+        ownerId,
+        ownerName: member?.full_name ?? '멤버',
+        methods: ownerMethods,
+      };
+    }
+  );
+
+  return { shared, mine, othersByOwner };
 }
 
 /**

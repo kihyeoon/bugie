@@ -16,6 +16,7 @@ import {
   type BaseBottomSheetRef,
 } from '@/components/ui/BaseBottomSheet';
 import { AnimatedCheck } from '@/components/ui/AnimatedCheck';
+import { useLedger } from '@/contexts/LedgerContext';
 import type { PaymentMethodEntity } from '@repo/core';
 
 interface PaymentMethodBottomSheetProps {
@@ -42,6 +43,7 @@ export function PaymentMethodBottomSheet({
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const sheetRef = useRef<BaseBottomSheetRef>(null);
+  const { currentLedger } = useLedger();
 
   const handleSelect = (id: string) => {
     onSelect(id);
@@ -53,7 +55,8 @@ export function PaymentMethodBottomSheet({
     setTimeout(() => sheetRef.current?.close(), 200);
   };
 
-  const grouped = groupPaymentMethods(paymentMethods, currentUserId);
+  const members = currentLedger?.ledger_members;
+  const grouped = groupPaymentMethods(paymentMethods, currentUserId, members);
   const isEmpty = paymentMethods.length === 0;
 
   const renderItem = (method: PaymentMethodEntity) => {
@@ -179,7 +182,9 @@ export function PaymentMethodBottomSheet({
 
           {renderSection('공동 수단', grouped.shared)}
           {renderSection('내 수단', grouped.mine)}
-          {renderSection('파트너 수단', grouped.others)}
+          {grouped.othersByOwner.map((group) =>
+            renderSection(`${group.ownerName}의 수단`, group.methods)
+          )}
         </ScrollView>
       )}
     </BaseBottomSheet>

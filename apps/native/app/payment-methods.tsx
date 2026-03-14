@@ -54,11 +54,15 @@ export default function PaymentMethodsScreen() {
   const canDelete = PermissionService.canDo('deletePaymentMethod', role);
 
   // 그룹핑 데이터
-  const grouped = groupPaymentMethods(paymentMethods, user?.id);
+  const members = currentLedger?.ledger_members;
+  const grouped = groupPaymentMethods(paymentMethods, user?.id, members);
   const sections = [
     { title: '공동 수단', data: grouped.shared },
     { title: '내 수단', data: grouped.mine },
-    { title: '파트너 수단', data: grouped.others },
+    ...grouped.othersByOwner.map((group) => ({
+      title: `${group.ownerName}의 수단`,
+      data: group.methods,
+    })),
   ].filter((s) => s.data.length > 0);
 
   const handleAddSave = async (input: {
