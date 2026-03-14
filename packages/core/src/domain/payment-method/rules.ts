@@ -45,7 +45,7 @@ export const PaymentMethodRules = {
       ownerId: command.ownerId,
       isShared: command.isShared,
       name: command.name.trim(),
-      icon: command.icon ?? 'credit-card',
+      icon: command.icon ?? 'card',
       sortOrder: command.sortOrder ?? 0,
       createdAt: new Date(),
       updatedAt: new Date(),

@@ -12,13 +12,21 @@ export const PAYMENT_METHOD_ICONS: {
   { name: 'card-outline', dbValue: 'card', label: '카드' },
   { name: 'cash-outline', dbValue: 'cash', label: '현금' },
   { name: 'wallet-outline', dbValue: 'wallet', label: '지갑' },
-  { name: 'home-outline', dbValue: 'home', label: '은행' },
+  { name: 'home-outline', dbValue: 'home', label: '집' },
   { name: 'phone-portrait-outline', dbValue: 'phone-portrait', label: '모바일페이' },
-  { name: 'card', dbValue: 'credit-card', label: '신용카드' },
-  { name: 'briefcase-outline', dbValue: 'briefcase', label: '법인카드' },
+
+  { name: 'briefcase-outline', dbValue: 'briefcase', label: '서류가방' },
   { name: 'gift-outline', dbValue: 'gift', label: '상품권' },
-  { name: 'pricetag-outline', dbValue: 'pricetag', label: '기타' },
+  { name: 'pricetag-outline', dbValue: 'pricetag', label: '태그' },
+
+  { name: 'qr-code-outline', dbValue: 'qr-code', label: 'QR코드' },
+  { name: 'bus-outline', dbValue: 'bus', label: '버스' },
+  { name: 'storefront-outline', dbValue: 'storefront', label: '상점' },
+  { name: 'globe-outline', dbValue: 'globe', label: '지구본' },
+  { name: 'star-outline', dbValue: 'star', label: '별' },
+  { name: 'calculator-outline', dbValue: 'calculator', label: '계산기' },
+  { name: 'diamond-outline', dbValue: 'diamond', label: '다이아몬드' },
 ];
 
 /** DB 기본값과 동일 */
-export const DEFAULT_PAYMENT_METHOD_ICON = 'credit-card';
+export const DEFAULT_PAYMENT_METHOD_ICON = 'card';

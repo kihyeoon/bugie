@@ -9,7 +9,7 @@ export class PaymentMethodMapper {
       ownerId: db.owner_id ?? null,
       isShared: db.is_shared,
       name: db.name,
-      icon: db.icon ?? 'credit-card',
+      icon: db.icon ?? 'card',
       sortOrder: db.sort_order ?? 0,
       createdAt: new Date(db.created_at),
       updatedAt: new Date(db.updated_at),
