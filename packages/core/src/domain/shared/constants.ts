@@ -66,4 +66,4 @@ export const CATEGORY_DEFAULT_SORT_ORDER = 999;
 /**
  * 결제 수단 이름 최대 길이
  */
-export const PAYMENT_METHOD_MAX_NAME_LENGTH = 30;
+export const PAYMENT_METHOD_MAX_NAME_LENGTH = 20;

@@ -548,6 +548,8 @@ export default function TransactionDetailScreen() {
                 <Typography
                   variant="body1"
                   color={transaction.payment_method_name ? 'primary' : 'secondary'}
+                  numberOfLines={1}
+                  style={{ flex: 1, textAlign: 'right' }}
                 >
                   {transaction.payment_method_name
                     ? `${transaction.payment_method_name}${transaction.payment_method_is_shared ? ' (공동)' : ''}`

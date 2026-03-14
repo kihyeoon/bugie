@@ -89,6 +89,7 @@ export function PaymentMethodBottomSheet({
               styles.itemName,
               { color: colors.text, fontWeight: isSelected ? '600' : '400' },
             ]}
+            numberOfLines={1}
           >
             {method.name}
           </Text>
@@ -224,11 +225,13 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: 15,
     letterSpacing: -0.3,
+    flex: 1,
   },
   badge: {
     paddingHorizontal: 5,
     paddingVertical: 1,
     borderRadius: 4,
+    flexShrink: 0,
   },
   badgeText: {
     fontSize: 11,

@@ -122,7 +122,7 @@ export function EditPaymentMethodModal({
                 color={DEFAULT_CATEGORY_COLOR}
               />
             </View>
-            <Typography variant="body1" weight="600">
+            <Typography variant="body1" weight="600" numberOfLines={1} style={{ flex: 1 }}>
               {name || '결제 수단 이름'}
             </Typography>
             {isShared && (
@@ -295,6 +295,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
+    flexShrink: 0,
   },
   section: {
     marginBottom: 24,

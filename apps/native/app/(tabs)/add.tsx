@@ -307,7 +307,7 @@ export default function AddTransactionScreen() {
                   color={colors.textSecondary}
                   style={styles.paidByIcon}
                 />
-                <Text style={[styles.paidByText, { color: colors.text }]}>
+                <Text style={[styles.paidByText, { color: colors.text }]} numberOfLines={1}>
                   {currentLedger.ledger_members.find(
                     (m) => m.user_id === selectedPaidBy
                   )?.full_name || '지출자 선택'}
@@ -352,7 +352,10 @@ export default function AddTransactionScreen() {
                   color={colors.textSecondary}
                   style={styles.paidByIcon}
                 />
-                <Text style={[styles.paidByText, { color: selectedPaymentMethodId ? colors.text : colors.textSecondary }]}>
+                <Text
+                  style={[styles.paidByText, { color: selectedPaymentMethodId ? colors.text : colors.textSecondary }]}
+                  numberOfLines={1}
+                >
                   {paymentMethods.find((m) => m.id === selectedPaymentMethodId)
                     ?.name || '결제 수단 (선택)'}
                 </Text>
