@@ -75,6 +75,7 @@ export function AddPaymentMethodModal({
       <KeyboardAvoidingView
         style={[styles.container, { backgroundColor: colors.background }]}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 30 : 0}
       >
         {/* 헤더 */}
         <View style={styles.header}>
