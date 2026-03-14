@@ -8,13 +8,13 @@ import {
   Pressable,
   KeyboardAvoidingView,
   Platform,
+  Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography } from '@/components/ui/Typography';
 import { Button } from '@/components/ui/Button';
-import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { PAYMENT_METHOD_ICONS } from '@/constants/paymentMethods';
 import { getIoniconName } from '@/constants/categories';
 import type { PaymentMethodEntity, UpdatePaymentMethodInput } from '@repo/core';
@@ -221,16 +221,14 @@ export function EditPaymentMethodModal({
               <View style={styles.toggleTextContainer}>
                 <Typography variant="body1">공동 수단으로 설정</Typography>
                 <Typography variant="caption" color="secondary">
-                  모든 멤버가 사용할 수 있는 결제 수단
+                  공동 지출에 사용하는 결제 수단
                 </Typography>
               </View>
-              <ToggleSwitch
-                options={[
-                  { label: '개인', value: 'personal' },
-                  { label: '공동', value: 'shared' },
-                ]}
-                value={isShared ? 'shared' : 'personal'}
-                onChange={(v) => setIsShared(v === 'shared')}
+              <Switch
+                value={isShared}
+                onValueChange={setIsShared}
+                trackColor={{ false: '#E5E5EA', true: colors.tint }}
+                thumbColor="#FFFFFF"
               />
             </View>
           </View>
