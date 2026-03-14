@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
+import { getIoniconName } from '@/constants/categories';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography, ToggleSwitch, Button, AmountInput } from '@/components/ui';
@@ -369,7 +370,11 @@ export default function AddTransactionScreen() {
                 activeOpacity={0.7}
               >
                 <Ionicons
-                  name="card-outline"
+                  name={getIoniconName(
+                    paymentMethods.find((m) => m.id === selectedPaymentMethodId)
+                      ?.icon ?? 'card',
+                    true
+                  )}
                   size={20}
                   color={colors.textSecondary}
                   style={styles.paidByIcon}
