@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -16,8 +16,11 @@ import {
   type BaseBottomSheetRef,
 } from '@/components/ui/BaseBottomSheet';
 import { AnimatedCheck } from '@/components/ui/AnimatedCheck';
+import { AddPaymentMethodModal } from '@/components/payment-method/AddPaymentMethodModal';
+import { EditPaymentMethodModal } from '@/components/payment-method/EditPaymentMethodModal';
+import { PaymentMethodContextMenu } from '@/components/payment-method/PaymentMethodContextMenu';
 import { useLedger } from '@/contexts/LedgerContext';
-import type { PaymentMethodEntity } from '@repo/core';
+import type { PaymentMethodEntity, UpdatePaymentMethodInput } from '@repo/core';
 
 interface PaymentMethodBottomSheetProps {
   visible: boolean;
@@ -27,6 +30,15 @@ interface PaymentMethodBottomSheetProps {
   onSelect: (id: string) => void;
   onClear: () => void;
   onClose: () => void;
+  // CRUD 콜백 — 존재하면 해당 기능 활성화
+  onAdd?: (input: {
+    name: string;
+    icon: string;
+    isShared: boolean;
+  }) => Promise<void>;
+  onUpdate?: (id: string, updates: UpdatePaymentMethodInput) => Promise<void>;
+  onDelete?: (id: string) => Promise<boolean>;
+  onRefresh?: () => Promise<void>;
 }
 
 const SHEET_HEIGHT_RATIO = 0.55;
@@ -39,11 +51,23 @@ export function PaymentMethodBottomSheet({
   onSelect,
   onClear,
   onClose,
+  onAdd,
+  onUpdate,
+  onDelete,
+  onRefresh,
 }: PaymentMethodBottomSheetProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const sheetRef = useRef<BaseBottomSheetRef>(null);
   const { currentLedger } = useLedger();
+
+  // 관리 모달 상태
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [contextMenuMethod, setContextMenuMethod] =
+    useState<PaymentMethodEntity | null>(null);
+  const [editTarget, setEditTarget] = useState<PaymentMethodEntity | null>(
+    null
+  );
 
   const handleSelect = (id: string) => {
     onSelect(id);
@@ -54,6 +78,58 @@ export function PaymentMethodBottomSheet({
     onClear();
     setTimeout(() => sheetRef.current?.close(), 200);
   };
+
+  // 소유권 기반 관리 가능 여부
+  const canManage = (method: PaymentMethodEntity) =>
+    (onUpdate || onDelete) &&
+    (method.isShared || method.ownerId === currentUserId);
+
+  // 추가 저장
+  const handleAddSave = useCallback(
+    async (input: { name: string; icon: string; isShared: boolean }) => {
+      if (!onAdd) return;
+      await onAdd(input);
+      await onRefresh?.();
+    },
+    [onAdd, onRefresh]
+  );
+
+  // 컨텍스트 메뉴 → 수정
+  const handleEditFromMenu = useCallback(() => {
+    const method = contextMenuMethod;
+    setContextMenuMethod(null);
+    setTimeout(() => setEditTarget(method), 300);
+  }, [contextMenuMethod]);
+
+  // 수정 저장
+  const handleSaveEdit = useCallback(
+    async (id: string, updates: UpdatePaymentMethodInput) => {
+      if (!onUpdate) return;
+      await onUpdate(id, updates);
+      await onRefresh?.();
+    },
+    [onUpdate, onRefresh]
+  );
+
+  // 컨텍스트 메뉴 → 삭제
+  const handleDeleteFromMenu = useCallback(async () => {
+    const method = contextMenuMethod;
+    if (!onDelete || !method) return;
+    setContextMenuMethod(null);
+    await onDelete(method.id);
+    await onRefresh?.();
+  }, [onDelete, onRefresh, contextMenuMethod]);
+
+  // EditModal → 삭제
+  const handleDeleteFromEdit = useCallback(
+    async (id: string) => {
+      if (!onDelete) return false;
+      const result = await onDelete(id);
+      await onRefresh?.();
+      return result;
+    },
+    [onDelete, onRefresh]
+  );
 
   const members = currentLedger?.ledger_members;
   const grouped = groupPaymentMethods(paymentMethods, currentUserId, members);
@@ -69,6 +145,9 @@ export function PaymentMethodBottomSheet({
           { backgroundColor: isSelected ? colors.tintLight : 'transparent' },
         ]}
         onPress={() => handleSelect(method.id)}
+        onLongPress={
+          canManage(method) ? () => setContextMenuMethod(method) : undefined
+        }
         activeOpacity={0.7}
       >
         <View style={styles.itemLeft}>
@@ -130,13 +209,32 @@ export function PaymentMethodBottomSheet({
     >
       {isEmpty ? (
         <View style={styles.empty}>
-          <Ionicons name="card-outline" size={40} color={colors.textDisabled} />
+          <Ionicons
+            name="card-outline"
+            size={40}
+            color={colors.textDisabled}
+          />
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
             결제 수단을 등록해보세요
           </Text>
-          <Text style={[styles.emptySubtext, { color: colors.textDisabled }]}>
-            가계부 설정에서 추가할 수 있습니다
-          </Text>
+          {onAdd ? (
+            <TouchableOpacity
+              style={[
+                styles.addButtonPrimary,
+                { backgroundColor: colors.tint },
+              ]}
+              onPress={() => setShowAddModal(true)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.addButtonPrimaryText}>추가하기</Text>
+            </TouchableOpacity>
+          ) : (
+            <Text
+              style={[styles.emptySubtext, { color: colors.textDisabled }]}
+            >
+              가계부 설정에서 추가할 수 있습니다
+            </Text>
+          )}
         </View>
       ) : (
         <ScrollView
@@ -181,7 +279,10 @@ export function PaymentMethodBottomSheet({
                 선택 안함
               </Text>
             </View>
-            <AnimatedCheck visible={selectedId === null} color={colors.tint} />
+            <AnimatedCheck
+              visible={selectedId === null}
+              color={colors.tint}
+            />
           </TouchableOpacity>
 
           {renderSection('공동 수단', grouped.shared)}
@@ -189,8 +290,48 @@ export function PaymentMethodBottomSheet({
           {grouped.othersByOwner.map((group) =>
             renderSection(`${group.ownerName}의 수단`, group.methods)
           )}
+
+          {/* 결제 수단 추가 버튼 */}
+          {onAdd && (
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => setShowAddModal(true)}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="add-circle-outline"
+                size={20}
+                color={colors.tint}
+              />
+              <Text style={[styles.addButtonText, { color: colors.tint }]}>
+                결제 수단 추가
+              </Text>
+            </TouchableOpacity>
+          )}
         </ScrollView>
       )}
+
+      {/* 서브 모달 — BaseBottomSheet의 Modal 안에 렌더링 */}
+      <AddPaymentMethodModal
+        visible={showAddModal}
+        onSave={handleAddSave}
+        onClose={() => setShowAddModal(false)}
+      />
+      <PaymentMethodContextMenu
+        visible={!!contextMenuMethod}
+        paymentMethod={contextMenuMethod}
+        onEdit={onUpdate ? handleEditFromMenu : undefined}
+        onDelete={onDelete ? handleDeleteFromMenu : undefined}
+        onClose={() => setContextMenuMethod(null)}
+      />
+      <EditPaymentMethodModal
+        visible={editTarget !== null}
+        paymentMethod={editTarget}
+        onSave={handleSaveEdit}
+        onDelete={onDelete ? handleDeleteFromEdit : undefined}
+        canDelete={!!onDelete}
+        onClose={() => setEditTarget(null)}
+      />
     </BaseBottomSheet>
   );
 }
@@ -256,5 +397,28 @@ const styles = StyleSheet.create({
   },
   emptySubtext: {
     fontSize: 13,
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 16,
+    marginTop: 8,
+  },
+  addButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  addButtonPrimary: {
+    marginTop: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  addButtonPrimaryText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

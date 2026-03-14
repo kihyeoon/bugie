@@ -27,7 +27,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
-import type { CategoryDetail } from '@repo/core';
+import { PermissionService } from '@repo/core';
+import type { CategoryDetail, MemberRole } from '@repo/core';
 
 export default function AddTransactionScreen() {
   const [amount, setAmount] = useState(0);
@@ -59,7 +60,25 @@ export default function AddTransactionScreen() {
   const { currentLedger } = useLedger();
   const { transactionService } = useServices();
   const { user } = useAuth();
-  const { paymentMethods } = usePaymentMethods();
+  const {
+    paymentMethods,
+    create: createPaymentMethod,
+    update: updatePaymentMethod,
+    softDelete: deletePaymentMethod,
+    refresh: refreshPaymentMethods,
+  } = usePaymentMethods();
+
+  // 결제 수단 관리 권한
+  const userRole = (() => {
+    if (!currentLedger || !user) return null;
+    const member = currentLedger.ledger_members.find(
+      (m) => m.user_id === user.id
+    );
+    return (member?.role as MemberRole) ?? null;
+  })();
+  const canCreatePM = PermissionService.canDo('createPaymentMethod', userRole);
+  const canUpdatePM = PermissionService.canDo('updatePaymentMethod', userRole);
+  const canDeletePM = PermissionService.canDo('deletePaymentMethod', userRole);
 
   // 현재 유저를 기본 지출자로 설정
   useEffect(() => {
@@ -307,7 +326,10 @@ export default function AddTransactionScreen() {
                   color={colors.textSecondary}
                   style={styles.paidByIcon}
                 />
-                <Text style={[styles.paidByText, { color: colors.text }]} numberOfLines={1}>
+                <Text
+                  style={[styles.paidByText, { color: colors.text }]}
+                  numberOfLines={1}
+                >
                   {currentLedger.ledger_members.find(
                     (m) => m.user_id === selectedPaidBy
                   )?.full_name || '지출자 선택'}
@@ -353,7 +375,14 @@ export default function AddTransactionScreen() {
                   style={styles.paidByIcon}
                 />
                 <Text
-                  style={[styles.paidByText, { color: selectedPaymentMethodId ? colors.text : colors.textSecondary }]}
+                  style={[
+                    styles.paidByText,
+                    {
+                      color: selectedPaymentMethodId
+                        ? colors.text
+                        : colors.textSecondary,
+                    },
+                  ]}
                   numberOfLines={1}
                 >
                   {paymentMethods.find((m) => m.id === selectedPaymentMethodId)
@@ -462,6 +491,10 @@ export default function AddTransactionScreen() {
         onSelect={(id) => setSelectedPaymentMethodId(id)}
         onClear={() => setSelectedPaymentMethodId(null)}
         onClose={() => setPaymentMethodSheetVisible(false)}
+        onAdd={canCreatePM ? createPaymentMethod : undefined}
+        onUpdate={canUpdatePM ? updatePaymentMethod : undefined}
+        onDelete={canDeletePM ? deletePaymentMethod : undefined}
+        onRefresh={refreshPaymentMethods}
       />
     </SafeAreaView>
   );
