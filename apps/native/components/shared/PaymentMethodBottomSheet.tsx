@@ -35,10 +35,10 @@ interface PaymentMethodBottomSheetProps {
     name: string;
     icon: string;
     isShared: boolean;
+    ownerId?: string | null;
   }) => Promise<void>;
   onUpdate?: (id: string, updates: UpdatePaymentMethodInput) => Promise<void>;
   onDelete?: (id: string) => Promise<boolean>;
-  onRefresh?: () => Promise<void>;
 }
 
 const SHEET_HEIGHT_RATIO = 0.55;
@@ -54,7 +54,6 @@ export function PaymentMethodBottomSheet({
   onAdd,
   onUpdate,
   onDelete,
-  onRefresh,
 }: PaymentMethodBottomSheetProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -79,19 +78,19 @@ export function PaymentMethodBottomSheet({
     setTimeout(() => sheetRef.current?.close(), 200);
   };
 
-  // 소유권 기반 관리 가능 여부
-  const canManage = (method: PaymentMethodEntity) =>
-    (onUpdate || onDelete) &&
-    (method.isShared || method.ownerId === currentUserId);
+  // 관리 가능 여부 (역할 권한 기반 — RLS 정책과 일치)
+  const canManage = !!(onUpdate || onDelete);
 
   // 추가 저장
   const handleAddSave = useCallback(
     async (input: { name: string; icon: string; isShared: boolean }) => {
       if (!onAdd) return;
-      await onAdd(input);
-      await onRefresh?.();
+      await onAdd({
+        ...input,
+        ownerId: input.isShared ? null : undefined,
+      });
     },
-    [onAdd, onRefresh]
+    [onAdd]
   );
 
   // 컨텍스트 메뉴 → 수정
@@ -106,9 +105,8 @@ export function PaymentMethodBottomSheet({
     async (id: string, updates: UpdatePaymentMethodInput) => {
       if (!onUpdate) return;
       await onUpdate(id, updates);
-      await onRefresh?.();
     },
-    [onUpdate, onRefresh]
+    [onUpdate]
   );
 
   // 컨텍스트 메뉴 → 삭제
@@ -117,18 +115,15 @@ export function PaymentMethodBottomSheet({
     if (!onDelete || !method) return;
     setContextMenuMethod(null);
     await onDelete(method.id);
-    await onRefresh?.();
-  }, [onDelete, onRefresh, contextMenuMethod]);
+  }, [onDelete, contextMenuMethod]);
 
   // EditModal → 삭제
   const handleDeleteFromEdit = useCallback(
     async (id: string) => {
       if (!onDelete) return false;
-      const result = await onDelete(id);
-      await onRefresh?.();
-      return result;
+      return await onDelete(id);
     },
-    [onDelete, onRefresh]
+    [onDelete]
   );
 
   const members = currentLedger?.ledger_members;
@@ -146,7 +141,7 @@ export function PaymentMethodBottomSheet({
         ]}
         onPress={() => handleSelect(method.id)}
         onLongPress={
-          canManage(method) ? () => setContextMenuMethod(method) : undefined
+          canManage ? () => setContextMenuMethod(method) : undefined
         }
         activeOpacity={0.7}
       >

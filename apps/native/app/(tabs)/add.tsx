@@ -66,7 +66,6 @@ export default function AddTransactionScreen() {
     create: createPaymentMethod,
     update: updatePaymentMethod,
     softDelete: deletePaymentMethod,
-    refresh: refreshPaymentMethods,
   } = usePaymentMethods();
 
   // 결제 수단 관리 권한
@@ -514,7 +513,6 @@ export default function AddTransactionScreen() {
         onAdd={canCreatePM ? createPaymentMethod : undefined}
         onUpdate={canUpdatePM ? updatePaymentMethod : undefined}
         onDelete={canDeletePM ? deletePaymentMethod : undefined}
-        onRefresh={refreshPaymentMethods}
       />
     </SafeAreaView>
   );

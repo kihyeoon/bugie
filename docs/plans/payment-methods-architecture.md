@@ -530,6 +530,7 @@ export interface TransactionWithDetails {
 - 아이콘 선택 UI 필수 (text 직접 입력 불가) — `CategoryItem` 아이콘 그리드 재사용
 - 삭제 시 구체적 안내 필요: "이 수단이 사용된 거래 N건에서 결제 수단 정보가 사라집니다"
 - 결제 수단 목록을 "공동 / 내 수단 / 파트너 수단"으로 그룹핑하여 표시
+- 바텀시트에서 항목 롱프레스 → 컨텍스트 메뉴(수정/삭제) 제공. 공동 뱃지는 섹션 그룹핑으로 대체하여 개별 항목에서 제거
 
 ### 7.2. 거래 입력 화면
 
@@ -537,7 +538,8 @@ export interface TransactionWithDetails {
 - 결제자(paid_by) 기본값은 거래 생성자(현재 유저). 결제 수단 선택과 paid_by는 독립적
 - 선택 사항: 미지정 가능
 - 빈 결제 수단 목록에서 "새 수단 추가" 인라인 버튼 제공
-- 선택 항목(지출자 + 결제 수단) 구분을 위해 "(선택)" 레이블 또는 접이식 "추가 정보" 섹션 고려
+- 선택된 결제 수단의 실제 아이콘을 동적으로 표시 (`getIoniconName` 사용)
+- 공동 결제 수단 선택 시 "공동" 뱃지 표시 (지출자의 "나" 뱃지 패턴 재사용)
 
 ### 7.3. 거래 상세/목록
 
@@ -615,7 +617,7 @@ export interface TransactionWithDetails {
 - [x] `infrastructure/supabase/mappers/TransactionMapper.ts` — toDomain/toDb/toDbForCreate에 `paymentMethodId` ↔ `payment_method_id` 매핑
 - [x] `shared/types.ts` — `TransactionWithDetails`에 `payment_method_id`, `payment_method_name`, `payment_method_icon`, `payment_method_is_shared` 추가
 - [x] `packages/core/src/index.ts` — `createPaymentMethodService` 팩토리 + `PaymentMethodService`, `PaymentMethodEntity`, `PaymentMethodRules` 등 타입 re-export
-- [x] `domain/shared/constants.ts` — `PAYMENT_METHOD_MAX_NAME_LENGTH = 30` 추가
+- [x] `domain/shared/constants.ts` — `PAYMENT_METHOD_MAX_NAME_LENGTH = 20` 추가
 
 **네이티브 앱 서비스 연결:**
 
@@ -633,12 +635,13 @@ export interface TransactionWithDetails {
 - [x] `apps/native/components/payment-method/PaymentMethodItem.tsx` — 리스트 아이템 (아이콘 + 이름 + 뱃지)
 - [x] `apps/native/components/payment-method/AddPaymentMethodModal.tsx` — 추가 모달 (이름, 아이콘 그리드, 공동 토글)
 - [x] `apps/native/components/payment-method/EditPaymentMethodModal.tsx` — 수정 모달 (변경된 필드만 전송)
-- [x] `apps/native/components/shared/PaymentMethodBottomSheet.tsx` — 선택 바텀시트 (PaidByBottomSheet 패턴 + ScrollView)
+- [x] `apps/native/components/shared/PaymentMethodBottomSheet.tsx` — 선택 바텀시트 (PaidByBottomSheet 패턴 + ScrollView). 서브 모달은 BaseBottomSheet children 안에 배치 (iOS 모달 중첩 방지)
+- [x] `apps/native/components/payment-method/PaymentMethodContextMenu.tsx` — 롱프레스 컨텍스트 메뉴 (수정/삭제)
 
 **기존 파일 수정:**
 
 - [x] `apps/native/app/ledger-settings.tsx` — 가계부 설정에 "결제 수단 관리" 진입점 추가
-- [x] `apps/native/app/(tabs)/add.tsx` — 거래 입력에 결제 수단 선택 버튼/state 추가 (지출 전용, 수입 전환 시 초기화)
+- [x] `apps/native/app/(tabs)/add.tsx` — 거래 입력에 결제 수단 선택 버튼/state 추가 (지출 전용, 수입 전환 시 초기화). 선택된 수단의 실제 아이콘 동적 표시 + 공동 수단 "공동" 뱃지 표시
 - [x] `apps/native/app/transaction-detail.tsx` — 거래 상세에 결제 수단 표시/변경/해제 추가
 - [x] `apps/native/hooks/useTransactionDetail.ts` — `paymentMethodId` 낙관적 업데이트 + 롤백 분기 추가
 - [x] `packages/core/src/application/transaction/types.ts` — `UpdateTransactionInput.paymentMethodId: string | null` (null=해제)
