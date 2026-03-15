@@ -67,7 +67,6 @@ export function PaymentMethodBottomSheet({
   const [editTarget, setEditTarget] = useState<PaymentMethodEntity | null>(
     null
   );
-
   const handleSelect = (id: string) => {
     onSelect(id);
     setTimeout(() => sheetRef.current?.close(), 200);
@@ -97,7 +96,7 @@ export function PaymentMethodBottomSheet({
   const handleEditFromMenu = useCallback(() => {
     const method = contextMenuMethod;
     setContextMenuMethod(null);
-    setTimeout(() => setEditTarget(method), 300);
+    setEditTarget(method);
   }, [contextMenuMethod]);
 
   // 수정 저장
@@ -140,9 +139,7 @@ export function PaymentMethodBottomSheet({
           { backgroundColor: isSelected ? colors.tintLight : 'transparent' },
         ]}
         onPress={() => handleSelect(method.id)}
-        onLongPress={
-          canManage ? () => setContextMenuMethod(method) : undefined
-        }
+        onLongPress={canManage ? () => setContextMenuMethod(method) : undefined}
         activeOpacity={0.7}
       >
         <View style={styles.itemLeft}>
@@ -192,14 +189,19 @@ export function PaymentMethodBottomSheet({
       title="결제 수단"
       onClose={onClose}
       heightRatio={SHEET_HEIGHT_RATIO}
+      overlay={
+        <PaymentMethodContextMenu
+          visible={!!contextMenuMethod}
+          paymentMethod={contextMenuMethod}
+          onEdit={onUpdate ? handleEditFromMenu : undefined}
+          onDelete={onDelete ? handleDeleteFromMenu : undefined}
+          onClose={() => setContextMenuMethod(null)}
+        />
+      }
     >
       {isEmpty ? (
         <View style={styles.empty}>
-          <Ionicons
-            name="card-outline"
-            size={40}
-            color={colors.textDisabled}
-          />
+          <Ionicons name="card-outline" size={40} color={colors.textDisabled} />
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
             결제 수단을 등록해보세요
           </Text>
@@ -215,9 +217,7 @@ export function PaymentMethodBottomSheet({
               <Text style={styles.addButtonPrimaryText}>추가하기</Text>
             </TouchableOpacity>
           ) : (
-            <Text
-              style={[styles.emptySubtext, { color: colors.textDisabled }]}
-            >
+            <Text style={[styles.emptySubtext, { color: colors.textDisabled }]}>
               가계부 설정에서 추가할 수 있습니다
             </Text>
           )}
@@ -265,10 +265,7 @@ export function PaymentMethodBottomSheet({
                 선택 안함
               </Text>
             </View>
-            <AnimatedCheck
-              visible={selectedId === null}
-              color={colors.tint}
-            />
+            <AnimatedCheck visible={selectedId === null} color={colors.tint} />
           </TouchableOpacity>
 
           {renderSection('공동 수단', grouped.shared)}
@@ -296,19 +293,11 @@ export function PaymentMethodBottomSheet({
           )}
         </ScrollView>
       )}
-
-      {/* 서브 모달 — BaseBottomSheet의 Modal 안에 렌더링 */}
+      {/* 서브 모달 */}
       <AddPaymentMethodModal
         visible={showAddModal}
         onSave={handleAddSave}
         onClose={() => setShowAddModal(false)}
-      />
-      <PaymentMethodContextMenu
-        visible={!!contextMenuMethod}
-        paymentMethod={contextMenuMethod}
-        onEdit={onUpdate ? handleEditFromMenu : undefined}
-        onDelete={onDelete ? handleDeleteFromMenu : undefined}
-        onClose={() => setContextMenuMethod(null)}
       />
       <EditPaymentMethodModal
         visible={editTarget !== null}

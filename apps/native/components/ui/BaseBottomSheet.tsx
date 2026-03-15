@@ -32,12 +32,18 @@ interface BaseBottomSheetProps {
   onClose: () => void;
   heightRatio?: number;
   children: ReactNode;
+  overlay?: ReactNode;
 }
 
 const DRAG_THRESHOLD = 80;
 
-export const BaseBottomSheet = forwardRef<BaseBottomSheetRef, BaseBottomSheetProps>(
-  function BaseBottomSheet({ visible, title, onClose, heightRatio = 0.4, children }, ref) {
+export const BaseBottomSheet = forwardRef<
+  BaseBottomSheetRef,
+  BaseBottomSheetProps
+>(function BaseBottomSheet(
+  { visible, title, onClose, heightRatio = 0.4, children, overlay },
+  ref
+) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const insets = useSafeAreaInsets();
@@ -162,11 +168,11 @@ export const BaseBottomSheet = forwardRef<BaseBottomSheetRef, BaseBottomSheetPro
 
           {children}
         </Animated.View>
+        {overlay}
       </View>
     </Modal>
   );
-  },
-);
+});
 
 const styles = StyleSheet.create({
   container: {

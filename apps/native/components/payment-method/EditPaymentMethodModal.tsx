@@ -126,7 +126,12 @@ export function EditPaymentMethodModal({
                 color={DEFAULT_CATEGORY_COLOR}
               />
             </View>
-            <Typography variant="body1" weight="600" numberOfLines={1} style={{ flex: 1 }}>
+            <Typography
+              variant="body1"
+              weight="600"
+              numberOfLines={1}
+              style={{ flex: 1 }}
+            >
               {name || '결제 수단 이름'}
             </Typography>
             {isShared && (

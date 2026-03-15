@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  Modal,
   TouchableOpacity,
+  Animated,
+  Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
@@ -63,23 +64,26 @@ export function PaymentMethodContextMenu({
 }: PaymentMethodContextMenuProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+  const opacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(opacity, {
+      toValue: visible ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [visible, opacity]);
 
   if (!visible || !paymentMethod) return null;
 
   return (
-    <Modal
-      transparent
-      visible={visible}
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <TouchableOpacity
-        style={styles.overlay}
-        activeOpacity={1}
-        onPress={onClose}
-      >
+    <Animated.View style={[styles.overlay, { opacity }]} pointerEvents="auto">
+      <Pressable style={styles.backdrop} onPress={onClose}>
         <View style={styles.menuContainer}>
-          <View style={[styles.menu, { backgroundColor: colors.background }]}>
+          <Pressable
+            style={[styles.menu, { backgroundColor: colors.background }]}
+            onPress={(e) => e.stopPropagation()}
+          >
             {/* 결제 수단 정보 헤더 */}
             <View style={styles.header}>
               <View
@@ -124,15 +128,19 @@ export function PaymentMethodContextMenu({
             />
 
             <MenuItem icon="close-outline" text="취소" onPress={onClose} />
-          </View>
+          </Pressable>
         </View>
-      </TouchableOpacity>
-    </Modal>
+      </Pressable>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   overlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 100,
+  },
+  backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
