@@ -328,6 +328,15 @@ export function CategoryBottomSheet({
             </Text>
           </TouchableOpacity>
         </Animated.View>
+
+        {/* 카테고리 컨텍스트 메뉴 — container 내부에서 전체 화면 오버레이 */}
+        <CategoryContextMenu
+          visible={!!contextMenuCategory}
+          category={contextMenuCategory}
+          onEdit={handleEditCategory}
+          onDelete={handleDeleteCategory}
+          onClose={() => setContextMenuCategory(null)}
+        />
       </View>
 
       {/* 커스텀 카테고리 추가 모달 */}
@@ -336,15 +345,6 @@ export function CategoryBottomSheet({
         onClose={() => setShowAddModal(false)}
         onSave={handleAddCategory}
         initialType={transactionType}
-      />
-
-      {/* 카테고리 컨텍스트 메뉴 */}
-      <CategoryContextMenu
-        visible={!!contextMenuCategory}
-        category={contextMenuCategory}
-        onEdit={handleEditCategory}
-        onDelete={handleDeleteCategory}
-        onClose={() => setContextMenuCategory(null)}
       />
 
       {/* 카테고리 수정 모달 */}
