@@ -14,6 +14,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { AuthProvider } from '../contexts/AuthContext';
 import { ServiceProvider } from '../contexts/ServiceContext';
 import { LedgerProvider } from '../contexts/LedgerContext';
+import { SelectedDateProvider } from '../contexts/SelectedDateContext';
 
 const SPLASH_SCREEN_DURATION = 1000;
 
@@ -39,16 +40,18 @@ export default function RootLayout() {
       <AuthProvider>
         <ServiceProvider>
           <LedgerProvider>
-            <ThemeProvider
-              value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}
-            >
-              <Stack>
-                <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="+not-found" />
-              </Stack>
-              <StatusBar style="auto" />
-            </ThemeProvider>
+            <SelectedDateProvider>
+              <ThemeProvider
+                value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}
+              >
+                <Stack>
+                  <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen name="+not-found" />
+                </Stack>
+                <StatusBar style="auto" />
+              </ThemeProvider>
+            </SelectedDateProvider>
           </LedgerProvider>
         </ServiceProvider>
       </AuthProvider>

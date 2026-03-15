@@ -23,7 +23,7 @@ import { PaidByBottomSheet } from '@/components/shared/PaidByBottomSheet';
 import { PaymentMethodBottomSheet } from '@/components/shared/PaymentMethodBottomSheet';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { usePaymentMethods } from '@/hooks/usePaymentMethods';
-import { format } from 'date-fns';
+import { format, addYears } from 'date-fns';
 import { CategoryBottomSheet } from '@/components/shared/CategorySelector/CategoryBottomSheet';
 import { useCategories } from '@/hooks/useCategories';
 import { useLedger } from '@/contexts/LedgerContext';
@@ -547,7 +547,9 @@ export default function TransactionDetailScreen() {
               <View style={styles.valueContainer}>
                 <Typography
                   variant="body1"
-                  color={transaction.payment_method_name ? 'primary' : 'secondary'}
+                  color={
+                    transaction.payment_method_name ? 'primary' : 'secondary'
+                  }
                   numberOfLines={1}
                   style={{ flex: 1, textAlign: 'right' }}
                 >
@@ -665,7 +667,7 @@ export default function TransactionDetailScreen() {
             onConfirm={handleDateConfirm}
             onCancel={() => setDatePickerVisible(false)}
             date={new Date(transaction.transaction_date)}
-            maximumDate={new Date()}
+            maximumDate={addYears(new Date(), 1)}
             locale="ko"
             confirmTextIOS="완료"
             cancelTextIOS="취소"

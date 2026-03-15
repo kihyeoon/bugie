@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { getIoniconName } from '@/constants/categories';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -25,9 +26,10 @@ import { usePaymentMethods } from '@/hooks/usePaymentMethods';
 import { useLedger } from '@/contexts/LedgerContext';
 import { useServices } from '@/contexts/ServiceContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSelectedDate } from '@/contexts/SelectedDateContext';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { Ionicons } from '@expo/vector-icons';
-import { format } from 'date-fns';
+import { format, addYears } from 'date-fns';
 import { PermissionService } from '@repo/core';
 import type { CategoryDetail, MemberRole } from '@repo/core';
 
@@ -61,6 +63,7 @@ export default function AddTransactionScreen() {
   const { currentLedger } = useLedger();
   const { transactionService } = useServices();
   const { user } = useAuth();
+  const { selectedDate: sharedDate } = useSelectedDate();
   const {
     paymentMethods,
     create: createPaymentMethod,
@@ -86,6 +89,15 @@ export default function AddTransactionScreen() {
       setSelectedPaidBy(user.id);
     }
   }, [user, selectedPaidBy]);
+
+  // 탭 전환 시 홈에서 선택한 날짜 반영
+  useFocusEffect(
+    useCallback(() => {
+      setSelectedDate((prev) =>
+        prev.getTime() === sharedDate.getTime() ? prev : sharedDate
+      );
+    }, [sharedDate])
+  );
 
   // 실제 DB에서 카테고리 가져오기
   const {
@@ -125,11 +137,11 @@ export default function AddTransactionScreen() {
     setSelectedCategory(null);
     setTitle('');
     setMemo('');
-    setSelectedDate(new Date());
+    setSelectedDate(sharedDate);
     setSelectedPaidBy(user?.id ?? null);
     setSelectedPaymentMethodId(null);
     // transactionType은 사용자 편의를 위해 유지
-  }, [user]);
+  }, [user, sharedDate]);
 
   // 카테고리가 수정/삭제되면 선택된 카테고리도 자동 업데이트
   useEffect(() => {
@@ -285,6 +297,29 @@ export default function AddTransactionScreen() {
             />
           </View>
 
+          {/* 제목 입력 */}
+          <View style={styles.titleSection}>
+            <TextInput
+              ref={titleInputRef}
+              style={[
+                styles.titleInput,
+                {
+                  backgroundColor: colors.backgroundSecondary,
+                  color: colors.text,
+                },
+              ]}
+              placeholder="거래 제목 (필수)"
+              placeholderTextColor={colors.textSecondary}
+              value={title}
+              onChangeText={setTitle}
+              returnKeyType="next"
+              maxLength={50}
+              onSubmitEditing={() => {
+                memoInputRef.current?.focus();
+              }}
+            />
+          </View>
+
           {/* 날짜 선택 */}
           <View style={styles.dateSection}>
             <TouchableOpacity
@@ -416,29 +451,6 @@ export default function AddTransactionScreen() {
             </View>
           )}
 
-          {/* 제목 입력 */}
-          <View style={styles.titleSection}>
-            <TextInput
-              ref={titleInputRef}
-              style={[
-                styles.titleInput,
-                {
-                  backgroundColor: colors.backgroundSecondary,
-                  color: colors.text,
-                },
-              ]}
-              placeholder="거래 제목 (필수)"
-              placeholderTextColor={colors.textSecondary}
-              value={title}
-              onChangeText={setTitle}
-              returnKeyType="next"
-              maxLength={50}
-              onSubmitEditing={() => {
-                memoInputRef.current?.focus();
-              }}
-            />
-          </View>
-
           {/* 메모 입력 */}
           <View style={styles.memoSection}>
             <TextInput
@@ -482,7 +494,7 @@ export default function AddTransactionScreen() {
         onConfirm={handleConfirm}
         onCancel={hideDatePicker}
         date={selectedDate}
-        maximumDate={new Date()}
+        maximumDate={addYears(new Date(), 1)}
         locale="ko"
         confirmTextIOS="완료"
         cancelTextIOS="취소"

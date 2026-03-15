@@ -15,6 +15,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography, Card, AmountDisplay } from '@/components/ui';
 import { Calendar } from '@/components/shared/calendar';
 import { useLedger } from '../../contexts/LedgerContext';
+import { useSelectedDate } from '@/contexts/SelectedDateContext';
 import { useMonthlyData } from '../../hooks/useMonthlyData';
 import { ErrorState } from '../../components/shared/ErrorState';
 import { EmptyState } from '../../components/shared/EmptyState';
@@ -44,6 +45,7 @@ const CONSTANTS = {
 export default function HomeScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
+  const { setSelectedDate: setSharedDate } = useSelectedDate();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -108,6 +110,9 @@ export default function HomeScreen() {
   }, [refreshLedgers, refetchData]);
 
   const handleDateSelect = (date: Date) => {
+    // 빠른 입력 화면에서 사용할 공유 날짜 설정
+    setSharedDate(date);
+
     if (!calendarData) return;
 
     const dateStr = format(date, 'yyyy-MM-dd');
