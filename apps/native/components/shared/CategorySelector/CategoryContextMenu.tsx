@@ -8,6 +8,7 @@ import {
   Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { getIoniconName } from '@/constants/categories';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import type { Category } from '@repo/types';
@@ -95,7 +96,7 @@ export default function CategoryContextMenu({
                 ]}
               >
                 <Ionicons
-                  name={category.icon as keyof typeof Ionicons.glyphMap}
+                  name={getIoniconName(category.icon, false)}
                   size={20}
                   color={category.color}
                 />
