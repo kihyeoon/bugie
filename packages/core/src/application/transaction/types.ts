@@ -8,6 +8,7 @@ export interface CreateTransactionInput {
   ledgerId: string;
   categoryId: string;
   paidBy?: string;
+  paymentMethodId?: string;
   amount: number;
   type: CategoryType;
   title: string;
@@ -18,6 +19,8 @@ export interface CreateTransactionInput {
 export interface UpdateTransactionInput {
   categoryId?: string;
   paidBy?: string;
+  /** undefined = 변경 없음, null = 결제 수단 해제, string = 변경 */
+  paymentMethodId?: string | null;
   amount?: number;
   type?: CategoryType;
   title?: string;

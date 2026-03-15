@@ -12,13 +12,56 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 
-CREATE SCHEMA IF NOT EXISTS "public";
+CREATE EXTENSION IF NOT EXISTS "pg_net" WITH SCHEMA "extensions";
 
 
-ALTER SCHEMA "public" OWNER TO "pg_database_owner";
+
+
 
 
 COMMENT ON SCHEMA "public" IS 'standard public schema';
+
+
+
+CREATE EXTENSION IF NOT EXISTS "pg_graphql" WITH SCHEMA "graphql";
+
+
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "pg_stat_statements" WITH SCHEMA "extensions";
+
+
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA "extensions";
+
+
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "pgjwt" WITH SCHEMA "extensions";
+
+
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "supabase_vault" WITH SCHEMA "vault";
+
+
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
+
+
+
 
 
 
@@ -84,6 +127,30 @@ $$;
 ALTER FUNCTION "public"."add_custom_category"("target_ledger_id" "uuid", "category_name" "text", "category_type" "public"."category_type", "category_color" "text", "category_icon" "text", "category_sort_order" integer) OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."check_payment_method_ledger_match"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+  IF NEW.payment_method_id IS NOT NULL
+     AND (TG_OP = 'INSERT' OR OLD.payment_method_id IS DISTINCT FROM NEW.payment_method_id)
+  THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM payment_methods
+      WHERE id = NEW.payment_method_id
+        AND ledger_id = NEW.ledger_id
+        AND deleted_at IS NULL
+    ) THEN
+      RAISE EXCEPTION '결제 수단이 해당 가계부에 속하지 않습니다.';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."check_payment_method_ledger_match"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."check_transaction_category_type"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     AS $$
@@ -111,7 +178,6 @@ CREATE OR REPLACE FUNCTION "public"."cleanup_old_deleted_data"() RETURNS "void"
     LANGUAGE "plpgsql"
     AS $$
 BEGIN
-  -- Delete data that has been soft deleted for more than 30 days
   DELETE FROM transactions
   WHERE deleted_at IS NOT NULL
     AND deleted_at < now() - INTERVAL '30 days';
@@ -121,6 +187,11 @@ BEGIN
     AND deleted_at < now() - INTERVAL '30 days';
 
   DELETE FROM categories
+  WHERE deleted_at IS NOT NULL
+    AND deleted_at < now() - INTERVAL '30 days';
+
+  -- payment_methods: transactions 뒤, ledgers 앞 (FK 순서)
+  DELETE FROM payment_methods
   WHERE deleted_at IS NOT NULL
     AND deleted_at < now() - INTERVAL '30 days';
 
@@ -222,15 +293,13 @@ BEGIN
     INSERT INTO deleted_accounts (
       original_user_id,
       email_hash,
-      deleted_at,
-      anonymized_at
+      deleted_at
     ) VALUES (
       target_user_id,
       encode(sha256(v_email::bytea), 'hex'),
-      NOW(),
       NOW()
     ) ON CONFLICT (original_user_id) DO UPDATE
-      SET anonymized_at = NOW();
+      SET email_hash = EXCLUDED.email_hash;
   END IF;
 
   UPDATE transactions
@@ -240,6 +309,11 @@ BEGIN
   UPDATE transactions
   SET paid_by = NULL
   WHERE paid_by = target_user_id;
+
+  -- payment_methods owner_id NULL 처리 (paid_by 직후)
+  UPDATE payment_methods
+  SET owner_id = NULL
+  WHERE owner_id = target_user_id;
 
   UPDATE budgets
   SET created_by = NULL
@@ -294,8 +368,7 @@ COMMENT ON FUNCTION "public"."force_clean_user"("target_user_id" "uuid") IS '특
 - 테스트 및 긴급 상황용으로만 사용하세요
 - 30일 대기 없이 즉시 삭제 처리
 - 파라미터: target_user_id (삭제할 사용자 UUID)
-- 반환값: {success, email, profile_deleted, auth_deleted, message}
-⚠️ 주의: 프로덕션에서는 신중하게 사용하세요';
+- 반환값: {success, email, profile_deleted, auth_deleted, message}';
 
 
 
@@ -429,6 +502,21 @@ $$;
 ALTER FUNCTION "public"."invite_member_to_ledger"("target_ledger_id" "uuid", "target_user_email" "text", "member_role" "public"."member_role") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."prevent_ledger_id_change"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+  IF OLD.ledger_id IS DISTINCT FROM NEW.ledger_id THEN
+    RAISE EXCEPTION 'ledger_id cannot be changed';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."prevent_ledger_id_change"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."process_account_deletions"() RETURNS "json"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -559,15 +647,12 @@ BEGIN
       INSERT INTO deleted_accounts (
         original_user_id,
         email_hash,
-        deleted_at,
-        anonymized_at
+        deleted_at
       ) VALUES (
         v_result.id,
         v_email_hash,
-        v_result.deleted_at,
-        NOW()
-      ) ON CONFLICT (original_user_id) DO UPDATE
-        SET anonymized_at = NOW();
+        v_result.deleted_at
+      ) ON CONFLICT (original_user_id) DO NOTHING;
 
       UPDATE transactions
       SET created_by = NULL
@@ -822,6 +907,42 @@ This function bypasses RLS to avoid conflicts with Supabase''s automatic RETURNI
 
 
 
+CREATE OR REPLACE FUNCTION "public"."soft_delete_payment_method"("target_id" "uuid") RETURNS boolean
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM payment_methods pm
+    JOIN ledger_members lm ON pm.ledger_id = lm.ledger_id
+    WHERE pm.id = target_id
+      AND pm.deleted_at IS NULL
+      AND lm.user_id = auth.uid()
+      AND lm.role IN ('owner', 'admin', 'member')
+      AND lm.deleted_at IS NULL
+  ) THEN
+    RAISE EXCEPTION 'Permission denied or payment method not found';
+  END IF;
+
+  UPDATE payment_methods
+  SET deleted_at = now(),
+      updated_at = now()
+  WHERE id = target_id
+    AND deleted_at IS NULL;
+
+  RETURN true;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."soft_delete_payment_method"("target_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."soft_delete_payment_method"("target_id" "uuid") IS '결제 수단을 소프트 삭제합니다. 해당 결제 수단을 참조하는 기존 거래는 영향받지 않습니다.';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."soft_delete_profile"() RETURNS boolean
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -1045,7 +1166,7 @@ CREATE TABLE IF NOT EXISTS "public"."category_templates" (
 ALTER TABLE "public"."category_templates" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."category_details" AS
+CREATE OR REPLACE VIEW "public"."category_details" WITH ("security_invoker"='on') AS
  SELECT "c"."id",
     "c"."ledger_id",
     "c"."template_id",
@@ -1087,6 +1208,23 @@ CREATE TABLE IF NOT EXISTS "public"."ledgers" (
 ALTER TABLE "public"."ledgers" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."payment_methods" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "ledger_id" "uuid" NOT NULL,
+    "owner_id" "uuid",
+    "is_shared" boolean DEFAULT false NOT NULL,
+    "name" "text" NOT NULL,
+    "icon" "text" DEFAULT 'credit-card'::"text",
+    "sort_order" integer DEFAULT 0,
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "updated_at" timestamp with time zone DEFAULT "now"(),
+    "deleted_at" timestamp with time zone
+);
+
+
+ALTER TABLE "public"."payment_methods" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "id" "uuid" NOT NULL,
     "email" "text",
@@ -1117,6 +1255,8 @@ CREATE TABLE IF NOT EXISTS "public"."transactions" (
     "updated_at" timestamp with time zone DEFAULT "now"(),
     "deleted_at" timestamp with time zone,
     "paid_by" "uuid",
+    "payment_method_id" "uuid",
+    CONSTRAINT "check_payment_method_expense_only" CHECK ((("type" = 'expense'::"public"."category_type") OR ("payment_method_id" IS NULL))),
     CONSTRAINT "transactions_amount_check" CHECK (("amount" > (0)::numeric))
 );
 
@@ -1124,7 +1264,7 @@ CREATE TABLE IF NOT EXISTS "public"."transactions" (
 ALTER TABLE "public"."transactions" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."active_transactions" AS
+CREATE OR REPLACE VIEW "public"."active_transactions" WITH ("security_invoker"='on') AS
  SELECT "t"."id",
     "t"."ledger_id",
     "t"."category_id",
@@ -1144,23 +1284,24 @@ CREATE OR REPLACE VIEW "public"."active_transactions" AS
     "cd"."source_type" AS "category_source",
     "l"."name" AS "ledger_name",
     "p"."full_name" AS "created_by_name",
-    "p2"."full_name" AS "paid_by_name"
-   FROM (((("public"."transactions" "t"
+    "p2"."full_name" AS "paid_by_name",
+    "t"."payment_method_id",
+    "pm"."name" AS "payment_method_name",
+    "pm"."icon" AS "payment_method_icon",
+    "pm"."is_shared" AS "payment_method_is_shared"
+   FROM ((((("public"."transactions" "t"
      JOIN "public"."category_details" "cd" ON (("t"."category_id" = "cd"."id")))
      JOIN "public"."ledgers" "l" ON (("t"."ledger_id" = "l"."id")))
      LEFT JOIN "public"."profiles" "p" ON (("t"."created_by" = "p"."id")))
      LEFT JOIN "public"."profiles" "p2" ON (("t"."paid_by" = "p2"."id")))
+     LEFT JOIN "public"."payment_methods" "pm" ON (("t"."payment_method_id" = "pm"."id")))
   WHERE (("t"."deleted_at" IS NULL) AND ("l"."deleted_at" IS NULL));
 
 
 ALTER TABLE "public"."active_transactions" OWNER TO "postgres";
 
 
-COMMENT ON VIEW "public"."active_transactions" IS '활성 거래 목록 (탈퇴한 사용자 거래 포함, 지출자 정보 포함)';
-
-
-
-COMMENT ON COLUMN "public"."active_transactions"."paid_by_name" IS '실제 지출자 이름 (NULL이면 작성자와 동일)';
+COMMENT ON VIEW "public"."active_transactions" IS '활성 거래 목록 (결제 수단 정보 포함)';
 
 
 
@@ -1185,7 +1326,7 @@ CREATE TABLE IF NOT EXISTS "public"."budgets" (
 ALTER TABLE "public"."budgets" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."budget_vs_actual" AS
+CREATE OR REPLACE VIEW "public"."budget_vs_actual" WITH ("security_invoker"='on') AS
  SELECT "b"."id" AS "budget_id",
     "b"."ledger_id",
     "b"."category_id",
@@ -1297,7 +1438,7 @@ CREATE TABLE IF NOT EXISTS "public"."ledger_members" (
 ALTER TABLE "public"."ledger_members" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."ledger_monthly_summary" AS
+CREATE OR REPLACE VIEW "public"."ledger_monthly_summary" WITH ("security_invoker"='on') AS
  SELECT "transactions"."ledger_id",
     EXTRACT(year FROM "transactions"."transaction_date") AS "year",
     EXTRACT(month FROM "transactions"."transaction_date") AS "month",
@@ -1359,6 +1500,11 @@ ALTER TABLE ONLY "public"."ledger_members"
 
 ALTER TABLE ONLY "public"."ledgers"
     ADD CONSTRAINT "ledgers_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."payment_methods"
+    ADD CONSTRAINT "payment_methods_pkey" PRIMARY KEY ("id");
 
 
 
@@ -1434,6 +1580,10 @@ CREATE INDEX "idx_ledgers_created_by" ON "public"."ledgers" USING "btree" ("crea
 
 
 
+CREATE INDEX "idx_payment_methods_ledger" ON "public"."payment_methods" USING "btree" ("ledger_id") WHERE ("deleted_at" IS NULL);
+
+
+
 CREATE INDEX "idx_transactions_ledger_category" ON "public"."transactions" USING "btree" ("ledger_id", "category_id") WHERE ("deleted_at" IS NULL);
 
 
@@ -1446,6 +1596,10 @@ CREATE INDEX "idx_transactions_ledger_type" ON "public"."transactions" USING "bt
 
 
 
+CREATE INDEX "idx_transactions_payment_method" ON "public"."transactions" USING "btree" ("payment_method_id") WHERE ("deleted_at" IS NULL);
+
+
+
 CREATE UNIQUE INDEX "unique_active_ledger_custom_name" ON "public"."categories" USING "btree" ("ledger_id", "name", "type") WHERE ("deleted_at" IS NULL);
 
 
@@ -1454,7 +1608,27 @@ COMMENT ON INDEX "public"."unique_active_ledger_custom_name" IS '활성 카테�
 
 
 
+CREATE UNIQUE INDEX "unique_active_payment_method_name" ON "public"."payment_methods" USING "btree" ("ledger_id", "owner_id", "name") WHERE ("deleted_at" IS NULL);
+
+
+
+CREATE UNIQUE INDEX "unique_active_shared_payment_method_name" ON "public"."payment_methods" USING "btree" ("ledger_id", "name") WHERE (("deleted_at" IS NULL) AND ("owner_id" IS NULL));
+
+
+
 CREATE OR REPLACE TRIGGER "check_transaction_category_type_trigger" BEFORE INSERT OR UPDATE ON "public"."transactions" FOR EACH ROW EXECUTE FUNCTION "public"."check_transaction_category_type"();
+
+
+
+CREATE OR REPLACE TRIGGER "check_transaction_payment_method_match" BEFORE INSERT OR UPDATE ON "public"."transactions" FOR EACH ROW EXECUTE FUNCTION "public"."check_payment_method_ledger_match"();
+
+
+
+CREATE OR REPLACE TRIGGER "prevent_category_ledger_change" BEFORE UPDATE ON "public"."categories" FOR EACH ROW EXECUTE FUNCTION "public"."prevent_ledger_id_change"();
+
+
+
+CREATE OR REPLACE TRIGGER "prevent_payment_method_ledger_change" BEFORE UPDATE ON "public"."payment_methods" FOR EACH ROW EXECUTE FUNCTION "public"."prevent_ledger_id_change"();
 
 
 
@@ -1498,6 +1672,16 @@ ALTER TABLE ONLY "public"."ledgers"
 
 
 
+ALTER TABLE ONLY "public"."payment_methods"
+    ADD CONSTRAINT "payment_methods_ledger_id_fkey" FOREIGN KEY ("ledger_id") REFERENCES "public"."ledgers"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."payment_methods"
+    ADD CONSTRAINT "payment_methods_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
+
+
+
 ALTER TABLE ONLY "public"."profiles"
     ADD CONSTRAINT "profiles_id_fkey" FOREIGN KEY ("id") REFERENCES "auth"."users"("id");
 
@@ -1520,6 +1704,11 @@ ALTER TABLE ONLY "public"."transactions"
 
 ALTER TABLE ONLY "public"."transactions"
     ADD CONSTRAINT "transactions_paid_by_fkey" FOREIGN KEY ("paid_by") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."transactions"
+    ADD CONSTRAINT "transactions_payment_method_id_fkey" FOREIGN KEY ("payment_method_id") REFERENCES "public"."payment_methods"("id") ON DELETE SET NULL;
 
 
 
@@ -1638,6 +1827,29 @@ CREATE POLICY "ledgers_update_policy" ON "public"."ledgers" FOR UPDATE USING (((
 
 
 
+ALTER TABLE "public"."payment_methods" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "payment_methods_insert_policy" ON "public"."payment_methods" FOR INSERT WITH CHECK (("ledger_id" IN ( SELECT "ledger_members"."ledger_id"
+   FROM "public"."ledger_members"
+  WHERE (("ledger_members"."user_id" = "auth"."uid"()) AND ("ledger_members"."role" = ANY (ARRAY['owner'::"public"."member_role", 'admin'::"public"."member_role", 'member'::"public"."member_role"])) AND ("ledger_members"."deleted_at" IS NULL)))));
+
+
+
+CREATE POLICY "payment_methods_select_policy" ON "public"."payment_methods" FOR SELECT USING (("ledger_id" IN ( SELECT "ledger_members"."ledger_id"
+   FROM "public"."ledger_members"
+  WHERE (("ledger_members"."user_id" = "auth"."uid"()) AND ("ledger_members"."deleted_at" IS NULL)))));
+
+
+
+CREATE POLICY "payment_methods_update_policy" ON "public"."payment_methods" FOR UPDATE USING ((("deleted_at" IS NULL) AND ("ledger_id" IN ( SELECT "ledger_members"."ledger_id"
+   FROM "public"."ledger_members"
+  WHERE (("ledger_members"."user_id" = "auth"."uid"()) AND ("ledger_members"."role" = ANY (ARRAY['owner'::"public"."member_role", 'admin'::"public"."member_role", 'member'::"public"."member_role"])) AND ("ledger_members"."deleted_at" IS NULL)))))) WITH CHECK ((("deleted_at" IS NULL) AND ("ledger_id" IN ( SELECT "ledger_members"."ledger_id"
+   FROM "public"."ledger_members"
+  WHERE (("ledger_members"."user_id" = "auth"."uid"()) AND ("ledger_members"."role" = ANY (ARRAY['owner'::"public"."member_role", 'admin'::"public"."member_role", 'member'::"public"."member_role"])) AND ("ledger_members"."deleted_at" IS NULL))))));
+
+
+
 ALTER TABLE "public"."profiles" ENABLE ROW LEVEL SECURITY;
 
 
@@ -1661,10 +1873,192 @@ CREATE POLICY "transactions_policy" ON "public"."transactions" USING ((("deleted
 
 
 
+
+
+ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
+
+
+
+
+
 GRANT USAGE ON SCHEMA "public" TO "postgres";
 GRANT USAGE ON SCHEMA "public" TO "anon";
 GRANT USAGE ON SCHEMA "public" TO "authenticated";
 GRANT USAGE ON SCHEMA "public" TO "service_role";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1677,6 +2071,12 @@ GRANT ALL ON FUNCTION "public"."activate_default_categories"("target_ledger_id" 
 GRANT ALL ON FUNCTION "public"."add_custom_category"("target_ledger_id" "uuid", "category_name" "text", "category_type" "public"."category_type", "category_color" "text", "category_icon" "text", "category_sort_order" integer) TO "anon";
 GRANT ALL ON FUNCTION "public"."add_custom_category"("target_ledger_id" "uuid", "category_name" "text", "category_type" "public"."category_type", "category_color" "text", "category_icon" "text", "category_sort_order" integer) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."add_custom_category"("target_ledger_id" "uuid", "category_name" "text", "category_type" "public"."category_type", "category_color" "text", "category_icon" "text", "category_sort_order" integer) TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."check_payment_method_ledger_match"() TO "anon";
+GRANT ALL ON FUNCTION "public"."check_payment_method_ledger_match"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."check_payment_method_ledger_match"() TO "service_role";
 
 
 
@@ -1729,6 +2129,12 @@ GRANT ALL ON FUNCTION "public"."invite_member_to_ledger"("target_ledger_id" "uui
 
 
 
+GRANT ALL ON FUNCTION "public"."prevent_ledger_id_change"() TO "anon";
+GRANT ALL ON FUNCTION "public"."prevent_ledger_id_change"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."prevent_ledger_id_change"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."process_account_deletions"() TO "anon";
 GRANT ALL ON FUNCTION "public"."process_account_deletions"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."process_account_deletions"() TO "service_role";
@@ -1771,6 +2177,11 @@ GRANT ALL ON FUNCTION "public"."soft_delete_ledger"("ledger_id" "uuid") TO "serv
 
 
 
+GRANT ALL ON FUNCTION "public"."soft_delete_payment_method"("target_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."soft_delete_payment_method"("target_id" "uuid") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."soft_delete_profile"() TO "anon";
 GRANT ALL ON FUNCTION "public"."soft_delete_profile"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."soft_delete_profile"() TO "service_role";
@@ -1786,6 +2197,21 @@ GRANT ALL ON FUNCTION "public"."soft_delete_transaction"("transaction_id" "uuid"
 GRANT ALL ON FUNCTION "public"."transfer_ledger_ownership"("p_ledger_id" "uuid", "p_new_owner_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."transfer_ledger_ownership"("p_ledger_id" "uuid", "p_new_owner_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."transfer_ledger_ownership"("p_ledger_id" "uuid", "p_new_owner_id" "uuid") TO "service_role";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1810,6 +2236,12 @@ GRANT ALL ON TABLE "public"."category_details" TO "service_role";
 GRANT ALL ON TABLE "public"."ledgers" TO "anon";
 GRANT ALL ON TABLE "public"."ledgers" TO "authenticated";
 GRANT ALL ON TABLE "public"."ledgers" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."payment_methods" TO "anon";
+GRANT ALL ON TABLE "public"."payment_methods" TO "authenticated";
+GRANT ALL ON TABLE "public"."payment_methods" TO "service_role";
 
 
 
@@ -1867,6 +2299,12 @@ GRANT ALL ON TABLE "public"."ledger_monthly_summary" TO "service_role";
 
 
 
+
+
+
+
+
+
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES  TO "postgres";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES  TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES  TO "authenticated";
@@ -1891,6 +2329,30 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TAB
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES  TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES  TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES  TO "service_role";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

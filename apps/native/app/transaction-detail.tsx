@@ -20,7 +20,9 @@ import { formatDateKorean } from '@/utils/dateFormatter';
 import { EditAmountModal } from '@/components/transaction/EditAmountModal';
 import { EditTextModal } from '@/components/shared/EditTextModal';
 import { PaidByBottomSheet } from '@/components/shared/PaidByBottomSheet';
+import { PaymentMethodBottomSheet } from '@/components/shared/PaymentMethodBottomSheet';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { usePaymentMethods } from '@/hooks/usePaymentMethods';
 import { format } from 'date-fns';
 import { CategoryBottomSheet } from '@/components/shared/CategorySelector/CategoryBottomSheet';
 import { useCategories } from '@/hooks/useCategories';
@@ -45,6 +47,7 @@ export default function TransactionDetailScreen() {
   const { categories } = useCategories();
   const { currentLedger } = useLedger();
   const { user } = useAuth();
+  const { paymentMethods } = usePaymentMethods();
 
   // 현재 사용자의 가계부 내 역할을 가져옵니다.
   const getUserRole = (): MemberRole | null => {
@@ -76,6 +79,8 @@ export default function TransactionDetailScreen() {
   const [memoModalVisible, setMemoModalVisible] = useState(false);
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [paidByModalVisible, setPaidByModalVisible] = useState(false);
+  const [paymentMethodModalVisible, setPaymentMethodModalVisible] =
+    useState(false);
 
   // 편집 핸들러들
   const handleAmountSave = useCallback(
@@ -147,6 +152,38 @@ export default function TransactionDetailScreen() {
     },
     [updateTransaction]
   );
+
+  const handlePaymentMethodSave = useCallback(
+    async (paymentMethodId: string) => {
+      try {
+        const selected = paymentMethods.find((m) => m.id === paymentMethodId);
+        await updateTransaction({
+          paymentMethodId,
+          payment_method_id: paymentMethodId,
+          payment_method_name: selected?.name ?? null,
+          payment_method_icon: selected?.icon ?? null,
+          payment_method_is_shared: selected?.isShared ?? null,
+        });
+      } catch {
+        Alert.alert('오류', '결제 수단 변경에 실패했습니다.');
+      }
+    },
+    [updateTransaction, paymentMethods]
+  );
+
+  const handlePaymentMethodClear = useCallback(async () => {
+    try {
+      await updateTransaction({
+        paymentMethodId: null,
+        payment_method_id: null,
+        payment_method_name: null,
+        payment_method_icon: null,
+        payment_method_is_shared: null,
+      });
+    } catch {
+      Alert.alert('오류', '결제 수단 변경에 실패했습니다.');
+    }
+  }, [updateTransaction]);
 
   const handlePaidBySave = useCallback(
     async (paidByUserId: string) => {
@@ -490,6 +527,45 @@ export default function TransactionDetailScreen() {
             </Pressable>
           ) : null}
 
+          {/* 결제 수단 - 지출 거래에서만 표시 */}
+          {transaction.type === 'expense' && (
+            <Pressable
+              style={[
+                styles.infoRow,
+                !canUpdateTransaction && styles.disabledRow,
+              ]}
+              onPress={
+                canUpdateTransaction
+                  ? () => setPaymentMethodModalVisible(true)
+                  : undefined
+              }
+              disabled={!canUpdateTransaction}
+            >
+              <Typography variant="body1" color="secondary" weight="500">
+                결제 수단
+              </Typography>
+              <View style={styles.valueContainer}>
+                <Typography
+                  variant="body1"
+                  color={transaction.payment_method_name ? 'primary' : 'secondary'}
+                  numberOfLines={1}
+                  style={{ flex: 1, textAlign: 'right' }}
+                >
+                  {transaction.payment_method_name
+                    ? `${transaction.payment_method_name}${transaction.payment_method_is_shared ? ' (공동)' : ''}`
+                    : '미지정'}
+                </Typography>
+                {canUpdateTransaction && (
+                  <Ionicons
+                    name="chevron-forward"
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                )}
+              </View>
+            </Pressable>
+          )}
+
           {/* 작성자 - 수정 불가 */}
           <View style={styles.infoRow}>
             <Typography variant="body1" color="secondary" weight="500">
@@ -593,6 +669,17 @@ export default function TransactionDetailScreen() {
             locale="ko"
             confirmTextIOS="완료"
             cancelTextIOS="취소"
+          />
+
+          {/* 결제 수단 선택 바텀시트 */}
+          <PaymentMethodBottomSheet
+            visible={paymentMethodModalVisible}
+            paymentMethods={paymentMethods}
+            selectedId={transaction.payment_method_id}
+            currentUserId={user?.id}
+            onSelect={handlePaymentMethodSave}
+            onClear={handlePaymentMethodClear}
+            onClose={() => setPaymentMethodModalVisible(false)}
           />
 
           {/* 지출자 선택 바텀시트 */}

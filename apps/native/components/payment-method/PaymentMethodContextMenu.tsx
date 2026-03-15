@@ -8,16 +8,16 @@ import {
   Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getIoniconName } from '@/constants/categories';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import type { Category } from '@repo/types';
+import { getIoniconName, DEFAULT_CATEGORY_COLOR } from '@/constants/categories';
+import type { PaymentMethodEntity } from '@repo/core';
 
-interface CategoryContextMenuProps {
+interface PaymentMethodContextMenuProps {
   visible: boolean;
-  category: Category | null;
-  onEdit: () => void;
-  onDelete: () => void;
+  paymentMethod: PaymentMethodEntity | null;
+  onEdit?: () => void;
+  onDelete?: () => void;
   onClose: () => void;
 }
 
@@ -28,7 +28,7 @@ interface MenuItemProps {
   danger?: boolean;
 }
 
-const MenuItem: React.FC<MenuItemProps> = ({ icon, text, onPress, danger }) => {
+function MenuItem({ icon, text, onPress, danger }: MenuItemProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
 
@@ -53,15 +53,15 @@ const MenuItem: React.FC<MenuItemProps> = ({ icon, text, onPress, danger }) => {
       </Text>
     </TouchableOpacity>
   );
-};
+}
 
-export default function CategoryContextMenu({
+export function PaymentMethodContextMenu({
   visible,
-  category,
+  paymentMethod,
   onEdit,
   onDelete,
   onClose,
-}: CategoryContextMenuProps) {
+}: PaymentMethodContextMenuProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const opacity = useRef(new Animated.Value(0)).current;
@@ -74,10 +74,7 @@ export default function CategoryContextMenu({
     }).start();
   }, [visible, opacity]);
 
-  if (!visible || !category) return null;
-
-  // 커스텀 카테고리인지 확인 (templateId가 없으면 커스텀)
-  const isCustomCategory = !category.template_id;
+  if (!visible || !paymentMethod) return null;
 
   return (
     <Animated.View style={[styles.overlay, { opacity }]} pointerEvents="auto">
@@ -87,22 +84,25 @@ export default function CategoryContextMenu({
             style={[styles.menu, { backgroundColor: colors.background }]}
             onPress={(e) => e.stopPropagation()}
           >
-            {/* 카테고리 정보 헤더 */}
+            {/* 결제 수단 정보 헤더 */}
             <View style={styles.header}>
               <View
                 style={[
-                  styles.categoryIcon,
-                  { backgroundColor: category.color + '20' },
+                  styles.methodIcon,
+                  { backgroundColor: DEFAULT_CATEGORY_COLOR + '20' },
                 ]}
               >
                 <Ionicons
-                  name={getIoniconName(category.icon, false)}
+                  name={getIoniconName(paymentMethod.icon)}
                   size={20}
-                  color={category.color}
+                  color={DEFAULT_CATEGORY_COLOR}
                 />
               </View>
-              <Text style={[styles.categoryName, { color: colors.text }]}>
-                {category.name}
+              <Text
+                style={[styles.methodName, { color: colors.text }]}
+                numberOfLines={1}
+              >
+                {paymentMethod.name}
               </Text>
             </View>
 
@@ -110,17 +110,18 @@ export default function CategoryContextMenu({
               style={[styles.divider, { backgroundColor: colors.border }]}
             />
 
-            {/* 메뉴 아이템들 */}
-            {isCustomCategory && (
+            {onEdit && (
               <MenuItem icon="create-outline" text="수정" onPress={onEdit} />
             )}
 
-            <MenuItem
-              icon="trash-outline"
-              text={isCustomCategory ? '삭제' : '숨기기'}
-              onPress={onDelete}
-              danger
-            />
+            {onDelete && (
+              <MenuItem
+                icon="trash-outline"
+                text="삭제"
+                onPress={onDelete}
+                danger
+              />
+            )}
 
             <View
               style={[styles.divider, { backgroundColor: colors.border }]}
@@ -146,16 +147,13 @@ const styles = StyleSheet.create({
   },
   menuContainer: {
     paddingHorizontal: 16,
-    paddingBottom: 34, // Safe area bottom
+    paddingBottom: 34,
   },
   menu: {
     borderRadius: 14,
     paddingVertical: 8,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 5,
@@ -166,7 +164,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  categoryIcon: {
+  methodIcon: {
     width: 32,
     height: 32,
     borderRadius: 8,
@@ -174,10 +172,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
-  categoryName: {
+  methodName: {
     fontSize: 16,
     fontWeight: '600',
     letterSpacing: -0.3,
+    flex: 1,
   },
   divider: {
     height: 1,

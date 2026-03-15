@@ -58,3 +58,12 @@ export const CATEGORY_DEFAULT_ICON = 'pricetag';
  * 카테고리 기본 정렬 순서
  */
 export const CATEGORY_DEFAULT_SORT_ORDER = 999;
+
+// ============================================================
+// 결제 수단 관련 상수
+// ============================================================
+
+/**
+ * 결제 수단 이름 최대 길이
+ */
+export const PAYMENT_METHOD_MAX_NAME_LENGTH = 20;

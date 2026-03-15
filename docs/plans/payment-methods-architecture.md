@@ -530,6 +530,7 @@ export interface TransactionWithDetails {
 - 아이콘 선택 UI 필수 (text 직접 입력 불가) — `CategoryItem` 아이콘 그리드 재사용
 - 삭제 시 구체적 안내 필요: "이 수단이 사용된 거래 N건에서 결제 수단 정보가 사라집니다"
 - 결제 수단 목록을 "공동 / 내 수단 / 파트너 수단"으로 그룹핑하여 표시
+- 바텀시트에서 항목 롱프레스 → 컨텍스트 메뉴(수정/삭제) 제공. 공동 뱃지는 섹션 그룹핑으로 대체하여 개별 항목에서 제거
 
 ### 7.2. 거래 입력 화면
 
@@ -537,7 +538,8 @@ export interface TransactionWithDetails {
 - 결제자(paid_by) 기본값은 거래 생성자(현재 유저). 결제 수단 선택과 paid_by는 독립적
 - 선택 사항: 미지정 가능
 - 빈 결제 수단 목록에서 "새 수단 추가" 인라인 버튼 제공
-- 선택 항목(지출자 + 결제 수단) 구분을 위해 "(선택)" 레이블 또는 접이식 "추가 정보" 섹션 고려
+- 선택된 결제 수단의 실제 아이콘을 동적으로 표시 (`getIoniconName` 사용)
+- 공동 결제 수단 선택 시 "공동" 뱃지 표시 (지출자의 "나" 뱃지 패턴 재사용)
 
 ### 7.3. 거래 상세/목록
 
@@ -575,58 +577,76 @@ export interface TransactionWithDetails {
 
 ## 9. 구현 순서
 
-### 1단계: DB + 기본 CRUD
+### 1단계: DB + 기본 CRUD ✅
 
-- [ ] `payment_methods` 테이블 마이그레이션 생성
-- [ ] `transactions.payment_method_id` 컬럼 추가
-- [ ] `check_payment_method_expense_only` 제약 조건 추가
-- [ ] Cross-ledger 참조 방지 트리거 (`check_payment_method_ledger_match`)
-- [ ] ledger_id 변경 방지 트리거 (`prevent_ledger_id_change` — payment_methods + categories)
-- [ ] RLS 정책 (SELECT, INSERT, UPDATE — DELETE 제외)
-- [ ] 인덱스 생성
-- [ ] `soft_delete_payment_method` 함수 + GRANT 설정
-- [ ] `active_transactions` 뷰 갱신
-- [ ] `cleanup_old_deleted_data`에 `payment_methods` 추가
-- [ ] `force_clean_user`에 `payment_methods.owner_id` NULL 처리 추가
+- [x] `payment_methods` 테이블 마이그레이션 생성
+- [x] `transactions.payment_method_id` 컬럼 추가
+- [x] `check_payment_method_expense_only` 제약 조건 추가
+- [x] Cross-ledger 참조 방지 트리거 (`check_payment_method_ledger_match`)
+- [x] ledger_id 변경 방지 트리거 (`prevent_ledger_id_change` — payment_methods + categories)
+- [x] RLS 정책 (SELECT, INSERT, UPDATE — DELETE 제외)
+- [x] 인덱스 생성
+- [x] `soft_delete_payment_method` 함수 + GRANT 설정
+- [x] `active_transactions` 뷰 갱신
+- [x] `cleanup_old_deleted_data`에 `payment_methods` 추가
+- [x] `force_clean_user`에 `payment_methods.owner_id` NULL 처리 추가
 
 > **NOTE: 기존 `categories` RLS — 이미 적용됨**
 >
 > `schema.sql` 확인 결과, `categories` INSERT/UPDATE RLS에 이미 `role IN ('owner', 'admin', 'member')`로
 > viewer 역할이 제외되어 있다. 결제 수단 RLS와 일관성이 확보되어 있으므로 별도 작업이 불필요하다.
 
-### 2단계: core 패키지 + 서비스 연결
+### 2단계: core 패키지 + 서비스 연결 ✅
 
 **신규 파일:**
 
-- [ ] `domain/payment-method/types.ts` — `PaymentMethodEntity` 타입
-- [ ] `domain/payment-method/rules.ts` — `PaymentMethodRules` 비즈니스 규칙
-- [ ] `application/payment-method/types.ts` — `CreatePaymentMethodInput`, `UpdatePaymentMethodInput`
-- [ ] `application/payment-method/PaymentMethodService.ts` — CRUD 서비스
-- [ ] `infrastructure/supabase/repositories/SupabasePaymentMethodRepository.ts`
-- [ ] `infrastructure/supabase/mappers/PaymentMethodMapper.ts`
+- [x] `domain/payment-method/types.ts` — `PaymentMethodEntity`, `PaymentMethodRepository`, Command 타입
+- [x] `domain/payment-method/rules.ts` — `PaymentMethodRules` (validateName, canAttachPaymentMethod, sanitize, create, update)
+- [x] `application/payment-method/types.ts` — `CreatePaymentMethodInput`, `UpdatePaymentMethodInput`
+- [x] `application/payment-method/PaymentMethodService.ts` — getByLedger, create, update, softDelete + 권한 체크
+- [x] `infrastructure/supabase/repositories/SupabasePaymentMethodRepository.ts` — `PaymentMethodRepository` 구현
+- [x] `infrastructure/supabase/mappers/PaymentMethodMapper.ts` — toDomain, toDb, toDbForCreate
 
 **기존 파일 수정:**
 
-- [ ] `domain/transaction/types.ts` — `TransactionEntity`에 `paymentMethodId` 추가
-- [ ] `domain/transaction/rules.ts` — `TransactionRules.createTransaction`에 `paymentMethodId` 전달
-- [ ] `application/transaction/types.ts` — `CreateTransactionInput`, `UpdateTransactionInput`에 `paymentMethodId` 추가
-- [ ] `application/transaction/TransactionService.ts` — create/update에 `paymentMethodId` 전달
-- [ ] `application/permission/PermissionService.ts` — PERMISSIONS에 결제 수단 권한 추가
-- [ ] `infrastructure/supabase/mappers/TransactionMapper.ts` — toDomain/toDb에 `paymentMethodId` 매핑
-- [ ] `shared/types.ts` — `TransactionWithDetails`에 `payment_method_name`, `payment_method_icon`, `payment_method_is_shared` 추가
-- [ ] `packages/core/src/index.ts` — `createPaymentMethodService` 팩토리 + 타입 re-export
+- [x] `domain/transaction/types.ts` — `TransactionEntity`, `Create/UpdateTransactionCommand`에 `paymentMethodId` 추가
+- [x] `domain/transaction/rules.ts` — create/update에서 `PaymentMethodRules.sanitizePaymentMethodOnTypeChange` 호출 (순서: type → paidBy → paymentMethodId → sanitize → updatedAt)
+- [x] `application/transaction/types.ts` — `CreateTransactionInput`, `UpdateTransactionInput`에 `paymentMethodId` 추가
+- [x] `application/transaction/TransactionService.ts` — create/update에 `paymentMethodId` 전달
+- [x] `application/permission/PermissionService.ts` — PERMISSIONS에 `createPaymentMethod`, `updatePaymentMethod`, `deletePaymentMethod`, `viewPaymentMethods` 추가
+- [x] `infrastructure/supabase/mappers/TransactionMapper.ts` — toDomain/toDb/toDbForCreate에 `paymentMethodId` ↔ `payment_method_id` 매핑
+- [x] `shared/types.ts` — `TransactionWithDetails`에 `payment_method_id`, `payment_method_name`, `payment_method_icon`, `payment_method_is_shared` 추가
+- [x] `packages/core/src/index.ts` — `createPaymentMethodService` 팩토리 + `PaymentMethodService`, `PaymentMethodEntity`, `PaymentMethodRules` 등 타입 re-export
+- [x] `domain/shared/constants.ts` — `PAYMENT_METHOD_MAX_NAME_LENGTH = 20` 추가
 
 **네이티브 앱 서비스 연결:**
 
-- [ ] `apps/native/services/core/types.ts` — `CoreServices`에 `paymentMethodService` 추가
-- [ ] `apps/native/services/core/createServices.ts` — `createPaymentMethodService` 팩토리 호출 추가
-- [ ] `@repo/types`에 DB 타입 반영
+- [x] `apps/native/services/core/types.ts` — `CoreServices`에 `paymentMethodService` 추가
+- [x] `apps/native/services/core/createServices.ts` — `createPaymentMethodService` 팩토리 호출 추가
+- [x] `@repo/types` — `PaymentMethod` 인터페이스 추가, `Transaction`에 `payment_method_id` 추가
 
-### 3단계: UI
+### 3단계: UI ✅
 
-- [ ] 가계부 설정 > 결제 수단 관리 화면
-- [ ] 거래 입력 시 결제 수단 선택 UI (지출 전용)
-- [ ] `usePaymentMethods` hook 구현
+**신규 파일:**
+
+- [x] `apps/native/constants/paymentMethods.ts` — 결제 수단 아이콘 상수 (Ionicons 기반)
+- [x] `apps/native/hooks/usePaymentMethods.ts` — 데이터 hook + `groupPaymentMethods` 유틸 (공동/내 수단/파트너 그룹핑)
+- [x] `apps/native/app/payment-methods.tsx` — 결제 수단 관리 화면 (SectionList, 권한 기반 CRUD)
+- [x] `apps/native/components/payment-method/PaymentMethodItem.tsx` — 리스트 아이템 (아이콘 + 이름 + 뱃지)
+- [x] `apps/native/components/payment-method/AddPaymentMethodModal.tsx` — 추가 모달 (이름, 아이콘 그리드, 공동 토글)
+- [x] `apps/native/components/payment-method/EditPaymentMethodModal.tsx` — 수정 모달 (변경된 필드만 전송)
+- [x] `apps/native/components/shared/PaymentMethodBottomSheet.tsx` — 선택 바텀시트 (PaidByBottomSheet 패턴 + ScrollView). 서브 모달은 BaseBottomSheet children 안에 배치 (iOS 모달 중첩 방지)
+- [x] `apps/native/components/payment-method/PaymentMethodContextMenu.tsx` — 롱프레스 컨텍스트 메뉴 (수정/삭제)
+
+**기존 파일 수정:**
+
+- [x] `apps/native/app/ledger-settings.tsx` — 가계부 설정에 "결제 수단 관리" 진입점 추가
+- [x] `apps/native/app/(tabs)/add.tsx` — 거래 입력에 결제 수단 선택 버튼/state 추가 (지출 전용, 수입 전환 시 초기화). 선택된 수단의 실제 아이콘 동적 표시 + 공동 수단 "공동" 뱃지 표시
+- [x] `apps/native/app/transaction-detail.tsx` — 거래 상세에 결제 수단 표시/변경/해제 추가
+- [x] `apps/native/hooks/useTransactionDetail.ts` — `paymentMethodId` 낙관적 업데이트 + 롤백 분기 추가
+- [x] `packages/core/src/application/transaction/types.ts` — `UpdateTransactionInput.paymentMethodId: string | null` (null=해제)
+- [x] `packages/core/src/domain/transaction/types.ts` — `UpdateTransactionCommand.paymentMethodId: EntityId | null`
+- [x] `packages/core/src/domain/transaction/rules.ts` — null → undefined 변환 (도메인 엔티티 타입 정합성)
 
 ---
 

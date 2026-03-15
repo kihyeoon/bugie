@@ -69,8 +69,16 @@ export const CATEGORY_ICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> =
     medkit: 'medkit',
     cash: 'cash',
     card: 'card',
+    'credit-card': 'card',
     wallet: 'wallet',
     'game-controller': 'game-controller',
+    'qr-code': 'qr-code',
+    bus: 'bus',
+    storefront: 'storefront',
+    globe: 'globe',
+    star: 'star',
+    calculator: 'calculator',
+    diamond: 'diamond',
   } as const;
 
 /**
@@ -109,8 +117,16 @@ export const CATEGORY_ICON_MAP_OUTLINE: Record<
   medkit: 'medkit-outline',
   cash: 'cash-outline',
   card: 'card-outline',
+  'credit-card': 'card-outline',
   wallet: 'wallet-outline',
   'game-controller': 'game-controller-outline',
+  'qr-code': 'qr-code-outline',
+  bus: 'bus-outline',
+  storefront: 'storefront-outline',
+  globe: 'globe-outline',
+  star: 'star-outline',
+  calculator: 'calculator-outline',
+  diamond: 'diamond-outline',
 } as const;
 
 /**

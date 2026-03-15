@@ -7,6 +7,7 @@ import type {
 } from './types';
 import type { CategoryType, CategoryEntity } from '../ledger/types';
 import { ValidationError, BusinessRuleViolationError } from '../shared/errors';
+import { PaymentMethodRules } from '../payment-method/rules';
 
 /**
  * 거래 비즈니스 규칙
@@ -109,6 +110,10 @@ export const TransactionRules = {
       categoryId: command.categoryId,
       createdBy: command.createdBy,
       paidBy: command.paidBy,
+      paymentMethodId: PaymentMethodRules.sanitizePaymentMethodOnTypeChange(
+        command.type,
+        command.paymentMethodId
+      ),
       amount: Math.round(command.amount), // 소수점 제거
       type: command.type,
       title: command.title.trim(),
@@ -164,6 +169,16 @@ export const TransactionRules = {
     if (command.paidBy !== undefined) {
       updated.paidBy = command.paidBy;
     }
+
+    if (command.paymentMethodId !== undefined) {
+      updated.paymentMethodId = command.paymentMethodId ?? undefined;
+    }
+
+    // sanitize: 수입 타입이면 paymentMethodId 제거 (DB CHECK 제약과 정합성 보장)
+    updated.paymentMethodId = PaymentMethodRules.sanitizePaymentMethodOnTypeChange(
+      updated.type,
+      updated.paymentMethodId
+    );
 
     updated.updatedAt = new Date();
 
