@@ -293,15 +293,13 @@ BEGIN
     INSERT INTO deleted_accounts (
       original_user_id,
       email_hash,
-      deleted_at,
-      anonymized_at
+      deleted_at
     ) VALUES (
       target_user_id,
       encode(sha256(v_email::bytea), 'hex'),
-      NOW(),
       NOW()
     ) ON CONFLICT (original_user_id) DO UPDATE
-      SET anonymized_at = NOW();
+      SET email_hash = EXCLUDED.email_hash;
   END IF;
 
   UPDATE transactions
