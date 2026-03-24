@@ -26,6 +26,7 @@ export interface AuthState {
   session: Session | null;
   loading: boolean;
   needsProfile: boolean;
+  error: Error | null;
 }
 
 export type OAuthProvider = "google" | "apple" | "kakao";

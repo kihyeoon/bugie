@@ -25,6 +25,7 @@ interface AuthContextValue extends AuthState {
   signInWithOAuth: (provider: OAuthProvider) => Promise<void>;
   updateProfile: (data: Partial<Profile>) => Promise<void>;
   refreshSession: () => Promise<void>;
+  retryInitialization: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -36,6 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session: null,
     loading: true,
     needsProfile: false,
+    error: null,
   });
 
   // React StrictMode 대응을 위한 초기화 플래그
@@ -56,19 +58,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // 세션 체크 및 초기화
-  useEffect(() => {
-    // React StrictMode에서 중복 실행 방지
-    if (isInitialized.current) {
-      return;
-    }
-    isInitialized.current = true;
+  // 세션 및 프로필 초기화 (useEffect와 retryInitialization에서 공유)
+  const initializeAuth = useCallback(async () => {
+    try {
+      const [{ data: { session } }, cachedProfileJson] = await Promise.race([
+        Promise.all([
+          supabase.auth.getSession(),
+          AsyncStorage.getItem(PROFILE_CACHE_KEY),
+        ]),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('서버 연결 시간이 초과되었습니다')), 10000)
+        ),
+      ]);
 
-    // getSession과 캐시된 프로필을 병렬로 가져오기
-    Promise.all([
-      supabase.auth.getSession(),
-      AsyncStorage.getItem(PROFILE_CACHE_KEY),
-    ]).then(async ([{ data: { session } }, cachedProfileJson]) => {
       if (!session || isSettingSession.current) {
         setAuthState((prev) => ({ ...prev, loading: false }));
         return;
@@ -84,6 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             session,
             loading: false,
             needsProfile: !cachedProfile?.full_name,
+            error: null,
           });
         } catch (e) {
           console.warn('Failed to parse cached profile:', e);
@@ -102,18 +105,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           session,
           loading: false,
           needsProfile: !latestProfile?.full_name,
+          error: null,
         });
       } else if (!cachedProfileJson) {
-        // 캐시도 없고 프로필도 없는 경우 (신규 사용자)
         setAuthState({
           user: session.user,
           profile: latestProfile,
           session,
           loading: false,
           needsProfile: !latestProfile?.full_name,
+          error: null,
         });
       }
-    });
+    } catch (err) {
+      console.error('Auth initialization failed:', err);
+      setAuthState((prev) => ({
+        ...prev,
+        loading: false,
+        error: err instanceof Error ? err : new Error('서버 연결에 실패했습니다'),
+      }));
+    }
+  }, [getProfile]);
+
+  // 초기화 재시도
+  const retryInitialization = useCallback(async () => {
+    setAuthState((prev) => ({ ...prev, loading: true, error: null }));
+    await initializeAuth();
+  }, [initializeAuth]);
+
+  // 세션 체크 및 초기화
+  useEffect(() => {
+    // React StrictMode에서 중복 실행 방지
+    if (isInitialized.current) {
+      return;
+    }
+    isInitialized.current = true;
+
+    initializeAuth();
 
     // 인증 상태 변경 리스너
     const { data: authListener } = supabase.auth.onAuthStateChange(
@@ -134,6 +162,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             session,
             loading: false,
             needsProfile: !profile?.full_name,
+            error: null,
           });
         } else if (event === 'SIGNED_OUT') {
           await AsyncStorage.removeItem(PROFILE_CACHE_KEY);
@@ -143,6 +172,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             session: null,
             loading: false,
             needsProfile: false,
+            error: null,
           });
         } else if (event === 'TOKEN_REFRESHED' && session) {
           setAuthState((prev: AuthState) => ({ ...prev, session }));
@@ -157,6 +187,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             session,
             loading: false,
             needsProfile: !profile?.full_name,
+            error: null,
           });
         }
       }
@@ -165,7 +196,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [getProfile]);
+  }, [getProfile, initializeAuth]);
 
   // OAuth 로그인
   const signInWithOAuth = useCallback(async (provider: OAuthProvider) => {
@@ -223,6 +254,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session: null,
         loading: false,
         needsProfile: false,
+        error: null,
       });
     }
   }, []);
@@ -291,6 +323,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signInWithOAuth,
     updateProfile,
     refreshSession,
+    retryInitialization,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
