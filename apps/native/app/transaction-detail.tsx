@@ -43,8 +43,14 @@ export default function TransactionDetailScreen() {
     error,
     updateTransaction,
     deleteTransaction,
+    refetch,
   } = useTransactionDetail(id);
-  const { categories } = useCategories();
+  const {
+    categories,
+    updateCategory,
+    deleteCategory,
+    refresh: refreshCategories,
+  } = useCategories();
   const { currentLedger } = useLedger();
   const { user } = useAuth();
   const { paymentMethods } = usePaymentMethods();
@@ -118,16 +124,28 @@ export default function TransactionDetailScreen() {
     [updateTransaction, categories]
   );
 
-  // CategoryBottomSheet에서 필요한 핸들러들 (실제로는 사용하지 않음)
-  const handleCategoryUpdate = useCallback(async () => {
-    // 거래 상세에서는 카테고리 수정 기능을 제공하지 않음
-    return Promise.resolve();
-  }, []);
+  // 카테고리 수정/삭제 후 거래 상세 데이터도 동기화
+  const handleCategoryUpdate = useCallback(
+    async (
+      categoryId: string,
+      updates: { name: string; color: string; icon: string }
+    ) => {
+      await updateCategory(categoryId, updates);
+      refetch();
+    },
+    [updateCategory, refetch]
+  );
 
-  const handleCategoryDelete = useCallback(async () => {
-    // 거래 상세에서는 카테고리 삭제 기능을 제공하지 않음
-    return Promise.resolve(false);
-  }, []);
+  const handleCategoryDelete = useCallback(
+    async (categoryId: string) => {
+      const result = await deleteCategory(categoryId);
+      if (result) {
+        refetch();
+      }
+      return result;
+    },
+    [deleteCategory, refetch]
+  );
 
   const handleTitleSave = useCallback(
     async (title: string) => {
@@ -633,6 +651,7 @@ export default function TransactionDetailScreen() {
             }}
             onClose={() => setCategoryModalVisible(false)}
             transactionType={transaction.type}
+            onCategoriesRefresh={refreshCategories}
             onUpdateCategory={handleCategoryUpdate}
             onDeleteCategory={handleCategoryDelete}
           />
