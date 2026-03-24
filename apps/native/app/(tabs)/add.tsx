@@ -66,6 +66,7 @@ export default function AddTransactionScreen() {
   const { selectedDate: sharedDate } = useSelectedDate();
   const {
     paymentMethods,
+    refresh: refreshPaymentMethods,
     create: createPaymentMethod,
     update: updatePaymentMethod,
     softDelete: deletePaymentMethod,
@@ -90,15 +91,6 @@ export default function AddTransactionScreen() {
     }
   }, [user, selectedPaidBy]);
 
-  // 탭 전환 시 홈에서 선택한 날짜 반영
-  useFocusEffect(
-    useCallback(() => {
-      setSelectedDate((prev) =>
-        prev.getTime() === sharedDate.getTime() ? prev : sharedDate
-      );
-    }, [sharedDate])
-  );
-
   // 실제 DB에서 카테고리 가져오기
   const {
     categories,
@@ -107,6 +99,22 @@ export default function AddTransactionScreen() {
     updateCategory,
     deleteCategory,
   } = useCategories(transactionType);
+
+  // 탭 전환 시 데이터 새로고침 (디바운싱 적용)
+  const lastRefetchTime = useRef(0);
+  useFocusEffect(
+    useCallback(() => {
+      setSelectedDate((prev) =>
+        prev.getTime() === sharedDate.getTime() ? prev : sharedDate
+      );
+      const now = Date.now();
+      if (now - lastRefetchTime.current > 1000) {
+        refreshCategories();
+        refreshPaymentMethods();
+        lastRefetchTime.current = now;
+      }
+    }, [sharedDate, refreshCategories, refreshPaymentMethods])
+  );
 
   // 날짜 포맷팅 함수
   const formatDate = (date: Date) => {
