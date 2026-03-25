@@ -5,12 +5,12 @@ import {
   ScrollView,
   Keyboard,
   Alert,
-  SafeAreaView,
   Platform,
   KeyboardAvoidingView,
   TouchableOpacity,
   Text,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';

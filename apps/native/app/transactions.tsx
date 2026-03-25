@@ -3,7 +3,6 @@ import {
   View,
   SectionList,
   SectionListData,
-  SafeAreaView,
   TouchableOpacity,
   Pressable,
   Platform,
@@ -11,6 +10,7 @@ import {
   NativeScrollEvent,
   ViewToken,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';

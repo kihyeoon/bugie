@@ -11,6 +11,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useAppStateHandler } from '../hooks/useAppStateHandler';
+import { AppErrorBoundary } from '../components/shared/AppErrorBoundary';
 import { AuthProvider } from '../contexts/AuthContext';
 import { ServiceProvider } from '../contexts/ServiceContext';
 import { LedgerProvider } from '../contexts/LedgerContext';
@@ -26,6 +28,7 @@ SplashScreen.setOptions({
 });
 
 export default function RootLayout() {
+  useAppStateHandler();
   const colorScheme = useColorScheme();
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
@@ -37,24 +40,32 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <AuthProvider>
-        <ServiceProvider>
-          <LedgerProvider>
-            <SelectedDateProvider>
-              <ThemeProvider
-                value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}
-              >
-                <Stack>
-                  <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                  <Stack.Screen name="+not-found" />
-                </Stack>
-                <StatusBar style="auto" />
-              </ThemeProvider>
-            </SelectedDateProvider>
-          </LedgerProvider>
-        </ServiceProvider>
-      </AuthProvider>
+      <AppErrorBoundary>
+        <AuthProvider>
+          <ServiceProvider>
+            <LedgerProvider>
+              <SelectedDateProvider>
+                <ThemeProvider
+                  value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}
+                >
+                  <Stack>
+                    <Stack.Screen
+                      name="(auth)"
+                      options={{ headerShown: false }}
+                    />
+                    <Stack.Screen
+                      name="(tabs)"
+                      options={{ headerShown: false }}
+                    />
+                    <Stack.Screen name="+not-found" />
+                  </Stack>
+                  <StatusBar style="auto" />
+                </ThemeProvider>
+              </SelectedDateProvider>
+            </LedgerProvider>
+          </ServiceProvider>
+        </AuthProvider>
+      </AppErrorBoundary>
     </GestureHandlerRootView>
   );
 }
