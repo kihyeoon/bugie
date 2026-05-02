@@ -30,6 +30,7 @@ import { ErrorState } from '../components/shared/ErrorState';
 import { EmptyState } from '../components/shared/EmptyState';
 import { useLedger } from '../contexts/LedgerContext';
 import { useTransactions } from '../hooks/useTransactions';
+import { useMonthlyData } from '../hooks/useMonthlyData';
 import type { TransactionWithDetails } from '@repo/core';
 import { format } from 'date-fns';
 import { debounce } from '@/utils/timing';
@@ -42,7 +43,6 @@ const CONSTANTS = {
   CALENDAR_WEEK_HEIGHT: 120,
   SCROLL_THRESHOLD: 50,
   ANIMATION_DURATION: 300,
-  PAGE_SIZE: 20,
 } as const;
 
 // SectionList 가시성 설정
@@ -160,9 +160,6 @@ export default function TransactionsScreen() {
   const [calendarViewType, setCalendarViewType] = useState<'month' | 'week'>(
     'month'
   );
-  const [hasScrolledToInitialDate, setHasScrolledToInitialDate] =
-    useState(false);
-
   // 애니메이션 값
   const scrollY = useSharedValue(0);
   const calendarHeight = useSharedValue<number>(
@@ -171,26 +168,25 @@ export default function TransactionsScreen() {
   const listRef =
     useRef<SectionList<TransactionWithDetails, { date: string }>>(null);
   const isProgrammaticScroll = useRef(false);
+  const hasScrolledToInitialDate = useRef(false);
+  // onScrollToIndexFailed 발생 시 측정 진행을 기다린 뒤 재시도하기 위한 마지막 의도.
+  const lastScrollAttempt = useRef<{ sectionIndex: number } | null>(null);
 
   // 데이터 가져오기 위한 현재 월/년 가져오기
   const year = selectedDate.getFullYear();
   const month = selectedDate.getMonth() + 1;
 
-  // 거래 내역 가져오기
-  const {
-    transactions,
-    groupedTransactions,
-    calendarData,
-    loading,
-    error,
-    hasMore,
-    loadMore,
-    refetch,
-  } = useTransactions({
-    ledgerId: currentLedger?.id,
-    year,
-    month,
-  });
+  // 거래 내역 가져오기 (한 달 전체)
+  const { transactions, groupedTransactions, loading, error, refetch } =
+    useTransactions({
+      ledgerId: currentLedger?.id,
+      year,
+      month,
+    });
+
+  // 캘린더용 월별 집계 (서버 집계와 일관 — 홈 화면과 동일 소스)
+  const { calendarData: monthlyCalendarData, refetch: refetchMonthly } =
+    useMonthlyData(year, month);
 
   // 마지막 리페치 시간 추적 (디바운싱용)
   const lastRefetchTime = useRef(0);
@@ -201,10 +197,10 @@ export default function TransactionsScreen() {
       const now = Date.now();
       // 마지막 리페치로부터 1초 이상 경과 시만 리페치
       if (now - lastRefetchTime.current > 1000) {
-        refetch();
+        Promise.all([refetch(), refetchMonthly()]);
         lastRefetchTime.current = now;
       }
-    }, [refetch])
+    }, [refetch, refetchMonthly])
   );
 
   // 스크롤 이벤트 처리
@@ -259,6 +255,7 @@ export default function TransactionsScreen() {
       if (sectionIndex !== -1 && listRef.current) {
         // 프로그래매틱 스크롤 플래그 설정
         isProgrammaticScroll.current = true;
+        lastScrollAttempt.current = { sectionIndex };
 
         // 레이아웃 측정 완료를 위한 지연 후 스크롤
         setTimeout(() => {
@@ -307,30 +304,24 @@ export default function TransactionsScreen() {
   // 초기 로드 시 파라미터로 전달된 날짜로 자동 스크롤
   useEffect(() => {
     if (
-      params.date &&
-      groupedTransactions.length > 0 &&
-      !hasScrolledToInitialDate &&
-      !loading // 로딩이 완료된 후에만 스크롤
+      !params.date ||
+      hasScrolledToInitialDate.current ||
+      loading ||
+      groupedTransactions.length === 0
     ) {
-      const targetDate = params.date as string;
-
-      // 대상 날짜가 실제로 데이터에 존재하는지 확인
-      const targetExists = groupedTransactions.some(
-        (group) => group.date === targetDate
-      );
-
-      if (targetExists) {
-        scrollToDate(targetDate);
-        setHasScrolledToInitialDate(true);
-      }
+      return;
     }
-  }, [
-    params.date,
-    groupedTransactions,
-    hasScrolledToInitialDate,
-    scrollToDate,
-    loading,
-  ]);
+
+    const targetDate = params.date as string;
+    const targetExists = groupedTransactions.some(
+      (group) => group.date === targetDate
+    );
+
+    if (targetExists) {
+      scrollToDate(targetDate);
+      hasScrolledToInitialDate.current = true;
+    }
+  }, [params.date, groupedTransactions, scrollToDate, loading]);
 
   // 월 변경 처리
   const handleMonthChange = useCallback((year: number, month: number) => {
@@ -366,6 +357,11 @@ export default function TransactionsScreen() {
     }: {
       viewableItems: ViewToken<TransactionWithDetails>[];
     }) => {
+      // 프로그래매틱 스크롤 중에는 viewable이 발화해도 selectedDate를 덮어쓰지 않음.
+      // (handleScroll과 동일한 가드. 이게 없으면 자동 스크롤이 통과한 마지막 섹션이 selectedDate에 남아 캘린더가 잘못된 날짜를 하이라이트함.)
+      if (isProgrammaticScroll.current) {
+        return;
+      }
       if (viewableItems.length > 0) {
         // 가장 위에 보이는 섹션의 날짜 가져오기
         const firstVisibleSection = viewableItems[0].section;
@@ -441,33 +437,37 @@ export default function TransactionsScreen() {
   }, []);
 
   // 스크롤 실패 시 처리
+  // info.index는 섹션 헤더 + 아이템을 합산한 flat 인덱스이므로 sectionIndex로 사용하면
+  // sections out-of-bounds → TypeError로 스크롤이 깨진다.
+  // 1단계: averageItemLength × index 근사 오프셋으로 점프해 frame 측정을 진행시킴.
+  // 2단계: 측정이 충분히 진행될 시간을 둔 뒤 lastScrollAttempt의 정확한 sectionIndex로 재시도.
+  // 단발성 fallback만 두면 averageItemLength이 underestimate되어(예: 42px) 목적지가 한참 앞에서 멈춘다.
   const onScrollToIndexFailed = useCallback(
     (info: {
       index: number;
       highestMeasuredFrameIndex: number;
       averageItemLength: number;
     }) => {
-      console.warn('ScrollToIndex failed:', info);
+      const offset = info.averageItemLength * info.index;
+      listRef.current?.getScrollResponder()?.scrollTo({
+        y: offset,
+        animated: false,
+      });
 
-      // 일단 측정된 가장 가까운 위치로 스크롤
-      const safeIndex = Math.min(info.index, info.highestMeasuredFrameIndex);
-      if (listRef.current && safeIndex >= 0) {
-        listRef.current.scrollToLocation({
-          sectionIndex: safeIndex,
-          itemIndex: 0,
-          animated: false,
-        });
-
-        // 그 다음 원하는 위치로 다시 시도
-        setTimeout(() => {
-          listRef.current?.scrollToLocation({
-            sectionIndex: info.index,
+      setTimeout(() => {
+        const target = lastScrollAttempt.current;
+        if (!target || !listRef.current) return;
+        try {
+          listRef.current.scrollToLocation({
+            sectionIndex: target.sectionIndex,
             itemIndex: 0,
-            animated: true,
+            animated: false,
             viewPosition: 0,
           });
-        }, 100);
-      }
+        } catch {
+          // 재시도도 실패하면 사용자가 수동으로 스크롤하면 됨.
+        }
+      }, 100);
     },
     []
   );
@@ -498,48 +498,31 @@ export default function TransactionsScreen() {
     []
   );
 
-  // 푸터를 위한 일일 합계 계산
-  const calculateDailyTotals = useCallback(() => {
+  // 푸터를 위한 일일/월간 합계 — 단일 패스로 계산
+  const totals = useMemo(() => {
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
-    const todayTransactions = transactions.filter(
-      (t: TransactionWithDetails) => t.transaction_date === dateStr
-    );
+    let todayIncome = 0;
+    let todayExpense = 0;
+    let monthlyIncome = 0;
+    let monthlyExpense = 0;
 
-    const todayIncome = todayTransactions
-      .filter((t: TransactionWithDetails) => t.type === 'income')
-      .reduce(
-        (sum: number, t: TransactionWithDetails) => sum + Number(t.amount),
-        0
-      );
-
-    const todayExpense = todayTransactions
-      .filter((t: TransactionWithDetails) => t.type === 'expense')
-      .reduce(
-        (sum: number, t: TransactionWithDetails) => sum + Number(t.amount),
-        0
-      );
-
-    const monthlyIncome = transactions
-      .filter((t: TransactionWithDetails) => t.type === 'income')
-      .reduce(
-        (sum: number, t: TransactionWithDetails) => sum + Number(t.amount),
-        0
-      );
-
-    const monthlyExpense = transactions
-      .filter((t: TransactionWithDetails) => t.type === 'expense')
-      .reduce(
-        (sum: number, t: TransactionWithDetails) => sum + Number(t.amount),
-        0
-      );
+    for (const t of transactions) {
+      const amount = Number(t.amount);
+      const isToday = t.transaction_date === dateStr;
+      if (t.type === 'income') {
+        monthlyIncome += amount;
+        if (isToday) todayIncome += amount;
+      } else {
+        monthlyExpense += amount;
+        if (isToday) todayExpense += amount;
+      }
+    }
 
     return {
       today: todayIncome - todayExpense,
       monthly: monthlyIncome - monthlyExpense,
     };
   }, [selectedDate, transactions]);
-
-  const totals = calculateDailyTotals();
 
   // 로딩 상태
   if (loading && !transactions.length) {
@@ -601,7 +584,7 @@ export default function TransactionsScreen() {
             mode="scrollable"
             viewType={calendarViewType}
             selectedDate={selectedDate}
-            transactions={calendarData}
+            transactions={monthlyCalendarData ?? {}}
             onDateSelect={handleDateSelect}
             onMonthChange={handleMonthChange}
             onViewTypeChange={handleCalendarViewChange}
@@ -621,12 +604,15 @@ export default function TransactionsScreen() {
           scrollEventThrottle={16}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.5}
           stickySectionHeadersEnabled={false}
           onScrollToIndexFailed={onScrollToIndexFailed}
           viewabilityConfig={viewabilityConfig}
           onViewableItemsChanged={onViewableItemsChanged}
+          // 한 달 거래 = 섹션 + 아이템 합쳐 ~70~100 frame. 첫 렌더에 충분히 마운트되어야
+          // 오래된 날짜로의 자동 스크롤 시 onScrollToIndexFailed가 발화하지 않는다.
+          initialNumToRender={80}
+          maxToRenderPerBatch={20}
+          windowSize={31}
           ListFooterComponent={
             <View style={styles.footer}>
               <View style={styles.footerRow}>
@@ -649,13 +635,6 @@ export default function TransactionsScreen() {
                   size="medium"
                 />
               </View>
-              {hasMore && (
-                <View style={styles.loadingMore}>
-                  <Typography variant="caption" color="secondary">
-                    더 불러오는 중...
-                  </Typography>
-                </View>
-              )}
             </View>
           }
         />
@@ -724,9 +703,5 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
-  },
-  loadingMore: {
-    paddingVertical: 16,
-    alignItems: 'center',
   },
 });
