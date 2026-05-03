@@ -1,130 +1,27 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+이 파일은 Claude Code(claude.ai/code)가 이 저장소에서 작업할 때 참고하는 지침이다.
 
 ## 프로젝트 개요
 
-**Bugie**는 부부/가족을 위한 공유 가계부 앱. pnpm + Turborepo 모노레포 구조로 웹(Next.js)과 네이티브(Expo)를 동시 지원한다.
+**Bugie** — 부부/가족용 공유 가계부 앱. pnpm + Turborepo 모노레포로 웹(Next.js)과 네이티브(Expo)를 동시 지원한다.
 
-## 주요 명령어
+## Critical Gotchas
 
-```bash
-# 개발
-pnpm dev                              # 전체 앱 동시 실행 (turbo)
-pnpm --filter native start            # Expo 앱만 (localhost:8081)
-pnpm --filter web dev                 # Next.js 웹만 (localhost:3000)
-pnpm ios                              # iOS 시뮬레이터 실행
+코드/`tsconfig`만 봐서는 알 수 없는, 실수했을 때 비용이 큰 항목들이다.
 
-# 빌드
-pnpm build                            # 전체 빌드 (의존성 순서 자동)
-pnpm --filter web build               # Next.js 프로덕션 빌드
-pnpm --filter @repo/ui build          # UI 패키지 빌드 (tsup)
-
-# 검사
-pnpm lint                             # 전체 lint
-pnpm --filter native lint             # 네이티브만 lint (expo lint)
-pnpm --filter web lint                # 웹만 lint (next lint)
-pnpm --filter @repo/core lint         # core 패키지 lint + tsc --noEmit
-pnpm format                           # prettier 전체 포맷팅
-pnpm check                            # lint + format --check
-
-# 패키지 설치
-pnpm add <pkg> --filter native        # 네이티브 앱 전용
-pnpm add <pkg> --filter web           # 웹 앱 전용
-pnpm add <pkg> -w                     # 루트 (공통 dev 도구)
-```
-
-## 모노레포 구조
-
-```
-apps/
-  native/          # Expo SDK 53 + Expo Router (React Native 0.79)
-  web/             # Next.js 15 + Tailwind CSS v4
-packages/
-  core/            # 비즈니스 로직 (클린 아키텍처) — TS source 직접 참조
-  types/           # DB 타입, Supabase generated types — TS source 직접 참조
-  ui/              # 공유 UI 컴포넌트 — tsup 빌드 필요 (dist/)
-  typescript-config/ # 공유 tsconfig (base, nextjs, react-native-library)
-supabase/
-  migrations/      # PostgreSQL 마이그레이션 (날짜순 정렬)
-```
-
-**주의**: `@repo/core`와 `@repo/types`는 `main: "./src/index.ts"`로 소스 직접 참조. `@repo/ui`만 빌드(`pnpm --filter @repo/ui build`) 필요.
-
-## 아키텍처
-
-### @repo/core — 클린 아키텍처 3계층
-
-```
-packages/core/src/
-  domain/            # 순수 비즈니스 규칙 (의존성 없음)
-    shared/          # 공통 타입, 에러, 유틸
-    ledger/          # 가계부 도메인 (rules, types)
-    transaction/     # 거래 도메인
-    profile/         # 프로필 도메인
-    auth/            # 인증 타입
-  application/       # 유스케이스 (서비스 클래스)
-    ledger/          # LedgerService
-    transaction/     # TransactionService
-    profile/         # ProfileService
-    permission/      # PermissionService
-  infrastructure/    # 외부 시스템 구현체
-    supabase/
-      repositories/  # Supabase CRUD 구현
-      mappers/       # DB row ↔ 도메인 객체 변환
-      auth/          # SupabaseAuthService
-      profile/       # SupabaseProfileRepository
-  shared/            # UI/응답 전용 타입 (CalendarData 등)
-```
-
-**서비스 생성**: 팩토리 함수로 DI 구성. `createLedgerService(supabase)`, `createTransactionService(supabase)`, `createProfileService(supabase)`.
-
-### Native 앱 — Context Provider 체인
-
-`_layout.tsx`의 Provider 순서가 중요:
-
-```
-GestureHandlerRootView
-  → AuthProvider        (인증 상태)
-    → ServiceProvider   (core 서비스 인스턴스)
-      → LedgerProvider  (현재 선택된 가계부)
-        → ThemeProvider
-```
-
-### Native 앱 — 라우팅 구조
-
-```
-app/
-  index.tsx              # 진입점: 인증 상태에 따라 리다이렉트
-  _layout.tsx            # Root Layout (Provider 체인)
-  (auth)/                # 인증 그룹
-    login.tsx            # 소셜 로그인 (Google, Apple)
-    profile-setup.tsx    # 최초 프로필 설정
-  (tabs)/                # 탭 네비게이션 그룹
-    index.tsx            # 홈 (월간 캘린더)
-    add.tsx              # 빠른 입력 (커스텀 키패드)
-    more.tsx             # 더보기 메뉴
-  transactions.tsx       # 거래 목록 (스택)
-  transaction-detail.tsx # 거래 상세/수정 (스택)
-  ledger-management.tsx  # 가계부 관리 (스택)
-  ledger-settings.tsx    # 가계부 설정 (스택)
-  profile-settings.tsx   # 프로필 설정 (스택)
-```
-
-### Native 앱 — 주요 패턴
-
-- **서비스 접근**: `useServices()` hook → `{ ledgerService, transactionService, profileService }`
-- **인증 상태**: `useAuth()` → `{ user, session, loading, needsProfile }`
-- **가계부 상태**: `useLedger()` → `{ currentLedger, ledgers, selectLedger, refreshLedgers }`
-- **데이터 hooks**: `useMonthlyData`, `useTransactions`, `useTransactionDetail`, `useCategories`
-- **컴포넌트 구성**:
-  - `components/ui/` — 범용 UI (Button, Card, Typography, AmountInput, ToggleSwitch 등)
-  - `components/shared/` — 도메인 공유 컴포넌트 (Calendar, CategorySelector, EditTextModal 등)
-  - `components/{domain}/` — 도메인 전용 (ledger/, transaction/, profile/, auth/)
+- **날짜 직렬화**는 반드시 `@repo/core`의 `formatLocalDate` / `parseLocalDate`를 사용한다. `Date.toISOString().split('T')[0]` 또는 `new Date('YYYY-MM-DD')`를 그대로 쓰면 KST에서 월 경계 날짜가 하루 밀린다 (v1.2.1 hotfix 사유).
+- **`@repo/ui`만 빌드가 필요하다.** `@repo/core`/`@repo/types`는 `main: "./src/index.ts"`로 소스 직접 참조. UI 패키지 수정 후엔 `pnpm --filter @repo/ui build` 필수.
+- **새 Supabase 테이블엔 RLS(Row Level Security) 정책을 반드시 추가한다.** RLS 누락 = 전 사용자 데이터 노출.
+- **삭제는 soft delete 패턴**(`deleted_at` 컬럼). RLS를 우회해야 하므로 `SECURITY DEFINER` RPC 함수로 처리. 회원 탈퇴는 30일 유예 후 GitHub Actions cron(`process-account-deletions.yml`)으로 완전 삭제.
+- **터치 인터랙션은 `Pressable`을 사용한다.** `TouchableOpacity` 신규 사용 금지 (기존 132군데 일괄 전환 예정).
+- **색상은 `constants/Colors.ts`의 시맨틱 컬러만 사용한다.** Toss 디자인 시스템 기반. 하드코딩된 hex 금지.
+- **Supabase 실시간 구독**은 `useEffect` cleanup에서 반드시 해제한다.
+- **마이그레이션 파일명**은 `YYYYMMDDHHMMSS_name.sql` (14자리 타임스탬프 필수).
 
 ## 환경변수
 
-Web과 Native에서 접두사가 다름:
+Web과 Native에서 접두사가 다르다.
 
 | 용도 | Web (Next.js) | Native (Expo) |
 |------|--------------|---------------|
@@ -132,38 +29,54 @@ Web과 Native에서 접두사가 다름:
 | Supabase Anon Key | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `EXPO_PUBLIC_SUPABASE_ANON_KEY` |
 | Service Role Key | `SUPABASE_SERVICE_ROLE_KEY` | — |
 
-## 개발 시 주의사항
+## 의존성 설치 규칙
 
-### Supabase
+- 웹 전용 → `pnpm add <pkg> --filter web`
+- 네이티브 전용 → `pnpm add <pkg> --filter native`
+- 공통 dev 도구 → `pnpm add <pkg> -w` (루트)
+- `@repo/core`에 새 의존성 추가 시 web/native 양쪽에서 호환되는지 확인
 
-- RLS(Row Level Security) 정책이 모든 테이블에 적용됨 — 새 테이블 추가 시 반드시 RLS 설정
-- Soft Delete 패턴 사용 (`deleted_at` 컬럼) — 삭제는 SECURITY DEFINER 함수로 처리
-- 회원 탈퇴: soft delete 후 30일 유예 → GitHub Actions cron(`process-account-deletions.yml`)으로 완전 삭제
-- 마이그레이션 파일은 `supabase/migrations/` 아래 날짜순 정렬
-- 실시간 구독 사용 시 useEffect cleanup 필수
+## 주요 명령어
 
-### 의존성 설치 규칙
+```bash
+# 개발
+pnpm dev                              # 전체 앱 동시 실행 (turbo)
+pnpm --filter native start            # Expo만 (localhost:8081)
+pnpm --filter web dev                 # Next.js만 (localhost:3000)
+pnpm ios                              # iOS 시뮬레이터
 
-- 웹 전용 → `apps/web`, 네이티브 전용 → `apps/native`, 공통 dev 도구 → 루트
-- `@repo/core`에 새 의존성 추가 시 web/native 양쪽에서 사용 가능한지 확인
+# 빌드
+pnpm build                            # 전체 빌드 (의존성 순서 자동)
+pnpm --filter @repo/ui build          # UI 패키지 빌드 (tsup)
 
-### React Native 규칙
+# 검사
+pnpm lint                             # 전체 lint
+pnpm --filter @repo/core lint         # core lint + tsc --noEmit
+pnpm format                           # prettier 포맷팅
+pnpm check                            # lint + format --check
+```
 
-- 터치 인터랙션은 `TouchableOpacity` 대신 `Pressable` 사용
-- `@/` alias는 네이티브 앱 루트를 가리킴
-- 색상은 반드시 `constants/Colors.ts`의 시맨틱 컬러 사용 (Toss 디자인 시스템 기반)
-- 네이티브 앱에서 `@repo/core` 서비스는 `useServices()` hook으로 접근
+## Verification — 마무리 전 체크리스트
 
-### TypeScript 설정
+코드 수정 후 다음을 통과시킨다.
 
-- `@repo/typescript-config/base.json` — 공통 기본
-- `@repo/typescript-config/nextjs.json` — Next.js 웹용
-- `@repo/typescript-config/react-native-library.json` — RN 앱/라이브러리용
+```bash
+pnpm --filter @repo/core lint                  # core 변경 시
+cd apps/native && npx tsc --noEmit             # native 타입체크
+pnpm --filter web build                        # web 변경 시
+```
 
-## 추가 지침
+UI 변경은 dev 서버를 띄워 브라우저/시뮬레이터에서 직접 확인. 타입체크 통과 ≠ 동작 정상.
 
-- `docs/spec-workflow.md` — 스펙 기반 개발 워크플로우 ('스펙 기반으로 개발' 요청 시 사용)
-- `docs/prd.md` — 제품 요구사항 문서
-- `docs/mvp-plan.md` — MVP 개발 계획 및 진행 상황
-- `docs/screen-design.md` — 화면별 상세 설계 문서
-- `docs/design-principles.md` — 디자인 원칙 (색상, 타이포그래피, 간격 체계)
+## 아키텍처 상세
+
+@docs/architecture.md — 모노레포 구조, `@repo/core` 클린 아키텍처 3계층, native 앱 Provider 체인 / 라우팅 / hook & 컨텍스트 / 컴포넌트 계층, TypeScript 설정.
+
+## 관련 문서
+
+- `docs/spec-workflow.md` — 스펙 기반 개발 워크플로우 ('스펙 기반으로 개발' 요청 시)
+- `docs/prd.md` — 제품 요구사항
+- `docs/mvp-plan.md` — MVP 계획 / 진행 상황
+- `docs/screen-design.md` — 화면별 설계
+- `docs/design-principles.md` — 색상·타이포·간격 체계
+- `docs/release-notes/` — 버전별 릴리즈 노트
