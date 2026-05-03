@@ -171,6 +171,11 @@ export default function TransactionsScreen() {
   const hasScrolledToInitialDate = useRef(false);
   // onScrollToIndexFailed 발생 시 측정 진행을 기다린 뒤 재시도하기 위한 마지막 의도.
   const lastScrollAttempt = useRef<{ sectionIndex: number } | null>(null);
+  // 사용자가 month 전환/캘린더 탭 이후 직접 리스트를 드래그했는지 추적.
+  // 이게 false인 동안엔 viewable 이벤트가 자연 layout으로 발화해도 selectedDate를 덮어쓰지 않는다.
+  // (예: 4/6 선택 후 ◀▶로 이동했는데 해당 일자에 거래가 없으면 scrollToDate가 no-op이라
+  //  자연 layout 상단의 다른 일자로 selectedDate가 잠식되는 결함을 차단.)
+  const userHasDraggedSinceChange = useRef(false);
 
   // 데이터 가져오기 위한 현재 월/년 가져오기
   const year = selectedDate.getFullYear();
@@ -293,6 +298,8 @@ export default function TransactionsScreen() {
   const handleDateSelect = useCallback(
     (date: Date) => {
       setSelectedDate(date);
+      // 캘린더 탭은 명시적 의도이므로 드래그 신호 리셋 — viewable이 다시 덮어쓰지 못하게.
+      userHasDraggedSinceChange.current = false;
 
       // date-fns를 사용한 정확한 날짜 형식 변환
       const dateStr = format(date, 'yyyy-MM-dd');
@@ -301,53 +308,61 @@ export default function TransactionsScreen() {
     [scrollToDate]
   );
 
-  // 초기 로드 시 파라미터로 전달된 날짜로 자동 스크롤
+  // 현재 그려진 SectionList 데이터의 month — viewable race 가드 + 자동 스크롤 stale 데이터 차단용.
+  // useTransactions가 새 month로 fetch하는 동안 옛 transactions가 그대로 표시되므로,
+  // 이 값이 현재 year/month와 다르면 데이터가 stale한 것으로 간주.
+  const renderedMonth = useMemo(() => {
+    if (groupedTransactions.length === 0) return null;
+    const date = new Date(groupedTransactions[0].date);
+    return { year: date.getFullYear(), month: date.getMonth() + 1 };
+  }, [groupedTransactions]);
+
+  // 자동 스크롤 — 새 데이터가 도착했고 selectedDate에 해당하는 섹션이 있으면 한 번 스크롤.
+  // hasScrolledToInitialDate는 month 변경 effect에서 false로 리셋되므로 매 월 첫 도달 시 동작.
+  // renderedMonth 가드로 옛 month 데이터가 표시되는 동안엔 시도하지 않아 헛된 markdone을 방지.
   useEffect(() => {
     if (
-      !params.date ||
       hasScrolledToInitialDate.current ||
       loading ||
-      groupedTransactions.length === 0
+      !renderedMonth ||
+      renderedMonth.year !== year ||
+      renderedMonth.month !== month
     ) {
       return;
     }
 
-    const targetDate = params.date as string;
-    const targetExists = groupedTransactions.some(
-      (group) => group.date === targetDate
-    );
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    const exists = groupedTransactions.some((group) => group.date === dateStr);
 
-    if (targetExists) {
-      scrollToDate(targetDate);
-      hasScrolledToInitialDate.current = true;
+    if (exists) {
+      scrollToDate(dateStr);
     }
-  }, [params.date, groupedTransactions, scrollToDate, loading]);
-
-  // 월 변경 처리
-  const handleMonthChange = useCallback((year: number, month: number) => {
-    setSelectedDate(new Date(year, month));
-  }, []);
+    // 해당 날짜 섹션이 없어도 한 번 시도한 것으로 간주 (반복 시도 방지).
+    hasScrolledToInitialDate.current = true;
+  }, [
+    groupedTransactions,
+    scrollToDate,
+    loading,
+    selectedDate,
+    renderedMonth,
+    year,
+    month,
+  ]);
 
   // 디바운스된 캘린더 날짜 업데이트 (300ms 지연)
   const debouncedDateUpdate = useMemo(
     () =>
       debounce((newDate: Date) => {
-        // 현재 선택된 날짜와 다른 경우에만 업데이트
+        // 현재 선택된 날짜와 다른 경우에만 업데이트.
+        // setSelectedDate가 month/day를 모두 담고 있으므로 별도의 handleMonthChange 호출은 불필요하고,
+        // 오히려 day=1로 덮어쓰는 부작용을 유발하므로 제거함.
         if (
           format(newDate, 'yyyy-MM-dd') !== format(selectedDate, 'yyyy-MM-dd')
         ) {
           setSelectedDate(newDate);
-
-          // 월이 변경되었다면 캘린더 월도 변경
-          if (
-            newDate.getMonth() !== selectedDate.getMonth() ||
-            newDate.getFullYear() !== selectedDate.getFullYear()
-          ) {
-            handleMonthChange(newDate.getFullYear(), newDate.getMonth());
-          }
         }
       }, 300),
-    [selectedDate, handleMonthChange]
+    [selectedDate]
   );
 
   // 스크롤 시 보이는 날짜에 따른 캘린더 동기화
@@ -358,22 +373,35 @@ export default function TransactionsScreen() {
       viewableItems: ViewToken<TransactionWithDetails>[];
     }) => {
       // 프로그래매틱 스크롤 중에는 viewable이 발화해도 selectedDate를 덮어쓰지 않음.
-      // (handleScroll과 동일한 가드. 이게 없으면 자동 스크롤이 통과한 마지막 섹션이 selectedDate에 남아 캘린더가 잘못된 날짜를 하이라이트함.)
-      if (isProgrammaticScroll.current) {
+      if (isProgrammaticScroll.current) return;
+      // 데이터가 아직 새 month로 갱신되지 않은 transition 구간에서 viewable이 옛 섹션을 보고
+      // selectedDate를 옛 날짜로 되돌리는 race를 차단.
+      if (loading) return;
+      // 사용자가 직접 드래그한 적 없으면 viewable은 자연 layout의 부산물 — selectedDate 덮어쓰기 금지.
+      if (!userHasDraggedSinceChange.current) return;
+      if (
+        !renderedMonth ||
+        renderedMonth.year !== year ||
+        renderedMonth.month !== month
+      ) {
         return;
       }
       if (viewableItems.length > 0) {
-        // 가장 위에 보이는 섹션의 날짜 가져오기
         const firstVisibleSection = viewableItems[0].section;
         if (firstVisibleSection?.date) {
           const newDate = new Date(firstVisibleSection.date);
-
-          // 디바운스된 함수 호출 (300ms 후 실행)
+          // 같은 가드의 두 번째 방어선: 가시 섹션이 현재 month 윈도우 밖이면 무시.
+          if (
+            newDate.getFullYear() !== year ||
+            newDate.getMonth() + 1 !== month
+          ) {
+            return;
+          }
           debouncedDateUpdate(newDate);
         }
       }
     },
-    [debouncedDateUpdate]
+    [debouncedDateUpdate, loading, renderedMonth, year, month]
   );
 
   // 컴포넌트 언마운트 시 디바운스 타이머 정리
@@ -383,21 +411,33 @@ export default function TransactionsScreen() {
     };
   }, [debouncedDateUpdate]);
 
-  // 이전/다음 월 네비게이션
+  // month 전환 시 stale 상태 정리.
+  // 1) 진행 중인 viewable debounce는 옛 month 기준이므로 취소.
+  // 2) hasScrolledToInitialDate를 리셋해 새 month 데이터 도착 시 selectedDate로 자동 스크롤.
+  // 3) 사용자 드래그 신호 리셋 — 외부에서 정한 selectedDate가 권위를 갖도록.
+  useEffect(() => {
+    debouncedDateUpdate.cancel();
+    hasScrolledToInitialDate.current = false;
+    userHasDraggedSinceChange.current = false;
+  }, [year, month, debouncedDateUpdate]);
+
+  // 이전/다음 월 네비게이션 — day는 가능한 보존하되, 대상 월의 마지막 날을 넘으면 클램프.
+  // (예: 1/31 → ▶ → 2/28 또는 2/29. day=1로 떨어지면 자동 스크롤 후 viewable이 다시 다른 일로 점프해 어색해짐.)
+  const stepMonth = (prev: Date, delta: number): Date => {
+    const targetYear = prev.getFullYear();
+    const targetMonth = prev.getMonth() + delta;
+    // 대상 월의 마지막 날 = 다음 달 0일.
+    const lastDayOfTarget = new Date(targetYear, targetMonth + 1, 0).getDate();
+    const day = Math.min(prev.getDate(), lastDayOfTarget);
+    return new Date(targetYear, targetMonth, day);
+  };
+
   const handlePrevMonth = useCallback(() => {
-    setSelectedDate((prev) => {
-      const newDate = new Date(prev);
-      newDate.setMonth(prev.getMonth() - 1);
-      return newDate;
-    });
+    setSelectedDate((prev) => stepMonth(prev, -1));
   }, []);
 
   const handleNextMonth = useCallback(() => {
-    setSelectedDate((prev) => {
-      const newDate = new Date(prev);
-      newDate.setMonth(prev.getMonth() + 1);
-      return newDate;
-    });
+    setSelectedDate((prev) => stepMonth(prev, 1));
   }, []);
 
   // 캘린더 뷰 타입 변경 핸들러 (드래그 제스처용)
@@ -442,6 +482,12 @@ export default function TransactionsScreen() {
   // 1단계: averageItemLength × index 근사 오프셋으로 점프해 frame 측정을 진행시킴.
   // 2단계: 측정이 충분히 진행될 시간을 둔 뒤 lastScrollAttempt의 정확한 sectionIndex로 재시도.
   // 단발성 fallback만 두면 averageItemLength이 underestimate되어(예: 42px) 목적지가 한참 앞에서 멈춘다.
+  // 사용자가 손가락으로 리스트를 끌기 시작한 시점 — 이때부터 viewable이 selectedDate를 갱신할 권한을 가진다.
+  // (프로그래매틱 스크롤이나 자연 layout shift는 이 이벤트를 발화시키지 않으므로 정확한 신호.)
+  const onScrollBeginDrag = useCallback(() => {
+    userHasDraggedSinceChange.current = true;
+  }, []);
+
   const onScrollToIndexFailed = useCallback(
     (info: {
       index: number;
@@ -586,7 +632,6 @@ export default function TransactionsScreen() {
             selectedDate={selectedDate}
             transactions={monthlyCalendarData ?? {}}
             onDateSelect={handleDateSelect}
-            onMonthChange={handleMonthChange}
             onViewTypeChange={handleCalendarViewChange}
             scrollY={scrollY}
             showHeader={false}
@@ -601,6 +646,7 @@ export default function TransactionsScreen() {
           renderSectionHeader={renderSectionHeader}
           keyExtractor={(item) => item.id}
           onScroll={handleScroll}
+          onScrollBeginDrag={onScrollBeginDrag}
           scrollEventThrottle={16}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
