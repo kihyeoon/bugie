@@ -539,26 +539,68 @@ export default function TransactionsScreen() {
     };
   }, [selectedDate, transactions]);
 
+  // 모든 분기에서 동일한 헤더를 즉시 마운트해서
+  // expo-router default back title('(tabs)')이 잠깐 보이는 깜빡임 방지.
+  const headerScreen = (
+    <Stack.Screen
+      options={{
+        headerTitle: () => (
+          <HeaderTitle
+            date={selectedDate}
+            onPrevMonth={handlePrevMonth}
+            onNextMonth={handleNextMonth}
+          />
+        ),
+        headerShadowVisible: false,
+        headerLeft: () => (
+          <Pressable onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={24} color={colors.text} />
+          </Pressable>
+        ),
+        // TODO: Phase 2에서 검색 기능 구현 시 활성화
+        // headerRight: () => (
+        //   <TouchableOpacity onPress={handleSearch} style={{ marginRight: 8 }}>
+        //     <Ionicons name="search" size={24} color={colors.icon} />
+        //   </TouchableOpacity>
+        // ),
+      }}
+    />
+  );
+
   // 로딩 상태
   if (loading && !transactions.length) {
-    return <LoadingState message="거래 내역을 불러오는 중..." />;
+    return (
+      <>
+        {headerScreen}
+        <LoadingState message="거래 내역을 불러오는 중..." />
+      </>
+    );
   }
 
   // 에러 상태
   if (error) {
     return (
-      <ErrorState message="거래 내역을 불러올 수 없습니다" onRetry={refetch} />
+      <>
+        {headerScreen}
+        <ErrorState
+          message="거래 내역을 불러올 수 없습니다"
+          onRetry={refetch}
+        />
+      </>
     );
   }
 
   // 빈 상태
   if (!loading && transactions.length === 0) {
     return (
-      <EmptyState
-        icon="receipt-outline"
-        title="거래 내역이 없습니다"
-        message="이번 달에는 아직 거래가 없어요"
-      />
+      <>
+        {headerScreen}
+        <EmptyState
+          icon="receipt-outline"
+          title="거래 내역이 없습니다"
+          message="이번 달에는 아직 거래가 없어요"
+        />
+      </>
     );
   }
 
@@ -566,29 +608,7 @@ export default function TransactionsScreen() {
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <Stack.Screen
-        options={{
-          headerTitle: () => (
-            <HeaderTitle
-              date={selectedDate}
-              onPrevMonth={handlePrevMonth}
-              onNextMonth={handleNextMonth}
-            />
-          ),
-          headerShadowVisible: false,
-          headerLeft: () => (
-            <Pressable onPress={() => router.back()}>
-              <Ionicons name="chevron-back" size={24} color={colors.text} />
-            </Pressable>
-          ),
-          // TODO: Phase 2에서 검색 기능 구현 시 활성화
-          // headerRight: () => (
-          //   <TouchableOpacity onPress={handleSearch} style={{ marginRight: 8 }}>
-          //     <Ionicons name="search" size={24} color={colors.icon} />
-          //   </TouchableOpacity>
-          // ),
-        }}
-      />
+      {headerScreen}
 
       <View style={styles.content}>
         {/* 애니메이션 캘린더 */}
