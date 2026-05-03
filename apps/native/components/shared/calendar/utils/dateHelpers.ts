@@ -1,10 +1,10 @@
 import { CalendarDate } from '../types';
+import { formatLocalDate } from '@repo/core';
 import {
   startOfMonth,
   startOfWeek,
   addDays,
   addWeeks,
-  format,
   isToday,
   isSameDay as isSameDayFns,
   isSameMonth as isSameMonthFns,
@@ -65,7 +65,7 @@ export function isSameMonth(date1: Date, date2: Date): boolean {
 }
 
 export function formatDateKey(date: Date): string {
-  return format(date, 'yyyy-MM-dd');
+  return formatLocalDate(date);
 }
 
 export function getMonthName(date: Date, locale: string = 'ko-KR'): string {

@@ -43,7 +43,7 @@ export function useTransactions({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  // 월의 날짜 범위 계산 (로컬 시간대 기준 — UTC 변환 시 KST에서 경계 날짜가 밀리는 문제 방지)
+  // 월의 날짜 범위 계산
   const startDate = useMemo(() => {
     return formatLocalDate(new Date(year, month - 1, 1));
   }, [year, month]);

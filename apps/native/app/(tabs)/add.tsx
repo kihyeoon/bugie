@@ -29,8 +29,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSelectedDate } from '@/contexts/SelectedDateContext';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { Ionicons } from '@expo/vector-icons';
-import { format, addYears } from 'date-fns';
-import { PermissionService } from '@repo/core';
+import { addYears } from 'date-fns';
+import { PermissionService, formatLocalDate } from '@repo/core';
 import type { CategoryDetail, MemberRole } from '@repo/core';
 
 export default function AddTransactionScreen() {
@@ -203,7 +203,7 @@ export default function AddTransactionScreen() {
         type: transactionType,
         title: title.trim(),
         description: memo || undefined,
-        transactionDate: format(selectedDate, 'yyyy-MM-dd'),
+        transactionDate: formatLocalDate(selectedDate),
       };
 
       // 거래 저장

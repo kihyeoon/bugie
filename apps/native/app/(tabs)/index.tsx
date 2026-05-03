@@ -20,7 +20,7 @@ import { useMonthlyData } from '../../hooks/useMonthlyData';
 import { ErrorState } from '../../components/shared/ErrorState';
 import { EmptyState } from '../../components/shared/EmptyState';
 import { CreateLedgerModal } from '../../components/ledger/CreateLedgerModal';
-import { format } from 'date-fns';
+import { formatLocalDate } from '@repo/core';
 
 // Constants
 const CONSTANTS = {
@@ -115,7 +115,7 @@ export default function HomeScreen() {
 
     if (!calendarData) return;
 
-    const dateStr = format(date, 'yyyy-MM-dd');
+    const dateStr = formatLocalDate(date);
     const dayTransactions = calendarData[dateStr];
     const hasTransactions =
       dayTransactions &&

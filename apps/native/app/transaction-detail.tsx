@@ -23,12 +23,12 @@ import { PaidByBottomSheet } from '@/components/shared/PaidByBottomSheet';
 import { PaymentMethodBottomSheet } from '@/components/shared/PaymentMethodBottomSheet';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { usePaymentMethods } from '@/hooks/usePaymentMethods';
-import { format, addYears } from 'date-fns';
+import { addYears } from 'date-fns';
 import { CategoryBottomSheet } from '@/components/shared/CategorySelector/CategoryBottomSheet';
 import { useCategories } from '@/hooks/useCategories';
 import { useLedger } from '@/contexts/LedgerContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { PermissionService } from '@repo/core';
+import { PermissionService, formatLocalDate } from '@repo/core';
 import type { MemberRole } from '@repo/core';
 
 const DELETED_USER_LABEL = '탈퇴한 사용자';
@@ -223,7 +223,7 @@ export default function TransactionDetailScreen() {
     async (date: Date) => {
       try {
         await updateTransaction({
-          transactionDate: format(date, 'yyyy-MM-dd'),
+          transactionDate: formatLocalDate(date),
         });
         setDatePickerVisible(false);
         // 자연스럽게 변경사항 반영 (Alert 제거)
