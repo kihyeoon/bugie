@@ -17,6 +17,7 @@ import type { AuthService } from '../../domain/auth/types';
 import { TransactionRules } from '../../domain/transaction/rules';
 import { TransactionViewRepository } from '../../infrastructure/supabase/repositories/TransactionViewRepository';
 import { UnauthorizedError, NotFoundError } from '../../domain/shared/errors';
+import { formatLocalDate } from '../../domain/shared/utils';
 import { PermissionService } from '../permission/PermissionService';
 
 export class TransactionService {
@@ -259,7 +260,7 @@ export class TransactionService {
     const dailySummary: Record<string, { income: number; expense: number }> =
       {};
     summary.dailySummaries.forEach((day) => {
-      const dateStr = day.date.toISOString().split('T')[0];
+      const dateStr = formatLocalDate(day.date);
       dailySummary[dateStr] = {
         income: day.income,
         expense: day.expense,

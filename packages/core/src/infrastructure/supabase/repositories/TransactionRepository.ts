@@ -9,6 +9,7 @@ import type {
 } from '../../../domain/transaction/types';
 import type { EntityId } from '../../../domain/shared/types';
 import { TransactionRules } from '../../../domain/transaction/rules';
+import { formatLocalDate } from '../../../domain/shared/utils';
 import { TransactionMapper } from '../mappers/TransactionMapper';
 
 /**
@@ -40,16 +41,10 @@ export class TransactionRepository implements ITransactionRepository {
 
     // 날짜 필터
     if (filter.startDate) {
-      query = query.gte(
-        'transaction_date',
-        filter.startDate.toISOString().split('T')[0]
-      );
+      query = query.gte('transaction_date', formatLocalDate(filter.startDate));
     }
     if (filter.endDate) {
-      query = query.lte(
-        'transaction_date',
-        filter.endDate.toISOString().split('T')[0]
-      );
+      query = query.lte('transaction_date', formatLocalDate(filter.endDate));
     }
 
     // 타입 필터
@@ -155,7 +150,7 @@ export class TransactionRepository implements ITransactionRepository {
   }
 
   async getDailySummary(ledgerId: EntityId, date: Date): Promise<DailySummary> {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = formatLocalDate(date);
 
     const { data, error } = await this.supabase
       .from('transactions')
@@ -199,8 +194,8 @@ export class TransactionRepository implements ITransactionRepository {
       .from('transactions')
       .select('*')
       .eq('ledger_id', ledgerId)
-      .gte('transaction_date', startDate.toISOString().split('T')[0])
-      .lte('transaction_date', endDate.toISOString().split('T')[0])
+      .gte('transaction_date', formatLocalDate(startDate))
+      .lte('transaction_date', formatLocalDate(endDate))
       .is('deleted_at', null)
       .order('transaction_date');
 
@@ -228,8 +223,8 @@ export class TransactionRepository implements ITransactionRepository {
       .from('transactions')
       .select('category_id, type, amount')
       .eq('ledger_id', ledgerId)
-      .gte('transaction_date', startDate.toISOString().split('T')[0])
-      .lte('transaction_date', endDate.toISOString().split('T')[0])
+      .gte('transaction_date', formatLocalDate(startDate))
+      .lte('transaction_date', formatLocalDate(endDate))
       .is('deleted_at', null);
 
     if (error) throw error;

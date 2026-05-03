@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { SectionListData } from 'react-native';
 import { useServices } from '../contexts/ServiceContext';
-import type { TransactionWithDetails } from '@repo/core';
+import { formatLocalDate, type TransactionWithDetails } from '@repo/core';
 
 interface UseTransactionsOptions {
   ledgerId?: string;
@@ -43,13 +43,13 @@ export function useTransactions({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  // 월의 날짜 범위 계산
+  // 월의 날짜 범위 계산 (로컬 시간대 기준 — UTC 변환 시 KST에서 경계 날짜가 밀리는 문제 방지)
   const startDate = useMemo(() => {
-    return new Date(year, month - 1, 1).toISOString().split('T')[0];
+    return formatLocalDate(new Date(year, month - 1, 1));
   }, [year, month]);
 
   const endDate = useMemo(() => {
-    return new Date(year, month, 0).toISOString().split('T')[0];
+    return formatLocalDate(new Date(year, month, 0));
   }, [year, month]);
 
   const fetchTransactions = useCallback(async () => {

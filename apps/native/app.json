@@ -2,7 +2,7 @@
   "expo": {
     "name": "Bugie",
     "slug": "native",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "bugie",
@@ -14,7 +14,8 @@
       "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "appleTeamId": "C4G3BZVAN7"
     },
     "android": {
       "adaptiveIcon": {

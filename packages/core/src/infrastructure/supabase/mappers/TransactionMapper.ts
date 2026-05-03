@@ -4,6 +4,7 @@ import type {
 } from '@repo/types';
 import type { TransactionEntity } from '../../../domain/transaction/types';
 import type { CategoryType } from '../../../domain/ledger/types';
+import { formatLocalDate, parseLocalDate } from '../../../domain/shared/utils';
 
 /**
  * 거래 DB ↔ Domain 매핑
@@ -24,7 +25,7 @@ export class TransactionMapper {
       type: db.type as CategoryType,
       title: db.title,
       description: db.description ?? undefined,
-      transactionDate: new Date(db.transaction_date),
+      transactionDate: parseLocalDate(db.transaction_date),
       createdAt: new Date(db.created_at),
       updatedAt: new Date(db.updated_at),
       isDeleted: db.deleted_at !== null,
@@ -46,7 +47,7 @@ export class TransactionMapper {
       type: domain.type as DbCategoryType,
       title: domain.title,
       description: domain.description ?? undefined,
-      transaction_date: domain.transactionDate.toISOString().split('T')[0], // YYYY-MM-DD format
+      transaction_date: formatLocalDate(domain.transactionDate),
       created_at: domain.createdAt.toISOString(),
       updated_at: domain.updatedAt.toISOString(),
       ...(domain.isDeleted && { deleted_at: new Date().toISOString() }),
@@ -69,7 +70,7 @@ export class TransactionMapper {
       type: domain.type as DbCategoryType,
       title: domain.title,
       description: domain.description ?? undefined,
-      transaction_date: domain.transactionDate.toISOString().split('T')[0], // YYYY-MM-DD format
+      transaction_date: formatLocalDate(domain.transactionDate),
       created_at: domain.createdAt.toISOString(),
       updated_at: domain.updatedAt.toISOString(),
       ...(domain.isDeleted && { deleted_at: new Date().toISOString() }),

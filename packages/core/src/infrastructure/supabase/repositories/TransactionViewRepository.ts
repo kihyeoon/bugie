@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { TransactionFilter, CategorySummary } from '../../../domain/transaction/types';
 import type { EntityId } from '../../../domain/shared/types';
 import type { TransactionWithDetails as DbTransactionWithDetails } from '../../../shared/types';
+import { formatLocalDate } from '../../../domain/shared/utils';
 
 /**
  * UI 데이터 조회를 위한 거래 뷰 리포지토리
@@ -22,10 +23,10 @@ export class TransactionViewRepository {
 
     // 날짜 필터
     if (filter.startDate) {
-      query = query.gte('transaction_date', filter.startDate.toISOString().split('T')[0]);
+      query = query.gte('transaction_date', formatLocalDate(filter.startDate));
     }
     if (filter.endDate) {
-      query = query.lte('transaction_date', filter.endDate.toISOString().split('T')[0]);
+      query = query.lte('transaction_date', formatLocalDate(filter.endDate));
     }
 
     // 타입 필터
@@ -90,8 +91,8 @@ export class TransactionViewRepository {
       .from('active_transactions')
       .select('category_id, category_name, type, amount')
       .eq('ledger_id', ledgerId)
-      .gte('transaction_date', startDate.toISOString().split('T')[0])
-      .lte('transaction_date', endDate.toISOString().split('T')[0]);
+      .gte('transaction_date', formatLocalDate(startDate))
+      .lte('transaction_date', formatLocalDate(endDate));
 
     if (error) throw error;
 

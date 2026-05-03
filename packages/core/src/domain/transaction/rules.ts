@@ -7,6 +7,7 @@ import type {
 } from './types';
 import type { CategoryType, CategoryEntity } from '../ledger/types';
 import { ValidationError, BusinessRuleViolationError } from '../shared/errors';
+import { formatLocalDate } from '../shared/utils';
 import { PaymentMethodRules } from '../payment-method/rules';
 
 /**
@@ -209,7 +210,7 @@ export const TransactionRules = {
     transactions.forEach((transaction) => {
       if (transaction.isDeleted) return;
 
-      const dateKey = transaction.transactionDate.toISOString().split('T')[0];
+      const dateKey = formatLocalDate(transaction.transactionDate);
       const existing = summaryMap.get(dateKey) || {
         date: transaction.transactionDate,
         income: 0,
