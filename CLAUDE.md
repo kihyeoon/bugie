@@ -12,12 +12,35 @@
 
 - **날짜 직렬화**는 반드시 `@repo/core`의 `formatLocalDate` / `parseLocalDate`를 사용한다. `Date.toISOString().split('T')[0]` 또는 `new Date('YYYY-MM-DD')`를 그대로 쓰면 KST에서 월 경계 날짜가 하루 밀린다 (v1.2.1 hotfix 사유).
 - **`@repo/ui`만 빌드가 필요하다.** `@repo/core`/`@repo/types`는 `main: "./src/index.ts"`로 소스 직접 참조. UI 패키지 수정 후엔 `pnpm --filter @repo/ui build` 필수.
-- **새 Supabase 테이블엔 RLS(Row Level Security) 정책을 반드시 추가한다.** RLS 누락 = 전 사용자 데이터 노출.
+- **새 Supabase 테이블엔 RLS 정책 + Data API GRANT를 반드시 추가한다.** RLS 누락 = 전 사용자 데이터 노출. GRANT 누락 = 2026-10-30부터 SDK에서 `42501 permission denied`(자동 GRANT 정책 종료). 템플릿은 아래 [Supabase 마이그레이션 표준 템플릿](#supabase-마이그레이션-표준-템플릿) 참조.
 - **삭제는 soft delete 패턴**(`deleted_at` 컬럼). RLS를 우회해야 하므로 `SECURITY DEFINER` RPC 함수로 처리. 회원 탈퇴는 30일 유예 후 GitHub Actions cron(`process-account-deletions.yml`)으로 완전 삭제.
 - **터치 인터랙션은 `Pressable`을 사용한다.** `TouchableOpacity` 신규 사용 금지 (기존 132군데 일괄 전환 예정).
 - **색상은 `constants/Colors.ts`의 시맨틱 컬러만 사용한다.** Toss 디자인 시스템 기반. 하드코딩된 hex 금지.
 - **Supabase 실시간 구독**은 `useEffect` cleanup에서 반드시 해제한다.
 - **마이그레이션 파일명**은 `YYYYMMDDHHMMSS_name.sql` (14자리 타임스탬프 필수).
+
+## Supabase 마이그레이션 표준 템플릿
+
+`public` 스키마에 새 테이블을 만들 때 다음 블록을 반드시 포함시킨다. RLS와 GRANT는 별도 관문이므로 둘 다 필요하다 (GRANT = 테이블 자체 접근, RLS = 행 단위 필터).
+
+```sql
+create table public.xxx ( ... );
+
+-- 1) Data API GRANT (2026-10-30 이후 자동 부여 종료)
+grant select, insert, update, delete on public.xxx to authenticated;
+grant select, insert, update, delete on public.xxx to service_role;
+-- 비로그인 접근이 필요할 때만 anon 추가 (Bugie는 보통 불필요)
+
+-- 2) RLS 활성화
+alter table public.xxx enable row level security;
+
+-- 3) 정책 추가
+create policy "xxx_select_policy" on public.xxx
+  for select to authenticated
+  using ( ... );
+```
+
+GRANT가 빠지면 PostgREST가 `42501 permission denied`를 반환한다(RLS가 완벽해도 그 앞에서 막힘). 기존 테이블은 자동 부여된 GRANT가 유지되므로 영향 없다.
 
 ## 환경변수
 
