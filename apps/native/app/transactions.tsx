@@ -699,7 +699,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   listContent: {
-    paddingBottom: 100,
+    paddingBottom: 16,
   },
   sectionHeader: {
     paddingHorizontal: 16,

@@ -30,8 +30,9 @@ const CONSTANTS = {
     HEADER_TOP_IOS: 8,
     HEADER_TOP_ANDROID: 16,
     HEADER_BOTTOM: 8,
-    BOTTOM_IOS: 100,
-    BOTTOM_ANDROID: 80,
+    // 탭바는 콘텐츠 영역 밖에 렌더되므로 일반 콘텐츠 끝 여백만 두면 된다.
+    BOTTOM_IOS: 24,
+    BOTTOM_ANDROID: 24,
   },
   SPACING: {
     SUMMARY_ROW: 16,
@@ -169,6 +170,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView
+      edges={['top']}
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       <ScrollView

@@ -229,6 +229,7 @@ export default function AddTransactionScreen() {
 
   return (
     <SafeAreaView
+      edges={['top']}
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       <KeyboardAvoidingView
