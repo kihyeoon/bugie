@@ -513,31 +513,17 @@ export default function TransactionsScreen() {
     []
   );
 
-  // 푸터를 위한 일일/월간 합계 — 단일 패스로 계산
+  // 푸터용 월간 합계 — 홈 "이번 달 요약" 카드와 동일 시맨틱(income/expense/balance).
   const totals = useMemo(() => {
-    const dateStr = formatDateKey(selectedDate);
-    let todayIncome = 0;
-    let todayExpense = 0;
-    let monthlyIncome = 0;
-    let monthlyExpense = 0;
-
+    let income = 0;
+    let expense = 0;
     for (const t of transactions) {
       const amount = Number(t.amount);
-      const isToday = t.transaction_date === dateStr;
-      if (t.type === 'income') {
-        monthlyIncome += amount;
-        if (isToday) todayIncome += amount;
-      } else {
-        monthlyExpense += amount;
-        if (isToday) todayExpense += amount;
-      }
+      if (t.type === 'income') income += amount;
+      else expense += amount;
     }
-
-    return {
-      today: todayIncome - todayExpense,
-      monthly: monthlyIncome - monthlyExpense,
-    };
-  }, [selectedDate, transactions]);
+    return { income, expense, balance: income - expense };
+  }, [transactions]);
 
   // 모든 분기에서 동일한 헤더를 즉시 마운트해서
   // expo-router default back title('(tabs)')이 잠깐 보이는 깜빡임 방지.
@@ -651,23 +637,39 @@ export default function TransactionsScreen() {
           ListFooterComponent={
             <View style={styles.footer}>
               <View style={styles.footerRow}>
-                <Typography variant="caption" color="secondary">
-                  오늘 합계
+                <Typography variant="body1" color="secondary">
+                  수입
                 </Typography>
                 <AmountDisplay
-                  amount={totals.today}
-                  type={totals.today >= 0 ? 'income' : 'expense'}
-                  size="small"
+                  amount={totals.income}
+                  type="income"
+                  size="medium"
                 />
               </View>
               <View style={styles.footerRow}>
-                <Typography variant="body1" weight="600">
-                  이번 달
+                <Typography variant="body1" color="secondary">
+                  지출
                 </Typography>
                 <AmountDisplay
-                  amount={totals.monthly}
-                  type={totals.monthly >= 0 ? 'income' : 'expense'}
+                  amount={totals.expense}
+                  type="expense"
                   size="medium"
+                />
+              </View>
+              <View
+                style={[
+                  styles.footerRow,
+                  styles.footerTotal,
+                  { borderTopColor: colors.border },
+                ]}
+              >
+                <Typography variant="body1" weight="600">
+                  이번 달 잔액
+                </Typography>
+                <AmountDisplay
+                  amount={totals.balance}
+                  type="neutral"
+                  size="large"
                 />
               </View>
             </View>
@@ -738,5 +740,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
+  },
+  footerTotal: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    marginTop: 8,
+    paddingTop: 16,
   },
 });
