@@ -6,7 +6,7 @@ import {
   Pressable,
   ActivityIndicator,
 } from 'react-native';
-import { Stack, useLocalSearchParams, router } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -23,6 +23,7 @@ import type { PaymentMethodEntity, MemberRole } from '@repo/core';
 import { PaymentMethodItem } from '@/components/payment-method/PaymentMethodItem';
 import { AddPaymentMethodModal } from '@/components/payment-method/AddPaymentMethodModal';
 import { EditPaymentMethodModal } from '@/components/payment-method/EditPaymentMethodModal';
+import { ScreenHeader } from '@/components/shared/ScreenHeader';
 
 export default function PaymentMethodsScreen() {
   const { ledgerId } = useLocalSearchParams<{ ledgerId: string }>();
@@ -79,32 +80,23 @@ export default function PaymentMethodsScreen() {
   };
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: '결제 수단 관리',
-          headerShadowVisible: false,
-          headerLeft: () => (
-            <Pressable onPress={() => router.back()}>
-              <Ionicons name="chevron-back" size={24} color={colors.text} />
+    <View
+      style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}
+    >
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScreenHeader
+        title="결제 수단 관리"
+        background={colors.backgroundSecondary}
+        right={
+          canCreate ? (
+            <Pressable onPress={() => setAddModalVisible(true)}>
+              <Ionicons name="add" size={28} color={colors.tint} />
             </Pressable>
-          ),
-          headerRight: canCreate
-            ? () => (
-                <Pressable onPress={() => setAddModalVisible(true)}>
-                  <Ionicons name="add" size={28} color={colors.tint} />
-                </Pressable>
-              )
-            : undefined,
-        }}
+          ) : undefined
+        }
       />
 
-      <View
-        style={[
-          styles.container,
-          { backgroundColor: colors.backgroundSecondary },
-        ]}
-      >
+      <View style={styles.container}>
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator size="large" color={colors.tint} />
@@ -198,7 +190,7 @@ export default function PaymentMethodsScreen() {
         canDelete={canDelete}
         onClose={() => setEditTarget(null)}
       />
-    </>
+    </View>
   );
 }
 

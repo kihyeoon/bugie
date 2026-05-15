@@ -12,10 +12,10 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography, Card } from '@/components/ui';
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import { Ionicons } from '@expo/vector-icons';
 import { useLedger } from '@/contexts/LedgerContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { CreateLedgerModal } from '@/components/ledger/CreateLedgerModal';
+import { ScreenHeader } from '@/components/shared/ScreenHeader';
 
 export default function LedgerManagementScreen() {
   const colorScheme = useColorScheme();
@@ -99,86 +99,46 @@ export default function LedgerManagementScreen() {
     return ledger.ledger_members.length;
   };
 
+  // 분기별 본문을 동일 래퍼로 감싸 헤더를 화면당 1회만 합성.
+  const renderScreen = (body: React.ReactNode) => (
+    <View
+      style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}
+    >
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScreenHeader
+        title="가계부 관리"
+        background={colors.backgroundSecondary}
+      />
+      {body}
+    </View>
+  );
+
   if (loading && ledgers.length === 0) {
-    return (
-      <>
-        <Stack.Screen
-          options={{
-            title: '가계부 관리',
-            headerShadowVisible: false,
-            headerLeft: () => (
-              <Pressable onPress={() => router.back()}>
-                <Ionicons name="chevron-back" size={24} color={colors.text} />
-              </Pressable>
-            ),
-          }}
-        />
-        <View
-          style={[
-            styles.container,
-            styles.centerContent,
-            { backgroundColor: colors.backgroundSecondary },
-          ]}
-        >
-          <ActivityIndicator size="large" color={colors.tint} />
-        </View>
-      </>
+    return renderScreen(
+      <View style={[styles.container, styles.centerContent]}>
+        <ActivityIndicator size="large" color={colors.tint} />
+      </View>
     );
   }
 
   if (error) {
-    return (
-      <>
-        <Stack.Screen
-          options={{
-            title: '가계부 관리',
-            headerShadowVisible: false,
-            headerLeft: () => (
-              <Pressable onPress={() => router.back()}>
-                <Ionicons name="chevron-back" size={24} color={colors.text} />
-              </Pressable>
-            ),
-          }}
-        />
-        <View
-          style={[
-            styles.container,
-            styles.centerContent,
-            { backgroundColor: colors.backgroundSecondary },
-          ]}
-        >
-          <Typography variant="body1" color="secondary">
-            가계부를 불러올 수 없습니다.
+    return renderScreen(
+      <View style={[styles.container, styles.centerContent]}>
+        <Typography variant="body1" color="secondary">
+          가계부를 불러올 수 없습니다.
+        </Typography>
+        <Pressable onPress={refreshLedgers} style={styles.retryButton}>
+          <Typography variant="body1" color="primary">
+            다시 시도
           </Typography>
-          <Pressable onPress={refreshLedgers} style={styles.retryButton}>
-            <Typography variant="body1" color="primary">
-              다시 시도
-            </Typography>
-          </Pressable>
-        </View>
-      </>
+        </Pressable>
+      </View>
     );
   }
 
-  return (
+  return renderScreen(
     <>
-      <Stack.Screen
-        options={{
-          title: '가계부 관리',
-          headerShadowVisible: false,
-          headerLeft: () => (
-            <Pressable onPress={() => router.back()}>
-              <Ionicons name="chevron-back" size={24} color={colors.text} />
-            </Pressable>
-          ),
-        }}
-      />
-      <View
-        style={[
-          styles.container,
-          { backgroundColor: colors.backgroundSecondary },
-        ]}
-      >
+      <View style={styles.container}>
         <ScrollView
           style={styles.content}
           contentContainerStyle={styles.scrollContent}

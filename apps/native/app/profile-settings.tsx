@@ -5,10 +5,8 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
-  Pressable,
 } from 'react-native';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography, DetailRow, DetailSection } from '@/components/ui';
@@ -18,6 +16,7 @@ import { EditTextModal } from '@/components/shared/EditTextModal';
 import { DeleteAccountModal } from '@/components/profile/DeleteAccountModal';
 import { ProfileRules, DELETE_ACCOUNT } from '@repo/core';
 import type { ProfileDetail } from '@repo/core';
+import { ScreenHeader } from '@/components/shared/ScreenHeader';
 
 export default function ProfileSettingsScreen() {
   const colorScheme = useColorScheme();
@@ -113,45 +112,30 @@ export default function ProfileSettingsScreen() {
     return name.substring(0, 2).toUpperCase();
   };
 
+  // 분기별 본문을 동일 래퍼로 감싸 헤더를 화면당 1회만 합성.
+  const renderScreen = (body: React.ReactNode) => (
+    <View
+      style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}
+    >
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScreenHeader
+        title="프로필 설정"
+        background={colors.backgroundSecondary}
+      />
+      {body}
+    </View>
+  );
+
   if (initialLoading) {
-    return (
+    return renderScreen(
       <View style={[styles.container, styles.loadingContainer]}>
-        <Stack.Screen
-          options={{
-            title: '프로필 설정',
-            headerShadowVisible: false,
-            headerStyle: {
-              backgroundColor: colors.backgroundSecondary,
-            },
-            headerLeft: () => (
-              <Pressable onPress={() => router.back()}>
-                <Ionicons name="chevron-back" size={24} color={colors.text} />
-              </Pressable>
-            ),
-          }}
-        />
         <ActivityIndicator size="large" color={colors.tint} />
       </View>
     );
   }
 
-  return (
+  return renderScreen(
     <>
-      <Stack.Screen
-        options={{
-          title: '프로필 설정',
-          headerShadowVisible: false,
-          headerStyle: {
-            backgroundColor: colors.backgroundSecondary,
-          },
-          headerLeft: () => (
-            <Pressable onPress={() => router.back()}>
-              <Ionicons name="chevron-back" size={24} color={colors.text} />
-            </Pressable>
-          ),
-        }}
-      />
-
       <ScrollView
         style={[
           styles.container,

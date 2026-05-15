@@ -3,9 +3,7 @@ import {
   View,
   SectionList,
   SectionListData,
-  TouchableOpacity,
   Pressable,
-  Platform,
   NativeSyntheticEvent,
   NativeScrollEvent,
   ViewToken,
@@ -25,6 +23,7 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography, AmountDisplay } from '@/components/ui';
 import { Calendar } from '@/components/shared/calendar';
+import { ScreenHeader } from '@/components/shared/ScreenHeader';
 import { LoadingState } from '../components/shared/LoadingState';
 import { ErrorState } from '../components/shared/ErrorState';
 import { EmptyState } from '../components/shared/EmptyState';
@@ -41,7 +40,6 @@ import { getIoniconName } from '@/constants/categories';
 
 // 상수
 const CONSTANTS = {
-  HEADER_HEIGHT: Platform.select({ ios: 100, android: 80 }) ?? 80,
   CALENDAR_MONTH_HEIGHT: 420,
   CALENDAR_WEEK_HEIGHT: 120,
   SCROLL_THRESHOLD: 50,
@@ -66,10 +64,9 @@ const TransactionItem = ({
   const colors = Colors[colorScheme ?? 'light'];
 
   return (
-    <TouchableOpacity
+    <Pressable
       style={[styles.transactionItem, { backgroundColor: colors.background }]}
       onPress={onPress}
-      activeOpacity={0.7}
     >
       <View style={styles.transactionLeft}>
         <View
@@ -98,7 +95,7 @@ const TransactionItem = ({
         type={transaction.type}
         size="medium"
       />
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 
@@ -138,15 +135,15 @@ const HeaderTitle = ({
 
   return (
     <View style={styles.headerTitle}>
-      <TouchableOpacity onPress={onPrevMonth} style={styles.monthNavButton}>
+      <Pressable onPress={onPrevMonth} style={styles.monthNavButton}>
         <Ionicons name="caret-back" size={16} color={colors.text} />
-      </TouchableOpacity>
+      </Pressable>
       <Typography variant="h3" weight="600" style={{ marginHorizontal: 20 }}>
         {monthText}
       </Typography>
-      <TouchableOpacity onPress={onNextMonth} style={styles.monthNavButton}>
+      <Pressable onPress={onNextMonth} style={styles.monthNavButton}>
         <Ionicons name="caret-forward" size={16} color={colors.text} />
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 };
@@ -525,79 +522,53 @@ export default function TransactionsScreen() {
     return { income, expense, balance: income - expense };
   }, [transactions]);
 
-  // 모든 분기에서 동일한 헤더를 즉시 마운트해서
+  // 분기별 본문을 동일 래퍼로 감싸 헤더를 화면당 1회만 합성.
   // expo-router default back title('(tabs)')이 잠깐 보이는 깜빡임 방지.
-  const headerScreen = (
-    <Stack.Screen
-      options={{
-        headerTitle: () => (
+  const renderScreen = (body: React.ReactNode) => (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScreenHeader
+        background={colors.background}
+        center={
           <HeaderTitle
             date={selectedDate}
             onPrevMonth={handlePrevMonth}
             onNextMonth={handleNextMonth}
           />
-        ),
-        headerShadowVisible: false,
-        headerLeft: () => (
-          <Pressable onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={24} color={colors.text} />
-          </Pressable>
-        ),
-        // TODO: Phase 2에서 검색 기능 구현 시 활성화
-        // headerRight: () => (
-        //   <TouchableOpacity onPress={handleSearch} style={{ marginRight: 8 }}>
-        //     <Ionicons name="search" size={24} color={colors.icon} />
-        //   </TouchableOpacity>
-        // ),
-      }}
-    />
+        }
+      />
+      {body}
+    </View>
   );
 
   // 로딩 상태
   if (loading && !transactions.length) {
-    return (
-      <>
-        {headerScreen}
-        <LoadingState message="거래 내역을 불러오는 중..." />
-      </>
+    return renderScreen(
+      <LoadingState message="거래 내역을 불러오는 중..." />
     );
   }
 
   // 에러 상태
   if (error) {
-    return (
-      <>
-        {headerScreen}
-        <ErrorState
-          message="거래 내역을 불러올 수 없습니다"
-          onRetry={refetch}
-        />
-      </>
+    return renderScreen(
+      <ErrorState message="거래 내역을 불러올 수 없습니다" onRetry={refetch} />
     );
   }
 
   // 빈 상태
   if (!loading && transactions.length === 0) {
-    return (
-      <>
-        {headerScreen}
-        <EmptyState
-          icon="receipt-outline"
-          title="거래 내역이 없습니다"
-          message="이번 달에는 아직 거래가 없어요"
-        />
-      </>
+    return renderScreen(
+      <EmptyState
+        icon="receipt-outline"
+        title="거래 내역이 없습니다"
+        message="이번 달에는 아직 거래가 없어요"
+      />
     );
   }
 
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
-      {headerScreen}
-
-      <View style={styles.content}>
-        {/* 애니메이션 캘린더 */}
+  return renderScreen(
+    <SafeAreaView style={styles.content} edges={['left', 'right', 'bottom']}>
+      {/* 애니메이션 캘린더 */}
         <Animated.View
           style={[animatedCalendarStyle, styles.calendarContainer]}
         >
@@ -675,7 +646,6 @@ export default function TransactionsScreen() {
             </View>
           }
         />
-      </View>
     </SafeAreaView>
   );
 }

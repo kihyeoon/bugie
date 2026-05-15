@@ -30,6 +30,7 @@ import { useLedger } from '@/contexts/LedgerContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { PermissionService, formatLocalDate } from '@repo/core';
 import type { MemberRole } from '@repo/core';
+import { ScreenHeader } from '@/components/shared/ScreenHeader';
 
 const DELETED_USER_LABEL = '탈퇴한 사용자';
 
@@ -259,84 +260,49 @@ export default function TransactionDetailScreen() {
     );
   }, [deleteTransaction]);
 
+  // 분기별 본문을 동일 래퍼로 감싸 헤더를 화면당 1회만 합성.
+  const renderScreen = (body: React.ReactNode) => (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScreenHeader title="상세 내역" background={colors.background} />
+      {body}
+    </View>
+  );
+
   // 초기 로딩 상태 (첫 진입 시에만 표시)
   if (initialLoading) {
-    return (
-      <>
-        <Stack.Screen
-          options={{
-            title: '상세 내역',
-            headerShadowVisible: false,
-            headerLeft: () => (
-              <Pressable onPress={() => router.back()}>
-                <Ionicons name="chevron-back" size={24} color={colors.text} />
-              </Pressable>
-            ),
-          }}
-        />
-        <View
-          style={[
-            styles.loadingContainer,
-            { backgroundColor: colors.background },
-          ]}
-        >
-          <ActivityIndicator size="large" color={colors.tint} />
-        </View>
-      </>
+    return renderScreen(
+      <View
+        style={[styles.loadingContainer, { backgroundColor: colors.background }]}
+      >
+        <ActivityIndicator size="large" color={colors.tint} />
+      </View>
     );
   }
 
   // 에러 상태
   if (error || !transaction) {
-    return (
-      <>
-        <Stack.Screen
-          options={{
-            title: '상세 내역',
-            headerShadowVisible: false,
-            headerLeft: () => (
-              <Pressable onPress={() => router.back()}>
-                <Ionicons name="chevron-back" size={24} color={colors.text} />
-              </Pressable>
-            ),
-          }}
+    return renderScreen(
+      <View
+        style={[styles.errorContainer, { backgroundColor: colors.background }]}
+      >
+        <Ionicons
+          name="alert-circle-outline"
+          size={48}
+          color={colors.textSecondary}
         />
-        <View
-          style={[
-            styles.errorContainer,
-            { backgroundColor: colors.background },
-          ]}
-        >
-          <Ionicons
-            name="alert-circle-outline"
-            size={48}
-            color={colors.textSecondary}
-          />
-          <Typography variant="body1" color="secondary" align="center">
-            {error?.message || '거래를 불러올 수 없습니다.'}
-          </Typography>
-          <Button variant="secondary" onPress={() => router.back()}>
-            돌아가기
-          </Button>
-        </View>
-      </>
+        <Typography variant="body1" color="secondary" align="center">
+          {error?.message || '거래를 불러올 수 없습니다.'}
+        </Typography>
+        <Button variant="secondary" onPress={() => router.back()}>
+          돌아가기
+        </Button>
+      </View>
     );
   }
 
-  return (
+  return renderScreen(
     <>
-      <Stack.Screen
-        options={{
-          title: '상세 내역',
-          headerShadowVisible: false,
-          headerLeft: () => (
-            <Pressable onPress={() => router.back()}>
-              <Ionicons name="chevron-back" size={24} color={colors.text} />
-            </Pressable>
-          ),
-        }}
-      />
-
       <ScrollView
         style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={styles.contentContainer}

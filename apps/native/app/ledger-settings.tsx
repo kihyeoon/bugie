@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, View, ScrollView, Alert, Pressable } from 'react-native';
+import { StyleSheet, View, ScrollView, Alert } from 'react-native';
 import {
   router,
   Stack,
@@ -9,7 +9,6 @@ import {
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography, DetailRow, DetailSection } from '@/components/ui';
-import { Ionicons } from '@expo/vector-icons';
 import { useLedger } from '@/contexts/LedgerContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useServices } from '@/contexts/ServiceContext';
@@ -18,6 +17,7 @@ import { ViewMembersModal } from '@/components/ledger/ViewMembersModal';
 import { InviteMemberModal } from '@/components/ledger/InviteMemberModal';
 import type { LedgerWithMembers, LedgerDetail, MemberRole } from '@repo/core';
 import { PermissionService } from '@repo/core';
+import { ScreenHeader } from '@/components/shared/ScreenHeader';
 
 export default function LedgerSettingsScreen() {
   const colorScheme = useColorScheme();
@@ -249,56 +249,33 @@ export default function LedgerSettingsScreen() {
   const canEditLedger = PermissionService.canDo('updateLedger', role);
   const canDeleteLedger = PermissionService.canDo('deleteLedger', role);
 
+  // 분기별 본문을 동일 래퍼로 감싸 헤더를 화면당 1회만 합성.
+  const renderScreen = (body: React.ReactNode) => (
+    <View
+      style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}
+    >
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScreenHeader
+        title={ledger?.name ?? '가계부 설정'}
+        background={colors.backgroundSecondary}
+      />
+      {body}
+    </View>
+  );
+
   if (!ledger) {
-    return (
-      <>
-        <Stack.Screen
-          options={{
-            title: '가계부 설정',
-            headerShadowVisible: false,
-            headerLeft: () => (
-              <Pressable onPress={() => router.back()}>
-                <Ionicons name="chevron-back" size={24} color={colors.text} />
-              </Pressable>
-            ),
-          }}
-        />
-        <View
-          style={[
-            styles.container,
-            { backgroundColor: colors.backgroundSecondary },
-          ]}
-        >
-          <View style={styles.centerContent}>
-            <Typography variant="body1" color="secondary">
-              가계부를 불러오는 중...
-            </Typography>
-          </View>
-        </View>
-      </>
+    return renderScreen(
+      <View style={styles.centerContent}>
+        <Typography variant="body1" color="secondary">
+          가계부를 불러오는 중...
+        </Typography>
+      </View>
     );
   }
 
-  return (
+  return renderScreen(
     <>
-      <Stack.Screen
-        options={{
-          title: ledger.name,
-          headerShadowVisible: false,
-          headerLeft: () => (
-            <Pressable onPress={() => router.back()}>
-              <Ionicons name="chevron-back" size={24} color={colors.text} />
-            </Pressable>
-          ),
-        }}
-      />
-
-      <View
-        style={[
-          styles.container,
-          { backgroundColor: colors.backgroundSecondary },
-        ]}
-      >
+      <View style={styles.container}>
         <ScrollView
           style={styles.content}
           contentContainerStyle={styles.scrollContent}
