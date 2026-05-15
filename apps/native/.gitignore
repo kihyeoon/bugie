@@ -9,7 +9,9 @@ dist/
 web-build/
 expo-env.d.ts
 
-# Native
+# Native (CNG — prebuild로 재생성, config plugin이 패치 재적용)
+/ios/
+/android/
 .kotlin/
 *.orig.*
 *.jks
