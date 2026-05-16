@@ -99,7 +99,7 @@ app/
 ## Native 앱 — 컴포넌트 계층
 
 - `components/ui/` — 범용 UI (Button, Card, Typography, AmountInput, ToggleSwitch 등)
-- `components/shared/` — 도메인 공유 컴포넌트 (Calendar, CategorySelector, EditTextModal 등)
+- `components/shared/` — 도메인 공유 컴포넌트 (Calendar, CategorySelector, EditTextModal, ScreenHeader 등)
 - `components/{domain}/` — 도메인 전용 (`ledger/`, `transaction/`, `profile/`, `auth/`)
 
 ## TypeScript 설정

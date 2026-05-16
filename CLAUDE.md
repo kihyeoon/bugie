@@ -15,6 +15,7 @@
 - **새 Supabase 테이블엔 RLS 정책 + Data API GRANT를 반드시 추가한다.** RLS 누락 = 전 사용자 데이터 노출. GRANT 누락 = 2026-10-30부터 SDK에서 `42501 permission denied`(자동 GRANT 정책 종료). 템플릿은 아래 [Supabase 마이그레이션 표준 템플릿](#supabase-마이그레이션-표준-템플릿) 참조.
 - **삭제는 soft delete 패턴**(`deleted_at` 컬럼). RLS를 우회해야 하므로 `SECURITY DEFINER` RPC 함수로 처리. 회원 탈퇴는 30일 유예 후 GitHub Actions cron(`process-account-deletions.yml`)으로 완전 삭제.
 - **터치 인터랙션은 `Pressable`을 사용한다.** `TouchableOpacity` 신규 사용 금지 (기존 132군데 일괄 전환 예정).
+- **네이티브 스택 화면 헤더는 공유 `ScreenHeader`(`components/shared/ScreenHeader.tsx`)를 쓴다.** `Stack.Screen`의 네이티브 헤더(`headerLeft`/`title` 등)를 쓰면 iOS 26에서 백 버튼에 Liquid Glass 캡슐이 강제 적용된다. 새 스택 화면은 `<Stack.Screen options={{ headerShown: false }} />` + 본문 최상단에 `ScreenHeader`를 렌더한다 (v1.2.2부터 6개 화면 적용).
 - **색상은 `constants/Colors.ts`의 시맨틱 컬러만 사용한다.** Toss 디자인 시스템 기반. 하드코딩된 hex 금지.
 - **Supabase 실시간 구독**은 `useEffect` cleanup에서 반드시 해제한다.
 - **마이그레이션 파일명**은 `YYYYMMDDHHMMSS_name.sql` (14자리 타임스탬프 필수).
@@ -64,9 +65,9 @@ Web과 Native에서 접두사가 다르다.
 ```bash
 # 개발
 pnpm dev                              # 전체 앱 동시 실행 (turbo)
-pnpm --filter native start            # Expo만 (localhost:8081)
+pnpm --filter native start            # Expo dev server만 (Metro, JS 개발 — 일상 작업은 이걸 사용)
 pnpm --filter web dev                 # Next.js만 (localhost:3000)
-pnpm ios                              # iOS 시뮬레이터
+pnpm --filter native ios              # 네이티브 빌드 + 설치 (expo run:ios — 네이티브 변경 시에만)
 
 # 빌드
 pnpm build                            # 전체 빌드 (의존성 순서 자동)
