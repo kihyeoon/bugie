@@ -115,6 +115,7 @@ export function Calendar({
   mode = 'static',
   viewType = 'month',
   selectedDate,
+  visibleMonth,
   transactions,
   onDateSelect,
   onMonthChange,
@@ -133,6 +134,7 @@ export function Calendar({
       mode={mode}
       initialViewType={viewType}
       selectedDate={selectedDate}
+      visibleMonth={visibleMonth}
       transactions={transactions}
       onDateSelect={onDateSelect}
       onMonthChange={onMonthChange}

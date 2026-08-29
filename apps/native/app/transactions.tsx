@@ -24,6 +24,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography, AmountDisplay } from '@/components/ui';
 import { Calendar } from '@/components/shared/calendar';
 import { ScreenHeader } from '@/components/shared/ScreenHeader';
+import { TransactionItem } from '@/components/transaction/TransactionItem';
 import { LoadingState } from '../components/shared/LoadingState';
 import { ErrorState } from '../components/shared/ErrorState';
 import { EmptyState } from '../components/shared/EmptyState';
@@ -36,7 +37,7 @@ import {
   formatDateKey,
 } from '@/components/shared/calendar/utils/dateHelpers';
 import { debounce } from '@/utils/timing';
-import { getIoniconName } from '@/constants/categories';
+import { formatDayKorean } from '@/utils/dateFormatter';
 
 // 상수
 const CONSTANTS = {
@@ -52,71 +53,14 @@ const viewabilityConfig = {
   waitForInteraction: false, // 디바운스가 타이밍 제어
 };
 
-// 거래 아이템 컴포넌트
-const TransactionItem = ({
-  transaction,
-  onPress,
-}: {
-  transaction: TransactionWithDetails;
-  onPress: () => void;
-}) => {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
-
-  return (
-    <Pressable
-      style={[styles.transactionItem, { backgroundColor: colors.background }]}
-      onPress={onPress}
-    >
-      <View style={styles.transactionLeft}>
-        <View
-          style={[
-            styles.categoryIcon,
-            { backgroundColor: transaction.category_color + '20' },
-          ]}
-        >
-          <Ionicons
-            name={getIoniconName(transaction.category_icon, true)}
-            size={20}
-            color={transaction.category_color}
-          />
-        </View>
-        <View style={styles.transactionInfo}>
-          <Typography variant="body1" weight="500">
-            {transaction.title}
-          </Typography>
-          <Typography variant="caption" color="secondary">
-            {transaction.category_name}
-          </Typography>
-        </View>
-      </View>
-      <AmountDisplay
-        amount={Number(transaction.amount)}
-        type={transaction.type}
-        size="medium"
-      />
-    </Pressable>
-  );
-};
-
 // 날짜 섹션 헤더 컴포넌트
-const DateSectionHeader = ({ date }: { date: string }) => {
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    const weekDay = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
-    return `${month}월 ${day}일 (${weekDay})`;
-  };
-
-  return (
-    <View style={styles.sectionHeader}>
-      <Typography variant="body2" weight="500" color="secondary">
-        {formatDate(date)}
-      </Typography>
-    </View>
-  );
-};
+const DateSectionHeader = ({ date }: { date: string }) => (
+  <View style={styles.sectionHeader}>
+    <Typography variant="body2" weight="500" color="secondary">
+      {formatDayKorean(date)}
+    </Typography>
+  </View>
+);
 
 // 헤더 타이틀 컴포넌트
 const HeaderTitle = ({
@@ -493,10 +437,7 @@ export default function TransactionsScreen() {
   // 렌더 함수들
   const renderTransaction = useCallback(
     ({ item }: { item: TransactionWithDetails }) => (
-      <TransactionItem
-        transaction={item}
-        onPress={() => handleTransactionPress(item.id)}
-      />
+      <TransactionItem transaction={item} onPress={handleTransactionPress} />
     ),
     [handleTransactionPress]
   );
@@ -669,31 +610,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     paddingTop: 16,
-  },
-  transactionItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#F3F4F6',
-  },
-  transactionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  categoryIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  transactionInfo: {
-    flex: 1,
   },
   footer: {
     padding: 16,

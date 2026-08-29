@@ -6,7 +6,7 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router/react-navigation';
 import * as SplashScreen from 'expo-splash-screen';
@@ -17,6 +17,8 @@ import { Calendar } from '@/components/shared/calendar';
 import { useLedger } from '../../contexts/LedgerContext';
 import { useSelectedDate } from '@/contexts/SelectedDateContext';
 import { useMonthlyData } from '../../hooks/useMonthlyData';
+import { useTransactions } from '../../hooks/useTransactions';
+import { SelectedDayTransactions } from '@/components/transaction/SelectedDayTransactions';
 import { ErrorState } from '../../components/shared/ErrorState';
 import { EmptyState } from '../../components/shared/EmptyState';
 import { CreateLedgerModal } from '../../components/ledger/CreateLedgerModal';
@@ -48,6 +50,8 @@ export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const { setSelectedDate: setSharedDate } = useSelectedDate();
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  // 캘린더에서 고른 날짜. null이면 아직 고르지 않은 상태(첫 진입)라 상세 섹션도 없다.
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const colors = Colors[colorScheme ?? 'light'];
@@ -71,8 +75,34 @@ export default function HomeScreen() {
     refetch: refetchData,
   } = useMonthlyData(year, month);
 
+  // 거래 행은 날짜를 처음 고르는 시점에야 필요하다. 홈 첫 진입을 느리게 만들지 않도록 지연 로드한다.
+  const {
+    transactions: monthTransactions,
+    loading: transactionsLoading,
+    refetch: refetchTransactions,
+  } = useTransactions({
+    ledgerId: currentLedger?.id,
+    year,
+    month,
+    enabled: selectedDate !== null,
+  });
+
+  const selectedDayTransactions = useMemo(() => {
+    if (!selectedDate) return [];
+    const dateStr = formatLocalDate(selectedDate);
+    return monthTransactions.filter((t) => t.transaction_date === dateStr);
+  }, [monthTransactions, selectedDate]);
+
   const lastRefetchTime = useRef(0);
   const [appReady, setAppReady] = useState(false);
+
+  // useFocusEffect는 콜백 정체성이 바뀌면 포커스 중에도 다시 실행된다.
+  // refetchTransactions는 날짜를 처음 고르는 순간(enabled 전환) 정체성이 바뀌므로
+  // deps에 그대로 넣으면 훅이 스스로 하는 첫 fetch와 겹쳐 같은 요청이 두 번 나간다.
+  const refetchTransactionsRef = useRef(refetchTransactions);
+  useEffect(() => {
+    refetchTransactionsRef.current = refetchTransactions;
+  }, [refetchTransactions]);
 
   useEffect(() => {
     async function prepare() {
@@ -96,6 +126,7 @@ export default function HomeScreen() {
       // 마지막 리페치로부터 1초 이상 경과 시만 리페치
       if (now - lastRefetchTime.current > 1000) {
         refetchData();
+        refetchTransactionsRef.current();
         lastRefetchTime.current = now;
       }
     }, [refetchData])
@@ -104,32 +135,46 @@ export default function HomeScreen() {
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      await Promise.all([refreshLedgers(), refetchData()]);
+      await Promise.all([
+        refreshLedgers(),
+        refetchData(),
+        refetchTransactions(),
+      ]);
     } finally {
       setIsRefreshing(false);
     }
-  }, [refreshLedgers, refetchData]);
+  }, [refreshLedgers, refetchData, refetchTransactions]);
 
-  const handleDateSelect = (date: Date) => {
-    // 빠른 입력 화면에서 사용할 공유 날짜 설정
-    setSharedDate(date);
+  // 날짜 탭은 선택만 한다. 거래 유무에 따라 화면을 옮기면 같은 제스처가 두 가지 뜻을 갖게 된다.
+  const handleDateSelect = useCallback(
+    (date: Date) => {
+      setSelectedDate(date);
+      // 빠른 입력 화면에서 사용할 공유 날짜 설정
+      setSharedDate(date);
+    },
+    [setSharedDate]
+  );
 
-    if (!calendarData) return;
-
-    const dateStr = formatLocalDate(date);
-    const dayTransactions = calendarData[dateStr];
-    const hasTransactions =
-      dayTransactions &&
-      (dayTransactions.income > 0 || dayTransactions.expense > 0);
-
-    if (hasTransactions) {
-      router.push(`/transactions?date=${dateStr}`);
-    }
-  };
-
-  const handleMonthChange = (year: number, month: number) => {
+  // 다른 달로 넘어가면 선택을 지운다. 보이지 않는 날짜의 내역이 아래에 남아 있으면 헷갈린다.
+  const handleMonthChange = useCallback((year: number, month: number) => {
     setCurrentMonth(new Date(year, month));
-  };
+    setSelectedDate(null);
+  }, []);
+
+  const handleViewAllTransactions = useCallback(() => {
+    if (!selectedDate) return;
+    router.push(`/transactions?date=${formatLocalDate(selectedDate)}`);
+  }, [router, selectedDate]);
+
+  const handleTransactionPress = useCallback(
+    (transactionId: string) => {
+      router.push({
+        pathname: '/transaction-detail',
+        params: { id: transactionId },
+      });
+    },
+    [router]
+  );
 
   // 초기 로딩 중에는 스플래시 화면이 표시되므로 여기서는 null 반환
   if (!appReady) {
@@ -194,12 +239,25 @@ export default function HomeScreen() {
         <Calendar
           mode="static"
           viewType="month"
-          selectedDate={currentMonth}
+          selectedDate={selectedDate ?? undefined}
+          visibleMonth={currentMonth}
           transactions={calendarData || {}}
           onDateSelect={handleDateSelect}
           onMonthChange={handleMonthChange}
           containerStyle={styles.calendarContainer}
         />
+
+        {/* 선택한 날짜의 거래 내역 */}
+        {selectedDate && (
+          <SelectedDayTransactions
+            date={selectedDate}
+            transactions={selectedDayTransactions}
+            loading={transactionsLoading}
+            onPressTransaction={handleTransactionPress}
+            onPressViewAll={handleViewAllTransactions}
+            style={styles.dayTransactions}
+          />
+        )}
 
         {/* 월간 요약 */}
         <Card variant="elevated" padding="large">
@@ -277,6 +335,9 @@ const styles = StyleSheet.create({
   },
   calendarContainer: {
     marginTop: CONSTANTS.SPACING.CALENDAR_TOP,
+    marginBottom: CONSTANTS.SPACING.CALENDAR_BOTTOM,
+  },
+  dayTransactions: {
     marginBottom: CONSTANTS.SPACING.CALENDAR_BOTTOM,
   },
   summaryRow: {
