@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, View, ScrollView, Alert } from 'react-native';
 import {
   router,
-  Stack,
   useLocalSearchParams,
   useFocusEffect,
 } from 'expo-router';
@@ -254,7 +253,6 @@ export default function LedgerSettingsScreen() {
     <View
       style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}
     >
-      <Stack.Screen options={{ headerShown: false }} />
       <ScreenHeader
         title={ledger?.name ?? '가계부 설정'}
         background={colors.backgroundSecondary}

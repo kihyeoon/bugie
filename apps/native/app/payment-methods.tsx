@@ -6,7 +6,7 @@ import {
   Pressable,
   ActivityIndicator,
 } from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -83,7 +83,6 @@ export default function PaymentMethodsScreen() {
     <View
       style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}
     >
-      <Stack.Screen options={{ headerShown: false }} />
       <ScreenHeader
         title="결제 수단 관리"
         background={colors.backgroundSecondary}

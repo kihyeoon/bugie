@@ -15,7 +15,8 @@
 - **새 Supabase 테이블엔 RLS 정책 + Data API GRANT를 반드시 추가한다.** RLS 누락 = 전 사용자 데이터 노출. GRANT 누락 = 2026-10-30부터 SDK에서 `42501 permission denied`(자동 GRANT 정책 종료). 템플릿은 아래 [Supabase 마이그레이션 표준 템플릿](#supabase-마이그레이션-표준-템플릿) 참조.
 - **삭제는 soft delete 패턴**(`deleted_at` 컬럼). RLS를 우회해야 하므로 `SECURITY DEFINER` RPC 함수로 처리. 회원 탈퇴는 30일 유예 후 GitHub Actions cron(`process-account-deletions.yml`)으로 완전 삭제.
 - **터치 인터랙션은 `Pressable`을 사용한다.** `TouchableOpacity` 신규 사용 금지 (기존 132군데 일괄 전환 예정).
-- **네이티브 스택 화면 헤더는 공유 `ScreenHeader`(`components/shared/ScreenHeader.tsx`)를 쓴다.** `Stack.Screen`의 네이티브 헤더(`headerLeft`/`title` 등)를 쓰면 iOS 26에서 백 버튼에 Liquid Glass 캡슐이 강제 적용된다. 새 스택 화면은 `<Stack.Screen options={{ headerShown: false }} />` + 본문 최상단에 `ScreenHeader`를 렌더한다 (v1.2.2부터 6개 화면 적용).
+- **네이티브 스택 화면 헤더는 공유 `ScreenHeader`(`components/shared/ScreenHeader.tsx`)를 쓴다.** `Stack.Screen`의 네이티브 헤더(`headerLeft`/`title` 등)를 쓰면 iOS 26에서 백 버튼에 Liquid Glass 캡슐이 강제 적용된다. `headerShown: false`는 루트 `app/_layout.tsx`의 `<Stack screenOptions={{ headerShown: false }}>`가 전역 적용하므로, **새 스택 화면은 본문 최상단에 `ScreenHeader`만 렌더하면 된다.**
+- **화면 본문 안에서 `<Stack.Screen options={{ headerShown: false }} />`를 쓰지 않는다.** expo-router의 `Screen`은 `useLayoutEffect`에서 `navigation.setOptions()`를 호출해 항상 한 커밋 늦게 적용된다. 그 사이 첫 커밋은 `options = {}`로 렌더되어 native-stack 기본값(헤더 표시 + title = 라우트 파일명)이 적용되고, 실제 `UINavigationBar`가 한 프레임 생겼다가 0.25초 애니메이션으로 사라진다 → 헤더 플래시 + 콘텐츠 세로 점프. 화면별 옵션이 필요하면 **루트 레이아웃의 `<Stack.Screen name="..." options={...} />`에 선언한다** (`+not-found`가 그 예).
 - **색상은 `constants/Colors.ts`의 시맨틱 컬러만 사용한다.** Toss 디자인 시스템 기반. 하드코딩된 hex 금지.
 - **Supabase 실시간 구독**은 `useEffect` cleanup에서 반드시 해제한다.
 - **마이그레이션 파일명**은 `YYYYMMDDHHMMSS_name.sql` (14자리 타임스탬프 필수).

@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   Pressable,
 } from 'react-native';
-import { router, Stack, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography, Card } from '@/components/ui';
@@ -104,7 +104,6 @@ export default function LedgerManagementScreen() {
     <View
       style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}
     >
-      <Stack.Screen options={{ headerShown: false }} />
       <ScreenHeader
         title="가계부 관리"
         background={colors.backgroundSecondary}

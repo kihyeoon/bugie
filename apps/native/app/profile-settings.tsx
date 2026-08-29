@@ -6,7 +6,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography, DetailRow, DetailSection } from '@/components/ui';
@@ -117,7 +117,6 @@ export default function ProfileSettingsScreen() {
     <View
       style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}
     >
-      <Stack.Screen options={{ headerShown: false }} />
       <ScreenHeader
         title="프로필 설정"
         background={colors.backgroundSecondary}

@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { Stack, useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -263,7 +263,6 @@ export default function TransactionDetailScreen() {
   // 분기별 본문을 동일 래퍼로 감싸 헤더를 화면당 1회만 합성.
   const renderScreen = (body: React.ReactNode) => (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Stack.Screen options={{ headerShown: false }} />
       <ScreenHeader title="상세 내역" background={colors.background} />
       {body}
     </View>

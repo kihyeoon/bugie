@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { useLocalSearchParams, Stack, router } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import Animated, {
   useSharedValue,
@@ -523,10 +523,8 @@ export default function TransactionsScreen() {
   }, [transactions]);
 
   // 분기별 본문을 동일 래퍼로 감싸 헤더를 화면당 1회만 합성.
-  // expo-router default back title('(tabs)')이 잠깐 보이는 깜빡임 방지.
   const renderScreen = (body: React.ReactNode) => (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Stack.Screen options={{ headerShown: false }} />
       <ScreenHeader
         background={colors.background}
         center={
