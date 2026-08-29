@@ -1,10 +1,5 @@
 import React, { useState, useRef } from 'react';
-import {
-  TextInput,
-  Pressable,
-  StyleSheet,
-  ViewStyle,
-} from 'react-native';
+import { TextInput, Pressable, StyleSheet, ViewStyle } from 'react-native';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { AmountDisplay } from './AmountDisplay';
@@ -31,7 +26,7 @@ export function AmountInput({
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const inputRef = useRef<TextInput>(null);
-  
+
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState('');
 
@@ -57,12 +52,12 @@ export function AmountInput({
   // 텍스트 변경
   const handleTextChange = (text: string) => {
     const num = parseNumber(text);
-    
+
     // 최대값 체크
     if (num > maxValue) {
       return;
     }
-    
+
     // 포맷팅하여 표시
     const formatted = num === 0 ? '' : formatWithComma(num);
     setInputValue(formatted);
@@ -71,11 +66,11 @@ export function AmountInput({
   // 편집 완료
   const handleEndEdit = () => {
     const num = parseNumber(inputValue);
-    
+
     // 범위 체크
     const finalValue = Math.min(Math.max(num, minValue), maxValue);
     onChange(finalValue);
-    
+
     setIsEditing(false);
   };
 
@@ -97,7 +92,7 @@ export function AmountInput({
       style={({ pressed }) => [
         styles.container,
         style,
-        !isEditing && pressed && styles.pressed
+        !isEditing && pressed && styles.pressed,
       ]}
       onPress={handleStartEdit}
       disabled={isEditing}
@@ -105,10 +100,7 @@ export function AmountInput({
       {isEditing ? (
         <TextInput
           ref={inputRef}
-          style={[
-            styles.input,
-            { color: getColor() }
-          ]}
+          style={[styles.input, { color: getColor() }]}
           value={inputValue}
           onChangeText={handleTextChange}
           onBlur={handleEndEdit}

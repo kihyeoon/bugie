@@ -26,7 +26,9 @@ export default function Index() {
   if (error) {
     return (
       <ErrorState
-        message={'서버에 연결할 수 없습니다.\n네트워크 상태를 확인하고 다시 시도해 주세요.'}
+        message={
+          '서버에 연결할 수 없습니다.\n네트워크 상태를 확인하고 다시 시도해 주세요.'
+        }
         onRetry={retryInitialization}
       />
     );

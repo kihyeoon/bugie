@@ -16,11 +16,12 @@ export function CalendarHeader({
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const { viewType, selectedDate } = useCalendar();
-  
-  const title = viewType === 'month' 
-    ? formatMonthYear(currentMonth)
-    : formatWeekRange(selectedDate || currentMonth);
-  
+
+  const title =
+    viewType === 'month'
+      ? formatMonthYear(currentMonth)
+      : formatWeekRange(selectedDate || currentMonth);
+
   return (
     <Animated.View style={styles.container}>
       <TouchableOpacity
@@ -30,9 +31,9 @@ export function CalendarHeader({
       >
         <IconSymbol name="chevron.left" size={20} color={colors.text} />
       </TouchableOpacity>
-      
+
       <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-      
+
       <TouchableOpacity
         onPress={onNextMonth}
         style={styles.navButton}

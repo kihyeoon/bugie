@@ -1,11 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Modal,
-  View,
-  StyleSheet,
-  Pressable,
-  ScrollView,
-} from 'react-native';
+import { Modal, View, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography } from '@/components/ui/Typography';
@@ -84,10 +78,7 @@ export function SelectCurrencyModal({
         </View>
 
         {/* Currency List */}
-        <ScrollView
-          style={styles.content}
-          showsVerticalScrollIndicator={false}
-        >
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.listContainer}>
             {CURRENCIES.map((currency, index) => {
               const isSelected = currency.code === tempCurrency;
@@ -96,7 +87,8 @@ export function SelectCurrencyModal({
                   key={currency.code}
                   style={[
                     styles.currencyItem,
-                    index !== CURRENCIES.length - 1 && styles.currencyItemBorder,
+                    index !== CURRENCIES.length - 1 &&
+                      styles.currencyItemBorder,
                     { borderColor: colors.border },
                   ]}
                   onPress={() => setTempCurrency(currency.code)}
@@ -110,12 +102,21 @@ export function SelectCurrencyModal({
                         style={styles.checkIcon}
                       />
                     )}
-                    <View style={[styles.currencyInfo, !isSelected && styles.currencyInfoNoCheck]}>
+                    <View
+                      style={[
+                        styles.currencyInfo,
+                        !isSelected && styles.currencyInfoNoCheck,
+                      ]}
+                    >
                       <View style={styles.currencyMain}>
                         <Typography variant="h2" weight="600">
                           {currency.symbol}
                         </Typography>
-                        <Typography variant="body1" weight="600" style={styles.currencyCode}>
+                        <Typography
+                          variant="body1"
+                          weight="600"
+                          style={styles.currencyCode}
+                        >
                           {currency.code}
                         </Typography>
                       </View>

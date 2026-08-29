@@ -115,7 +115,10 @@ export default function ProfileSettingsScreen() {
   // 분기별 본문을 동일 래퍼로 감싸 헤더를 화면당 1회만 합성.
   const renderScreen = (body: React.ReactNode) => (
     <View
-      style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}
+      style={[
+        styles.container,
+        { backgroundColor: colors.backgroundSecondary },
+      ]}
     >
       <ScreenHeader
         title="프로필 설정"
@@ -237,7 +240,9 @@ export default function ProfileSettingsScreen() {
       <DeleteAccountModal
         visible={deleteAccountModalVisible}
         ownedLedgerCount={profileDetail?.ownedLedgerCount || 0}
-        ownedLedgersWithOtherMembers={profileDetail?.ownedLedgersWithOtherMembers || 0}
+        ownedLedgersWithOtherMembers={
+          profileDetail?.ownedLedgersWithOtherMembers || 0
+        }
         onClose={() => setDeleteAccountModalVisible(false)}
         onConfirm={handleDeleteAccount}
       />

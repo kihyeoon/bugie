@@ -18,13 +18,15 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true,
-      "ios": {
-        "image": "macos-sequoia-15.6-xcode-26.2"
-      }
+      "autoIncrement": true
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascAppId": "6754210865",
+        "appleTeamId": "C4G3BZVAN7"
+      }
+    }
   }
 }

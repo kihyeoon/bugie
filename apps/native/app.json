@@ -2,12 +2,11 @@
   "expo": {
     "name": "Bugie",
     "slug": "native",
-    "version": "1.2.3",
+    "version": "1.3.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "bugie",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.kihyeon.bugie",
@@ -22,8 +21,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.kihyeon.bugie",
-      "edgeToEdgeEnabled": true
+      "package": "com.kihyeon.bugie"
     },
     "web": {
       "bundler": "metro",
@@ -49,8 +47,10 @@
           "iosUrlScheme": "com.googleusercontent.apps.779920031557-mqo7v6d7c6511r708af82hi7ghqra666"
         }
       ],
-      "./plugins/withFmtConstevalFix",
-      "./plugins/withGoogleModularHeaders"
+      "@react-native-community/datetimepicker",
+      "expo-font",
+      "expo-secure-store",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

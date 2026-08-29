@@ -81,7 +81,10 @@ export default function PaymentMethodsScreen() {
 
   return (
     <View
-      style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}
+      style={[
+        styles.container,
+        { backgroundColor: colors.backgroundSecondary },
+      ]}
     >
       <ScreenHeader
         title="결제 수단 관리"

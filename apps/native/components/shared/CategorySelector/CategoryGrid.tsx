@@ -91,7 +91,9 @@ export function CategoryGrid({
               category={category}
               isSelected={selectedCategory?.id === category.id}
               onPress={() => onSelectCategory(category)}
-              onLongPress={onLongPress ? () => onLongPress(category) : undefined}
+              onLongPress={
+                onLongPress ? () => onLongPress(category) : undefined
+              }
               itemWidth={itemWidth}
             />
           ))}

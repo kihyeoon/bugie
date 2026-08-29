@@ -47,7 +47,9 @@ export function PaymentMethodItem({
           />
         </View>
         <View style={styles.textContainer}>
-          <Typography variant="body1" numberOfLines={1}>{paymentMethod.name}</Typography>
+          <Typography variant="body1" numberOfLines={1}>
+            {paymentMethod.name}
+          </Typography>
         </View>
       </View>
       {canEdit && (

@@ -6,7 +6,7 @@ Bugie 모노레포의 구조, 계층, 그리고 native 앱의 핵심 패턴을 �
 
 ```
 apps/
-  native/          # Expo SDK 53 + Expo Router (React Native 0.79)
+  native/          # Expo SDK 57 + Expo Router (React Native 0.86)
   web/             # Next.js 15 + Tailwind CSS v4
 packages/
   core/            # 비즈니스 로직 (클린 아키텍처) — TS source 직접 참조
@@ -83,7 +83,12 @@ app/
   ledger-management.tsx  # 가계부 관리 (스택)
   ledger-settings.tsx    # 가계부 설정 (스택)
   profile-settings.tsx   # 프로필 설정 (스택)
+  payment-methods.tsx    # 결제 수단 관리 (스택)
 ```
+
+스택 화면은 루트 `_layout.tsx`의 `<Stack screenOptions={{ headerShown: false }}>`가 헤더를 전역으로
+끄고, 각 화면은 본문 최상단에 공유 `ScreenHeader`를 렌더한다. 화면별 옵션이 필요하면 루트 레이아웃에
+`<Stack.Screen name="..." options={...} />`로 선언한다 (본문 안에서 선언하면 헤더가 한 프레임 깜빡인다).
 
 ## Native 앱 — 주요 hook & 컨텍스트
 

@@ -63,15 +63,15 @@ export function ListItem({
             <IconSymbol
               name={leftIcon}
               size={24}
-              color={variant === 'danger' ? colors.expense : colors.textSecondary}
+              color={
+                variant === 'danger' ? colors.expense : colors.textSecondary
+              }
             />
           </View>
         )}
-        
+
         <View style={styles.textContainer}>
-          <Text style={[styles.title, { color: getTextColor() }]}>
-            {title}
-          </Text>
+          <Text style={[styles.title, { color: getTextColor() }]}>{title}</Text>
           {subtitle && (
             <Text style={[styles.subtitle, { color: getSubtitleColor() }]}>
               {subtitle}
@@ -87,11 +87,7 @@ export function ListItem({
           </Text>
         )}
         {rightIcon && onPress && (
-          <IconSymbol
-            name={rightIcon}
-            size={18}
-            color={colors.textSecondary}
-          />
+          <IconSymbol name={rightIcon} size={18} color={colors.textSecondary} />
         )}
       </View>
     </TouchableOpacity>

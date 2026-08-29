@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useState, useMemo, useCallback, useEffect } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+} from 'react';
 import { useSharedValue } from 'react-native-reanimated';
 import {
   CalendarContextValue,
@@ -36,8 +43,12 @@ export function CalendarProvider({
   onDateSelect,
   onMonthChange,
 }: CalendarProviderProps) {
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(propSelectedDate);
-  const [currentMonth, setCurrentMonth] = useState(() => propSelectedDate || new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
+    propSelectedDate
+  );
+  const [currentMonth, setCurrentMonth] = useState(
+    () => propSelectedDate || new Date()
+  );
   const [viewType, setViewType] = useState<ViewType>(initialViewType);
 
   // props로 전달된 selectedDate가 변경되면 내부 상태도 업데이트
@@ -67,45 +78,54 @@ export function CalendarProvider({
   useEffect(() => {
     setViewType(initialViewType);
   }, [initialViewType]);
-  
+
   // Animation values for scrollable mode
   const animatedHeight = useSharedValue(mode === 'scrollable' ? 300 : 0);
   const animatedOpacity = useSharedValue(1);
-  
-  const selectDate = useCallback((date: Date) => {
-    setSelectedDate(date);
-    onDateSelect?.(date);
-  }, [onDateSelect]);
-  
-  const changeMonth = useCallback((year: number, month: number) => {
-    const newDate = new Date(year, month, 1);
-    setCurrentMonth(newDate);
-    onMonthChange?.(year, month);
-  }, [onMonthChange]);
-  
-  const value = useMemo<CalendarContextValue>(() => ({
-    mode,
-    viewType,
-    selectedDate,
-    currentMonth,
-    transactions,
-    animatedHeight: mode === 'scrollable' ? animatedHeight : undefined,
-    animatedOpacity: mode === 'scrollable' ? animatedOpacity : undefined,
-    selectDate,
-    changeMonth,
-    setViewType,
-  }), [
-    mode,
-    viewType,
-    selectedDate,
-    currentMonth,
-    transactions,
-    animatedHeight,
-    animatedOpacity,
-    selectDate,
-    changeMonth,
-  ]);
-  
+
+  const selectDate = useCallback(
+    (date: Date) => {
+      setSelectedDate(date);
+      onDateSelect?.(date);
+    },
+    [onDateSelect]
+  );
+
+  const changeMonth = useCallback(
+    (year: number, month: number) => {
+      const newDate = new Date(year, month, 1);
+      setCurrentMonth(newDate);
+      onMonthChange?.(year, month);
+    },
+    [onMonthChange]
+  );
+
+  const value = useMemo<CalendarContextValue>(
+    () => ({
+      mode,
+      viewType,
+      selectedDate,
+      currentMonth,
+      transactions,
+      animatedHeight: mode === 'scrollable' ? animatedHeight : undefined,
+      animatedOpacity: mode === 'scrollable' ? animatedOpacity : undefined,
+      selectDate,
+      changeMonth,
+      setViewType,
+    }),
+    [
+      mode,
+      viewType,
+      selectedDate,
+      currentMonth,
+      transactions,
+      animatedHeight,
+      animatedOpacity,
+      selectDate,
+      changeMonth,
+    ]
+  );
+
   return (
     <CalendarContext.Provider value={value}>
       {children}
