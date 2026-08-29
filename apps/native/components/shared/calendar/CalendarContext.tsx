@@ -29,6 +29,7 @@ interface CalendarProviderProps {
   mode?: CalendarMode;
   initialViewType?: ViewType;
   selectedDate?: Date;
+  visibleMonth?: Date;
   transactions?: CalendarTransaction;
   onDateSelect?: (date: Date) => void;
   onMonthChange?: (year: number, month: number) => void;
@@ -39,40 +40,36 @@ export function CalendarProvider({
   mode = 'static',
   initialViewType = 'month',
   selectedDate: propSelectedDate,
+  visibleMonth,
   transactions,
   onDateSelect,
   onMonthChange,
 }: CalendarProviderProps) {
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
-    propSelectedDate
-  );
+  // 선택 날짜는 props가 소유한다(controlled). 내부 사본을 두면 부모가 콜백을 무시하거나
+  // 미룰 때 한 프레임 동안 사본이 이기는 상태가 생긴다.
   const [currentMonth, setCurrentMonth] = useState(
-    () => propSelectedDate || new Date()
+    () => visibleMonth || propSelectedDate || new Date()
   );
   const [viewType, setViewType] = useState<ViewType>(initialViewType);
 
-  // props로 전달된 selectedDate가 변경되면 내부 상태도 업데이트
-  // selectedDate뿐 아니라 currentMonth도 함께 동기화해야 한다.
+  // 표시할 월을 동기화한다. visibleMonth를 넘기면 그것이 기준이고,
+  // 없으면 selectedDate에서 유도한다(선택 = 그 달을 본다는 뜻인 화면들).
   // 외부 헤더(예: transactions.tsx)에서 월을 바꾸는 경우 changeMonth 콜백이 호출되지 않으므로
-  // currentMonth가 정체되어 그리드가 이전 월에 고정되는 버그가 발생한다.
+  // 여기서 맞춰주지 않으면 그리드가 이전 월에 고정된다.
   useEffect(() => {
-    if (propSelectedDate) {
-      setSelectedDate(propSelectedDate);
-      setCurrentMonth((prev) => {
-        if (
-          prev.getFullYear() === propSelectedDate.getFullYear() &&
-          prev.getMonth() === propSelectedDate.getMonth()
-        ) {
-          return prev; // 같은 월이면 reference 유지 → 불필요한 그리드 재계산 방지
-        }
-        return new Date(
-          propSelectedDate.getFullYear(),
-          propSelectedDate.getMonth(),
-          1
-        );
-      });
-    }
-  }, [propSelectedDate]);
+    const source = visibleMonth ?? propSelectedDate;
+    if (!source) return;
+
+    setCurrentMonth((prev) => {
+      if (
+        prev.getFullYear() === source.getFullYear() &&
+        prev.getMonth() === source.getMonth()
+      ) {
+        return prev; // 같은 월이면 reference 유지 → 불필요한 그리드 재계산 방지
+      }
+      return new Date(source.getFullYear(), source.getMonth(), 1);
+    });
+  }, [visibleMonth, propSelectedDate]);
 
   // props로 전달된 viewType이 변경되면 내부 상태도 업데이트
   useEffect(() => {
@@ -85,7 +82,6 @@ export function CalendarProvider({
 
   const selectDate = useCallback(
     (date: Date) => {
-      setSelectedDate(date);
       onDateSelect?.(date);
     },
     [onDateSelect]
@@ -104,7 +100,7 @@ export function CalendarProvider({
     () => ({
       mode,
       viewType,
-      selectedDate,
+      selectedDate: propSelectedDate,
       currentMonth,
       transactions,
       animatedHeight: mode === 'scrollable' ? animatedHeight : undefined,
@@ -116,7 +112,7 @@ export function CalendarProvider({
     [
       mode,
       viewType,
-      selectedDate,
+      propSelectedDate,
       currentMonth,
       transactions,
       animatedHeight,

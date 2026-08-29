@@ -26,6 +26,12 @@ export interface CalendarProps {
 
   // Data
   selectedDate?: Date;
+  /**
+   * 그리드에 표시할 월. 선택 날짜와 분리해서 넘기고 싶을 때 사용한다.
+   * 넘기지 않으면 selectedDate에서 월을 유도한다.
+   * 월간 뷰에만 적용된다 — 주간 뷰는 여전히 selectedDate에서 주를 고른다.
+   */
+  visibleMonth?: Date;
   transactions?: CalendarTransaction;
 
   // Events

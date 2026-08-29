@@ -9,6 +9,8 @@ interface UseTransactionsOptions {
   month: number;
   categoryId?: string;
   type?: 'income' | 'expense';
+  /** false면 fetch하지 않는다. 홈처럼 날짜를 고른 뒤에야 필요한 화면에서 지연 로드용. */
+  enabled?: boolean;
 }
 
 // GroupedTransaction은 타입 호환성을 위해 SectionListData를 확장
@@ -35,6 +37,7 @@ export function useTransactions({
   month,
   categoryId,
   type,
+  enabled = true,
 }: UseTransactionsOptions): UseTransactionsReturn {
   const { transactionService } = useServices();
   const [transactions, setTransactions] = useState<TransactionWithDetails[]>(
@@ -53,7 +56,7 @@ export function useTransactions({
   }, [year, month]);
 
   const fetchTransactions = useCallback(async () => {
-    if (!ledgerId) {
+    if (!ledgerId || !enabled) {
       setLoading(false);
       return;
     }
@@ -78,7 +81,15 @@ export function useTransactions({
     } finally {
       setLoading(false);
     }
-  }, [ledgerId, startDate, endDate, categoryId, type, transactionService]);
+  }, [
+    ledgerId,
+    startDate,
+    endDate,
+    categoryId,
+    type,
+    enabled,
+    transactionService,
+  ]);
 
   useEffect(() => {
     setLoading(true);
