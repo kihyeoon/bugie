@@ -49,7 +49,8 @@
           "iosUrlScheme": "com.googleusercontent.apps.779920031557-mqo7v6d7c6511r708af82hi7ghqra666"
         }
       ],
-      "./plugins/withFmtConstevalFix"
+      "./plugins/withFmtConstevalFix",
+      "./plugins/withGoogleModularHeaders"
     ],
     "experiments": {
       "typedRoutes": true
