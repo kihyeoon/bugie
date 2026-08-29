@@ -12,7 +12,7 @@ export function debounce<Args extends unknown[]>(
   func: (...args: Args) => void,
   delay: number
 ): ((...args: Args) => void) & { cancel: () => void } {
-  let timeoutId: number;
+  let timeoutId: ReturnType<typeof setTimeout>;
   
   const debouncedFunc = ((...args: Args) => {
     clearTimeout(timeoutId);

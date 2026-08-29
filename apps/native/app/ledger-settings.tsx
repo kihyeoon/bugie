@@ -1,10 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, View, ScrollView, Alert } from 'react-native';
-import {
-  router,
-  useLocalSearchParams,
-  useFocusEffect,
-} from 'expo-router';
+import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography, DetailRow, DetailSection } from '@/components/ui';
@@ -251,7 +247,10 @@ export default function LedgerSettingsScreen() {
   // 분기별 본문을 동일 래퍼로 감싸 헤더를 화면당 1회만 합성.
   const renderScreen = (body: React.ReactNode) => (
     <View
-      style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}
+      style={[
+        styles.container,
+        { backgroundColor: colors.backgroundSecondary },
+      ]}
     >
       <ScreenHeader
         title={ledger?.name ?? '가계부 설정'}

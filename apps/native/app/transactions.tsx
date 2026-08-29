@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router/react-navigation';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -541,9 +541,7 @@ export default function TransactionsScreen() {
 
   // 로딩 상태
   if (loading && !transactions.length) {
-    return renderScreen(
-      <LoadingState message="거래 내역을 불러오는 중..." />
-    );
+    return renderScreen(<LoadingState message="거래 내역을 불러오는 중..." />);
   }
 
   // 에러 상태
@@ -567,83 +565,81 @@ export default function TransactionsScreen() {
   return renderScreen(
     <SafeAreaView style={styles.content} edges={['left', 'right', 'bottom']}>
       {/* 애니메이션 캘린더 */}
-        <Animated.View
-          style={[animatedCalendarStyle, styles.calendarContainer]}
-        >
-          <Calendar
-            mode="scrollable"
-            viewType={calendarViewType}
-            selectedDate={selectedDate}
-            transactions={monthlyCalendarData ?? {}}
-            onDateSelect={handleDateSelect}
-            onViewTypeChange={handleCalendarViewChange}
-            scrollY={scrollY}
-            showHeader={false}
-          />
-        </Animated.View>
-
-        {/* 거래 목록 */}
-        <SectionList
-          ref={listRef}
-          sections={groupedTransactions}
-          renderItem={renderTransaction}
-          renderSectionHeader={renderSectionHeader}
-          keyExtractor={(item) => item.id}
-          onScroll={handleScroll}
-          onScrollBeginDrag={onScrollBeginDrag}
-          scrollEventThrottle={16}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          stickySectionHeadersEnabled={false}
-          onScrollToIndexFailed={onScrollToIndexFailed}
-          viewabilityConfig={viewabilityConfig}
-          onViewableItemsChanged={onViewableItemsChanged}
-          // 한 달 거래 = 섹션 + 아이템 합쳐 ~70~100 frame. 첫 렌더에 충분히 마운트되어야
-          // 오래된 날짜로의 자동 스크롤 시 onScrollToIndexFailed가 발화하지 않는다.
-          initialNumToRender={80}
-          maxToRenderPerBatch={20}
-          windowSize={31}
-          ListFooterComponent={
-            <View style={styles.footer}>
-              <View style={styles.footerRow}>
-                <Typography variant="body1" color="secondary">
-                  수입
-                </Typography>
-                <AmountDisplay
-                  amount={totals.income}
-                  type="income"
-                  size="medium"
-                />
-              </View>
-              <View style={styles.footerRow}>
-                <Typography variant="body1" color="secondary">
-                  지출
-                </Typography>
-                <AmountDisplay
-                  amount={totals.expense}
-                  type="expense"
-                  size="medium"
-                />
-              </View>
-              <View
-                style={[
-                  styles.footerRow,
-                  styles.footerTotal,
-                  { borderTopColor: colors.border },
-                ]}
-              >
-                <Typography variant="body1" weight="600">
-                  이번 달 잔액
-                </Typography>
-                <AmountDisplay
-                  amount={totals.balance}
-                  type="neutral"
-                  size="large"
-                />
-              </View>
-            </View>
-          }
+      <Animated.View style={[animatedCalendarStyle, styles.calendarContainer]}>
+        <Calendar
+          mode="scrollable"
+          viewType={calendarViewType}
+          selectedDate={selectedDate}
+          transactions={monthlyCalendarData ?? {}}
+          onDateSelect={handleDateSelect}
+          onViewTypeChange={handleCalendarViewChange}
+          scrollY={scrollY}
+          showHeader={false}
         />
+      </Animated.View>
+
+      {/* 거래 목록 */}
+      <SectionList
+        ref={listRef}
+        sections={groupedTransactions}
+        renderItem={renderTransaction}
+        renderSectionHeader={renderSectionHeader}
+        keyExtractor={(item) => item.id}
+        onScroll={handleScroll}
+        onScrollBeginDrag={onScrollBeginDrag}
+        scrollEventThrottle={16}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        stickySectionHeadersEnabled={false}
+        onScrollToIndexFailed={onScrollToIndexFailed}
+        viewabilityConfig={viewabilityConfig}
+        onViewableItemsChanged={onViewableItemsChanged}
+        // 한 달 거래 = 섹션 + 아이템 합쳐 ~70~100 frame. 첫 렌더에 충분히 마운트되어야
+        // 오래된 날짜로의 자동 스크롤 시 onScrollToIndexFailed가 발화하지 않는다.
+        initialNumToRender={80}
+        maxToRenderPerBatch={20}
+        windowSize={31}
+        ListFooterComponent={
+          <View style={styles.footer}>
+            <View style={styles.footerRow}>
+              <Typography variant="body1" color="secondary">
+                수입
+              </Typography>
+              <AmountDisplay
+                amount={totals.income}
+                type="income"
+                size="medium"
+              />
+            </View>
+            <View style={styles.footerRow}>
+              <Typography variant="body1" color="secondary">
+                지출
+              </Typography>
+              <AmountDisplay
+                amount={totals.expense}
+                type="expense"
+                size="medium"
+              />
+            </View>
+            <View
+              style={[
+                styles.footerRow,
+                styles.footerTotal,
+                { borderTopColor: colors.border },
+              ]}
+            >
+              <Typography variant="body1" weight="600">
+                이번 달 잔액
+              </Typography>
+              <AmountDisplay
+                amount={totals.balance}
+                type="neutral"
+                size="large"
+              />
+            </View>
+          </View>
+        }
+      />
     </SafeAreaView>
   );
 }

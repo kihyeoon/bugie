@@ -8,30 +8,32 @@ interface CalendarWeekDaysProps {
   locale?: string;
 }
 
-export const CalendarWeekDays = memo(({ locale = 'ko-KR' }: CalendarWeekDaysProps) => {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
-  const weekdays = getWeekdayNames(locale);
-  
-  return (
-    <View style={styles.container}>
-      {weekdays.map((day, index) => (
-        <View key={index} style={styles.weekday}>
-          <Text
-            style={[
-              styles.weekdayText,
-              { color: colors.textSecondary },
-              index === 0 && { color: colors.expense },
-              index === 6 && { color: colors.income },
-            ]}
-          >
-            {day}
-          </Text>
-        </View>
-      ))}
-    </View>
-  );
-});
+export const CalendarWeekDays = memo(
+  ({ locale = 'ko-KR' }: CalendarWeekDaysProps) => {
+    const colorScheme = useColorScheme();
+    const colors = Colors[colorScheme ?? 'light'];
+    const weekdays = getWeekdayNames(locale);
+
+    return (
+      <View style={styles.container}>
+        {weekdays.map((day, index) => (
+          <View key={index} style={styles.weekday}>
+            <Text
+              style={[
+                styles.weekdayText,
+                { color: colors.textSecondary },
+                index === 0 && { color: colors.expense },
+                index === 6 && { color: colors.income },
+              ]}
+            >
+              {day}
+            </Text>
+          </View>
+        ))}
+      </View>
+    );
+  }
+);
 
 CalendarWeekDays.displayName = 'CalendarWeekDays';
 

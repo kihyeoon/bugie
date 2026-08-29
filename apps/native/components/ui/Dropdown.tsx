@@ -52,22 +52,30 @@ export function Dropdown({
 
   // State
   const [internalIsOpen, setInternalIsOpen] = useState(false);
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
-  
+  const [dropdownPosition, setDropdownPosition] = useState({
+    top: 0,
+    left: 0,
+    width: 0,
+  });
+
   // Refs
   const triggerRef = useRef<View>(null);
   const animatedHeight = useRef(new Animated.Value(0)).current;
   const opacityValue = useRef(new Animated.Value(0)).current;
-  
+
   // Controlled vs uncontrolled
-  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
-  
-  const setIsOpen = useCallback((open: boolean) => {
-    if (controlledIsOpen === undefined) {
-      setInternalIsOpen(open);
-    }
-    onOpenChange?.(open);
-  }, [controlledIsOpen, onOpenChange]);
+  const isOpen =
+    controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
+
+  const setIsOpen = useCallback(
+    (open: boolean) => {
+      if (controlledIsOpen === undefined) {
+        setInternalIsOpen(open);
+      }
+      onOpenChange?.(open);
+    },
+    [controlledIsOpen, onOpenChange]
+  );
 
   // Measure trigger position
   const measureTrigger = useCallback(() => {
@@ -104,7 +112,10 @@ export function Dropdown({
         if (alignment !== 'left') {
           const padding = 16;
           leftPosition = Math.max(padding, leftPosition);
-          leftPosition = Math.min(leftPosition, screenWidth - dropdownWidth - padding);
+          leftPosition = Math.min(
+            leftPosition,
+            screenWidth - dropdownWidth - padding
+          );
         }
 
         setDropdownPosition({
@@ -119,11 +130,11 @@ export function Dropdown({
   // Handle open/close
   const handleToggle = useCallback(() => {
     const newIsOpen = !isOpen;
-    
+
     if (newIsOpen) {
       measureTrigger();
     }
-    
+
     setIsOpen(newIsOpen);
   }, [isOpen, measureTrigger, setIsOpen]);
 
@@ -156,9 +167,7 @@ export function Dropdown({
 
   return (
     <>
-      <View style={[styles.container, containerStyle]}>
-        {triggerElement}
-      </View>
+      <View style={[styles.container, containerStyle]}>{triggerElement}</View>
 
       {isOpen && (
         <>

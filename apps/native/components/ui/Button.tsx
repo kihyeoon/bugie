@@ -55,7 +55,9 @@ export function Button({
         backgroundColor: disabled ? colors.textDisabled : colors.tint,
       },
       secondary: {
-        backgroundColor: disabled ? colors.backgroundSecondary : colors.backgroundSecondary,
+        backgroundColor: disabled
+          ? colors.backgroundSecondary
+          : colors.backgroundSecondary,
       },
       ghost: {
         backgroundColor: 'transparent',
@@ -93,8 +95,12 @@ export function Button({
     return [styles.text, sizeStyles[size], variantStyles[variant]];
   };
 
-  const iconColor = variant === 'primary' || variant === 'danger' ? 'white' : 
-                    disabled ? colors.textDisabled : colors.text;
+  const iconColor =
+    variant === 'primary' || variant === 'danger'
+      ? 'white'
+      : disabled
+        ? colors.textDisabled
+        : colors.text;
 
   const iconSize = size === 'small' ? 16 : size === 'medium' ? 18 : 20;
 
@@ -106,9 +112,13 @@ export function Button({
       activeOpacity={0.8}
     >
       {loading ? (
-        <ActivityIndicator 
-          size="small" 
-          color={variant === 'primary' || variant === 'danger' ? 'white' : colors.text} 
+        <ActivityIndicator
+          size="small"
+          color={
+            variant === 'primary' || variant === 'danger'
+              ? 'white'
+              : colors.text
+          }
         />
       ) : (
         <View style={styles.content}>

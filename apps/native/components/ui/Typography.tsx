@@ -4,7 +4,13 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 
 interface TypographyProps extends TextProps {
   variant?: 'h1' | 'h2' | 'h3' | 'h4' | 'body1' | 'body2' | 'caption' | 'label';
-  color?: 'primary' | 'secondary' | 'disabled' | 'error' | 'success' | 'inherit';
+  color?:
+    | 'primary'
+    | 'secondary'
+    | 'disabled'
+    | 'error'
+    | 'success'
+    | 'inherit';
   weight?: '400' | '500' | '600' | '700';
   align?: 'left' | 'center' | 'right';
   children: React.ReactNode;

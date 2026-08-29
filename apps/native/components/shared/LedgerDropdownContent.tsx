@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  View,
-  StyleSheet,
-  Pressable,
-  ActivityIndicator,
-} from 'react-native';
+import { View, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -55,7 +50,12 @@ export function LedgerDropdownContent({
 
   if (loading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: colors.background },
+        ]}
+      >
         <ActivityIndicator size="small" color={colors.tint} />
       </View>
     );
@@ -83,11 +83,7 @@ export function LedgerDropdownContent({
             {/* Check Icon */}
             <View style={styles.checkIconContainer}>
               {isSelected && (
-                <Ionicons
-                  name="checkmark"
-                  size={16}
-                  color={colors.tint}
-                />
+                <Ionicons name="checkmark" size={16} color={colors.tint} />
               )}
             </View>
 

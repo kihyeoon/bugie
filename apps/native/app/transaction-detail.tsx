@@ -272,7 +272,10 @@ export default function TransactionDetailScreen() {
   if (initialLoading) {
     return renderScreen(
       <View
-        style={[styles.loadingContainer, { backgroundColor: colors.background }]}
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: colors.background },
+        ]}
       >
         <ActivityIndicator size="large" color={colors.tint} />
       </View>

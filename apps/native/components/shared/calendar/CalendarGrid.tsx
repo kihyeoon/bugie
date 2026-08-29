@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, ViewStyle } from 'react-native';
 import Animated, {
   useAnimatedStyle,
-  AnimatedStyleProp,
+  AnimatedStyle,
 } from 'react-native-reanimated';
 import { CalendarDay } from './CalendarDay';
 import { useCalendar } from './CalendarContext';
@@ -10,7 +10,7 @@ import { useCalendarDates } from './hooks/useCalendarDates';
 import { formatDateKey, isSameDay } from './utils/dateHelpers';
 
 interface CalendarGridProps {
-  animatedStyle?: AnimatedStyleProp<ViewStyle>;
+  animatedStyle?: AnimatedStyle<ViewStyle>;
 }
 
 export function CalendarGrid({ animatedStyle }: CalendarGridProps) {
@@ -37,7 +37,7 @@ export function CalendarGrid({ animatedStyle }: CalendarGridProps) {
         // 월간 뷰: 모든 주 표시
         // 주간 뷰: 선택된 날짜가 속한 주만 표시 (이미 weekDates에서 필터링됨)
         const shouldShow =
-          viewType === 'month' || 
+          viewType === 'month' ||
           (viewType === 'week' && weekIndex === 0) ||
           weekIndex === selectedWeekIndex;
 

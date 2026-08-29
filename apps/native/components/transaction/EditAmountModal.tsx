@@ -37,10 +37,10 @@ export function EditAmountModal({
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const insets = useSafeAreaInsets();
-  
+
   const [amount, setAmount] = useState('0');
   const [isSaving, setIsSaving] = useState(false);
-  
+
   const slideAnim = useRef(new Animated.Value(MODAL_HEIGHT)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -149,12 +149,7 @@ export function EditAmountModal({
       <View style={styles.container}>
         {/* 어두운 배경 */}
         <TouchableWithoutFeedback onPress={handleClose}>
-          <Animated.View 
-            style={[
-              styles.overlay,
-              { opacity: opacityAnim }
-            ]} 
-          />
+          <Animated.View style={[styles.overlay, { opacity: opacityAnim }]} />
         </TouchableWithoutFeedback>
 
         {/* 모달 콘텐츠 */}
@@ -168,129 +163,167 @@ export function EditAmountModal({
             },
           ]}
         >
-        {/* 헤더 */}
-        <View style={styles.header}>
-          <Typography variant="h3">금액 수정</Typography>
-          <TouchableOpacity onPress={handleClose} disabled={isSaving}>
-            <Typography variant="body1" color="secondary">
-              취소
-            </Typography>
+          {/* 헤더 */}
+          <View style={styles.header}>
+            <Typography variant="h3">금액 수정</Typography>
+            <TouchableOpacity onPress={handleClose} disabled={isSaving}>
+              <Typography variant="body1" color="secondary">
+                취소
+              </Typography>
+            </TouchableOpacity>
+          </View>
+
+          {/* 금액 표시 */}
+          <View style={styles.amountDisplay}>
+            <Text style={[styles.currencySymbol, { color: amountColor }]}>
+              ₩
+            </Text>
+            <Text style={[styles.amount, { color: amountColor }]}>
+              {formatAmount()}
+            </Text>
+          </View>
+
+          {/* 숫자 키패드 */}
+          <View style={styles.keypad}>
+            <View style={styles.keypadRow}>
+              <TouchableOpacity
+                style={[
+                  styles.key,
+                  { backgroundColor: colors.backgroundSecondary },
+                ]}
+                onPress={() => handleNumberPress('1')}
+              >
+                <Text style={[styles.keyText, { color: colors.text }]}>1</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.key,
+                  { backgroundColor: colors.backgroundSecondary },
+                ]}
+                onPress={() => handleNumberPress('2')}
+              >
+                <Text style={[styles.keyText, { color: colors.text }]}>2</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.key,
+                  { backgroundColor: colors.backgroundSecondary },
+                ]}
+                onPress={() => handleNumberPress('3')}
+              >
+                <Text style={[styles.keyText, { color: colors.text }]}>3</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.keypadRow}>
+              <TouchableOpacity
+                style={[
+                  styles.key,
+                  { backgroundColor: colors.backgroundSecondary },
+                ]}
+                onPress={() => handleNumberPress('4')}
+              >
+                <Text style={[styles.keyText, { color: colors.text }]}>4</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.key,
+                  { backgroundColor: colors.backgroundSecondary },
+                ]}
+                onPress={() => handleNumberPress('5')}
+              >
+                <Text style={[styles.keyText, { color: colors.text }]}>5</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.key,
+                  { backgroundColor: colors.backgroundSecondary },
+                ]}
+                onPress={() => handleNumberPress('6')}
+              >
+                <Text style={[styles.keyText, { color: colors.text }]}>6</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.keypadRow}>
+              <TouchableOpacity
+                style={[
+                  styles.key,
+                  { backgroundColor: colors.backgroundSecondary },
+                ]}
+                onPress={() => handleNumberPress('7')}
+              >
+                <Text style={[styles.keyText, { color: colors.text }]}>7</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.key,
+                  { backgroundColor: colors.backgroundSecondary },
+                ]}
+                onPress={() => handleNumberPress('8')}
+              >
+                <Text style={[styles.keyText, { color: colors.text }]}>8</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.key,
+                  { backgroundColor: colors.backgroundSecondary },
+                ]}
+                onPress={() => handleNumberPress('9')}
+              >
+                <Text style={[styles.keyText, { color: colors.text }]}>9</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.keypadRow}>
+              <TouchableOpacity
+                style={[
+                  styles.key,
+                  { backgroundColor: colors.backgroundSecondary },
+                ]}
+                onPress={handleDoubleZero}
+              >
+                <Text style={[styles.keyText, { color: colors.text }]}>00</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.key,
+                  { backgroundColor: colors.backgroundSecondary },
+                ]}
+                onPress={() => handleNumberPress('0')}
+              >
+                <Text style={[styles.keyText, { color: colors.text }]}>0</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.key,
+                  { backgroundColor: colors.backgroundSecondary },
+                ]}
+                onPress={handleBackspace}
+              >
+                <Text style={[styles.keyText, { color: colors.text }]}>←</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* 저장 버튼 */}
+          <TouchableOpacity
+            style={[
+              styles.saveButton,
+              {
+                backgroundColor: colors.tint,
+                opacity: amount === '0' || isSaving ? 0.5 : 1,
+              },
+            ]}
+            onPress={handleSave}
+            disabled={amount === '0' || isSaving}
+          >
+            {isSaving ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Text style={styles.saveButtonText}>저장하기</Text>
+            )}
           </TouchableOpacity>
-        </View>
-
-        {/* 금액 표시 */}
-        <View style={styles.amountDisplay}>
-          <Text style={[styles.currencySymbol, { color: amountColor }]}>₩</Text>
-          <Text style={[styles.amount, { color: amountColor }]}>
-            {formatAmount()}
-          </Text>
-        </View>
-
-        {/* 숫자 키패드 */}
-        <View style={styles.keypad}>
-          <View style={styles.keypadRow}>
-            <TouchableOpacity
-              style={[styles.key, { backgroundColor: colors.backgroundSecondary }]}
-              onPress={() => handleNumberPress('1')}
-            >
-              <Text style={[styles.keyText, { color: colors.text }]}>1</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.key, { backgroundColor: colors.backgroundSecondary }]}
-              onPress={() => handleNumberPress('2')}
-            >
-              <Text style={[styles.keyText, { color: colors.text }]}>2</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.key, { backgroundColor: colors.backgroundSecondary }]}
-              onPress={() => handleNumberPress('3')}
-            >
-              <Text style={[styles.keyText, { color: colors.text }]}>3</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.keypadRow}>
-            <TouchableOpacity
-              style={[styles.key, { backgroundColor: colors.backgroundSecondary }]}
-              onPress={() => handleNumberPress('4')}
-            >
-              <Text style={[styles.keyText, { color: colors.text }]}>4</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.key, { backgroundColor: colors.backgroundSecondary }]}
-              onPress={() => handleNumberPress('5')}
-            >
-              <Text style={[styles.keyText, { color: colors.text }]}>5</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.key, { backgroundColor: colors.backgroundSecondary }]}
-              onPress={() => handleNumberPress('6')}
-            >
-              <Text style={[styles.keyText, { color: colors.text }]}>6</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.keypadRow}>
-            <TouchableOpacity
-              style={[styles.key, { backgroundColor: colors.backgroundSecondary }]}
-              onPress={() => handleNumberPress('7')}
-            >
-              <Text style={[styles.keyText, { color: colors.text }]}>7</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.key, { backgroundColor: colors.backgroundSecondary }]}
-              onPress={() => handleNumberPress('8')}
-            >
-              <Text style={[styles.keyText, { color: colors.text }]}>8</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.key, { backgroundColor: colors.backgroundSecondary }]}
-              onPress={() => handleNumberPress('9')}
-            >
-              <Text style={[styles.keyText, { color: colors.text }]}>9</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.keypadRow}>
-            <TouchableOpacity
-              style={[styles.key, { backgroundColor: colors.backgroundSecondary }]}
-              onPress={handleDoubleZero}
-            >
-              <Text style={[styles.keyText, { color: colors.text }]}>00</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.key, { backgroundColor: colors.backgroundSecondary }]}
-              onPress={() => handleNumberPress('0')}
-            >
-              <Text style={[styles.keyText, { color: colors.text }]}>0</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.key, { backgroundColor: colors.backgroundSecondary }]}
-              onPress={handleBackspace}
-            >
-              <Text style={[styles.keyText, { color: colors.text }]}>←</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* 저장 버튼 */}
-        <TouchableOpacity
-          style={[
-            styles.saveButton,
-            {
-              backgroundColor: colors.tint,
-              opacity: amount === '0' || isSaving ? 0.5 : 1,
-            },
-          ]}
-          onPress={handleSave}
-          disabled={amount === '0' || isSaving}
-        >
-          {isSaving ? (
-            <ActivityIndicator size="small" color="white" />
-          ) : (
-            <Text style={styles.saveButtonText}>저장하기</Text>
-          )}
-        </TouchableOpacity>
         </Animated.View>
       </View>
     </Modal>
@@ -302,7 +335,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'black',
   },
   modalContainer: {

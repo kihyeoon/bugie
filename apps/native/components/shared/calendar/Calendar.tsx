@@ -1,9 +1,7 @@
 import React, { useCallback } from 'react';
 import { StyleSheet } from 'react-native';
-import Animated, {
-  useSharedValue,
-  runOnJS,
-} from 'react-native-reanimated';
+import Animated, { useSharedValue } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { CalendarProvider, useCalendar } from './CalendarContext';
 import { CalendarHeader } from './CalendarHeader';
@@ -79,10 +77,10 @@ function CalendarContent({
       ) {
         if (translationY < 0 && viewType === 'month') {
           // 위로 드래그 → 주간 모드 (축소)
-          runOnJS(handleViewTypeChange)('week');
+          scheduleOnRN(handleViewTypeChange, 'week');
         } else if (translationY > 0 && viewType === 'week') {
           // 아래로 드래그 → 월간 모드 (확장)
-          runOnJS(handleViewTypeChange)('month');
+          scheduleOnRN(handleViewTypeChange, 'month');
         }
       }
 

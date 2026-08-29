@@ -1,5 +1,5 @@
 import { TouchableOpacity, StyleSheet, View } from 'react-native';
-import { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
+import { BottomTabBarButtonProps } from 'expo-router/js-tabs';
 import * as Haptics from 'expo-haptics';
 import { IconSymbol } from './ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
@@ -19,17 +19,13 @@ export function CustomTabBarButton(props: BottomTabBarButtonProps) {
         onPress?.(e);
       }}
     >
-      <View 
+      <View
         style={[
           styles.button,
-          { backgroundColor: Colors[colorScheme ?? 'light'].tint }
+          { backgroundColor: Colors[colorScheme ?? 'light'].tint },
         ]}
       >
-        <IconSymbol
-          name="plus"
-          size={28}
-          color="white"
-        />
+        <IconSymbol name="plus" size={28} color="white" />
       </View>
     </TouchableOpacity>
   );
