@@ -90,23 +90,23 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.buttonSection}>
-            {Platform.OS === 'ios' && (
-              <>
-                <SocialLoginButton
-                  provider="apple"
-                  onPress={() => handleSocialLogin('apple')}
-                  loading={loadingProvider === 'apple'}
-                  disabled={loadingProvider !== null}
-                />
-                <View style={styles.buttonSpacing} />
-              </>
-            )}
             <SocialLoginButton
               provider="google"
               onPress={() => handleSocialLogin('google')}
               loading={loadingProvider === 'google'}
               disabled={loadingProvider !== null}
             />
+            {Platform.OS === 'ios' && (
+              <>
+                <View style={styles.buttonSpacing} />
+                <SocialLoginButton
+                  provider="apple"
+                  onPress={() => handleSocialLogin('apple')}
+                  loading={loadingProvider === 'apple'}
+                  disabled={loadingProvider !== null}
+                />
+              </>
+            )}
 
             {__DEV__ && (
               <View style={styles.devSection}>
