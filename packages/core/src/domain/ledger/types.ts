@@ -36,6 +36,27 @@ export interface LedgerMemberEntity {
 }
 
 /**
+ * 초대 링크 엔티티 (수락자 포함)
+ */
+export interface LedgerInviteEntity {
+  id: EntityId;
+  ledgerId: EntityId;
+  inviterId: EntityId | null;
+  code: string;
+  role: MemberRole;
+  status: 'active' | 'revoked';
+  maxUses: number | null;
+  useCount: number;
+  expiresAt: DomainDate;
+  createdAt: DomainDate;
+  acceptances: Array<{
+    userId: EntityId;
+    fullName: string | null;
+    acceptedAt: DomainDate;
+  }>;
+}
+
+/**
  * 카테고리 엔티티
  */
 export interface CategoryEntity {
@@ -140,6 +161,8 @@ export interface LedgerMemberRepository {
   acceptInvite(code: string): Promise<EntityId>;
   // 초대 코드 폐기 (RPC)
   revokeInvite(inviteId: EntityId): Promise<void>;
+  // 가계부의 초대 목록 (RLS로 owner/admin만 조회 가능)
+  findInvitesByLedger(ledgerId: EntityId): Promise<LedgerInviteEntity[]>;
 }
 
 export interface CategoryRepository {

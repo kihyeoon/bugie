@@ -25,7 +25,8 @@ export function buildInviteUrl(code: string): string {
 /** 공유 시트에 넣을 메시지 */
 export function buildInviteMessage(ledgerName: string, code: string): string {
   return [
-    `'${ledgerName}' 가계부에 초대합니다.`,
+    // 가계부 이름에 보통 '가계부'가 들어가므로("김철수의 가계부") 뒤에 또 붙이지 않는다.
+    `'${ledgerName}'에 초대합니다.`,
     '',
     `초대 코드: ${formatInviteCode(code)}`,
     '',

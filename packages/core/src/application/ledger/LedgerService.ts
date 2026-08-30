@@ -5,6 +5,7 @@ import type {
   LedgerMemberRepository,
   CategoryRepository,
   MemberRole,
+  LedgerInviteEntity,
 } from '../../domain/ledger/types';
 import type {
   CategoryDetail,
@@ -427,6 +428,14 @@ export class LedgerService {
     }
   }
 
+
+  /**
+   * 초대 목록 조회 (수락자 포함)
+   * - RLS로 owner/admin의 가계부만 조회된다
+   */
+  async getInvites(ledgerId: string): Promise<LedgerInviteEntity[]> {
+    return this.memberRepo.findInvitesByLedger(ledgerId);
+  }
 
   /**
    * 카테고리 목록 조회

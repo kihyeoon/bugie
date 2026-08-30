@@ -9,8 +9,28 @@ import type {
   CategoryRepository as ICategoryRepository,
   CategoryType,
   MemberRole,
+  LedgerInviteEntity,
 } from '../../../domain/ledger/types';
 import type { EntityId } from '../../../domain/shared/types';
+
+/** ledger_invites 조회 결과 row (PostgREST 임베드 포함) */
+interface DbInviteRow {
+  id: string;
+  ledger_id: string;
+  inviter_id: string | null;
+  code: string;
+  role: MemberRole;
+  status: string;
+  max_uses: number | null;
+  use_count: number;
+  expires_at: string;
+  created_at: string;
+  ledger_invite_acceptances: Array<{
+    user_id: string;
+    accepted_at: string;
+    profiles: { full_name: string | null } | null;
+  }> | null;
+}
 import { BusinessRuleViolationError } from '../../../domain/shared/errors';
 import { LedgerMapper, LedgerMemberMapper } from '../mappers/LedgerMapper';
 import { CategoryMapper } from '../mappers/CategoryMapper';
@@ -367,6 +387,48 @@ export class LedgerMemberRepository implements ILedgerMemberRepository {
     }
 
     return data as EntityId;
+  }
+
+  /**
+   * 가계부의 초대 목록 + 각 초대로 들어온 사람들
+   * - RPC가 아니라 RLS select로 처리한다(정책이 owner/admin의 가계부만 노출).
+   * - DB row(snake_case)는 여기서 도메인 엔티티(camelCase)로 변환한다.
+   */
+  async findInvitesByLedger(ledgerId: EntityId): Promise<LedgerInviteEntity[]> {
+    const { data, error } = await this.supabase
+      .from('ledger_invites')
+      .select(
+        `
+        *,
+        ledger_invite_acceptances(
+          user_id,
+          accepted_at,
+          profiles(full_name)
+        )
+      `
+      )
+      .eq('ledger_id', ledgerId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return (data || []).map((row: DbInviteRow) => ({
+      id: row.id,
+      ledgerId: row.ledger_id,
+      inviterId: row.inviter_id,
+      code: row.code,
+      role: row.role,
+      status: row.status === 'revoked' ? 'revoked' : 'active',
+      maxUses: row.max_uses,
+      useCount: row.use_count,
+      expiresAt: new Date(row.expires_at),
+      createdAt: new Date(row.created_at),
+      acceptances: (row.ledger_invite_acceptances || []).map((a) => ({
+        userId: a.user_id,
+        fullName: a.profiles?.full_name ?? null,
+        acceptedAt: new Date(a.accepted_at),
+      })),
+    }));
   }
 
   /**

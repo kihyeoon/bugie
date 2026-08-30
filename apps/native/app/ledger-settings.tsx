@@ -11,6 +11,7 @@ import { EditTextModal } from '@/components/shared/EditTextModal';
 import { ViewMembersModal } from '@/components/ledger/ViewMembersModal';
 import { InviteMemberModal } from '@/components/ledger/InviteMemberModal';
 import { InviteLinkModal } from '@/components/ledger/InviteLinkModal';
+import { ManageInvitesModal } from '@/components/ledger/ManageInvitesModal';
 import type { LedgerWithMembers, LedgerDetail, MemberRole } from '@repo/core';
 import { PermissionService } from '@repo/core';
 import { ScreenHeader } from '@/components/shared/ScreenHeader';
@@ -35,6 +36,7 @@ export default function LedgerSettingsScreen() {
   const [inviteMemberModalVisible, setInviteMemberModalVisible] =
     useState(false);
   const [inviteLinkModalVisible, setInviteLinkModalVisible] = useState(false);
+  const [manageInvitesVisible, setManageInvitesVisible] = useState(false);
 
   useEffect(() => {
     // URL 파라미터로 받은 ledgerId로 가계부 찾기
@@ -346,6 +348,14 @@ export default function LedgerSettingsScreen() {
                   actionable={true}
                   onPress={handleInviteMember}
                   disabled={loading}
+                  showDivider={true}
+                />
+                <DetailRow
+                  label="초대 관리"
+                  editable={true}
+                  actionable={true}
+                  onPress={() => setManageInvitesVisible(true)}
+                  disabled={loading}
                 />
               </>
             )}
@@ -445,6 +455,15 @@ export default function LedgerSettingsScreen() {
           ledgerName={ledger.name}
           onCreateCode={handleCreateInviteCode}
           onClose={() => setInviteLinkModalVisible(false)}
+        />
+      )}
+
+      {/* 초대 관리 모달 */}
+      {ledger && (
+        <ManageInvitesModal
+          visible={manageInvitesVisible}
+          ledgerId={ledger.id}
+          onClose={() => setManageInvitesVisible(false)}
         />
       )}
 
