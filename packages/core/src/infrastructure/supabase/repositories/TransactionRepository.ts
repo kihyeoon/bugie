@@ -9,8 +9,16 @@ import type {
 } from '../../../domain/transaction/types';
 import type { EntityId } from '../../../domain/shared/types';
 import { TransactionRules } from '../../../domain/transaction/rules';
-import { formatLocalDate } from '../../../domain/shared/utils';
+import { formatLocalDate, parseLocalDate } from '../../../domain/shared/utils';
 import { TransactionMapper } from '../mappers/TransactionMapper';
+
+/** get_daily_summary RPC가 돌려주는 행. numeric은 supabase-js에서 문자열로 온다. */
+interface DailySummaryRow {
+  summary_date: string;
+  income: string | number;
+  expense: string | number;
+  transaction_count: string | number;
+}
 
 /**
  * Supabase를 사용한 거래 리포지토리 구현
@@ -187,24 +195,25 @@ export class TransactionRepository implements ITransactionRepository {
     year: number,
     month: number
   ): Promise<MonthlySummary> {
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0);
-
-    const { data, error } = await this.supabase
-      .from('transactions')
-      .select('*')
-      .eq('ledger_id', ledgerId)
-      .gte('transaction_date', formatLocalDate(startDate))
-      .lte('transaction_date', formatLocalDate(endDate))
-      .is('deleted_at', null)
-      .order('transaction_date');
+    // 집계는 DB에서 끝낸다. 행을 다 받아오면 거래가 쌓일수록 홈 진입이 무거워진다.
+    // RPC는 SECURITY INVOKER라 RLS(멤버십 + deleted_at IS NULL)가 그대로 적용된다.
+    const { data, error } = await this.supabase.rpc('get_daily_summary', {
+      p_ledger_id: ledgerId,
+      p_year: year,
+      p_month: month,
+    });
 
     if (error) throw error;
 
-    const transactions = (data || []).map((item) =>
-      TransactionMapper.toDomain(item)
+    const dailySummaries: DailySummary[] = (data || []).map(
+      (row: DailySummaryRow) => ({
+        // 'YYYY-MM-DD'를 new Date()에 그대로 넣으면 UTC로 해석돼 KST에서 하루 밀린다.
+        date: parseLocalDate(row.summary_date),
+        income: Number(row.income),
+        expense: Number(row.expense),
+        transactionCount: Number(row.transaction_count),
+      })
     );
-    const dailySummaries = TransactionRules.calculateDailySummary(transactions);
 
     return TransactionRules.calculateMonthlySummary(
       year,
