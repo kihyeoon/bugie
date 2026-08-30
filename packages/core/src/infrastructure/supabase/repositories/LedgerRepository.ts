@@ -11,6 +11,7 @@ import type {
   MemberRole,
 } from '../../../domain/ledger/types';
 import type { EntityId } from '../../../domain/shared/types';
+import type { LedgerInviteDetail } from '../../../shared/types';
 import { LedgerMapper, LedgerMemberMapper } from '../mappers/LedgerMapper';
 import { CategoryMapper } from '../mappers/CategoryMapper';
 
@@ -317,6 +318,95 @@ export class LedgerMemberRepository implements ILedgerMemberRepository {
     if (error) {
       throw new Error(error.message);
     }
+  }
+
+  /**
+   * 초대 코드 발급
+   * - owner만 발급 가능(RPC가 auth.uid()로 검증)
+   */
+  async createInvite(
+    ledgerId: EntityId,
+    role: MemberRole,
+    maxUses?: number
+  ): Promise<string> {
+    const { data, error } = await this.supabase.rpc('create_ledger_invite', {
+      p_ledger_id: ledgerId,
+      p_role: role,
+      p_max_uses: maxUses ?? null,
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+    if (!data) {
+      throw new Error('초대 코드를 만들지 못했습니다.');
+    }
+
+    return data as string;
+  }
+
+  /**
+   * 초대 코드 수락
+   * - 코드가 유효하지 않거나 만료/폐기된 경우 RPC는 예외가 아니라 **null**을 반환한다.
+   *   (예외를 던지면 트랜잭션이 abort되어 rate limit 기록까지 롤백되기 때문 —
+   *   20260830000012_ledger_invites.sql 주석 참고)
+   *   따라서 null을 반드시 확인해 실패로 변환해야 한다. error만 보면 실패를 성공으로 처리한다.
+   */
+  async acceptInvite(code: string): Promise<EntityId> {
+    const { data, error } = await this.supabase.rpc('accept_ledger_invite', {
+      p_code: code,
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+    if (!data) {
+      throw new Error('유효하지 않거나 만료된 초대입니다.');
+    }
+
+    return data as EntityId;
+  }
+
+  /**
+   * 초대 코드 폐기
+   */
+  async revokeInvite(inviteId: EntityId): Promise<void> {
+    const { error } = await this.supabase.rpc('revoke_ledger_invite', {
+      p_invite_id: inviteId,
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  /**
+   * 가계부의 초대 목록 + 각 초대로 들어온 사람들
+   * - RPC가 아니라 RLS select로 처리한다(정책이 owner/admin의 가계부만 노출).
+   */
+  async findInvitesByLedger(ledgerId: EntityId): Promise<LedgerInviteDetail[]> {
+    const { data, error } = await this.supabase
+      .from('ledger_invites')
+      .select(
+        `
+        *,
+        ledger_invite_acceptances(
+          id,
+          user_id,
+          accepted_at,
+          profiles(
+            id,
+            full_name,
+            avatar_url
+          )
+        )
+      `
+      )
+      .eq('ledger_id', ledgerId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (data || []) as unknown as LedgerInviteDetail[];
   }
 }
 

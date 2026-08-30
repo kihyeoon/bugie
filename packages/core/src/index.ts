@@ -39,6 +39,7 @@ export type {
   CreateLedgerInput,
   UpdateLedgerInput,
   InviteMemberInput,
+  CreateInviteInput,
   DeleteCategoryResult,
 } from './application/ledger/types';
 
@@ -63,6 +64,7 @@ export type {
 export type {
   LedgerWithMembers,
   LedgerDetail,
+  LedgerInviteDetail,
   CategoryDetail,
   TransactionWithDetails,
   CalendarDayData,

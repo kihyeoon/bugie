@@ -1,3 +1,4 @@
+import type { LedgerInviteDetail } from '../../shared/types';
 import type { EntityId, DomainDate, CurrencyCode } from '../shared/types';
 
 /**
@@ -130,6 +131,18 @@ export interface LedgerMemberRepository {
   removeUserFromAllLedgers(userId: EntityId): Promise<void>;
   // 소유자 권한 이전 (RPC 함수 사용)
   transferOwnership(ledgerId: EntityId, newOwnerId: EntityId): Promise<void>;
+  // 초대 코드 발급 (RPC). 생성된 코드를 반환한다.
+  createInvite(
+    ledgerId: EntityId,
+    role: MemberRole,
+    maxUses?: number
+  ): Promise<string>;
+  // 초대 코드 수락 (RPC). 참여한 가계부 id를 반환한다.
+  acceptInvite(code: string): Promise<EntityId>;
+  // 초대 코드 폐기 (RPC)
+  revokeInvite(inviteId: EntityId): Promise<void>;
+  // 가계부의 초대 목록 + 각 초대의 수락자 (RLS로 owner/admin만 조회 가능)
+  findInvitesByLedger(ledgerId: EntityId): Promise<LedgerInviteDetail[]>;
 }
 
 export interface CategoryRepository {

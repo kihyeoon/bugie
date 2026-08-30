@@ -23,6 +23,13 @@ export interface InviteMemberInput {
   role?: MemberRole;
 }
 
+export interface CreateInviteInput {
+  ledgerId: string;
+  role?: MemberRole;
+  /** 최대 사용 횟수. 미지정이면 무제한 */
+  maxUses?: number;
+}
+
 export interface DeleteCategoryResult {
   deleted: boolean;
   movedTransactions: number;
