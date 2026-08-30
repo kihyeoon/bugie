@@ -5,6 +5,7 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Share,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Colors } from '@/constants/Colors';
@@ -17,6 +18,7 @@ import { DeleteAccountModal } from '@/components/profile/DeleteAccountModal';
 import { ProfileRules, DELETE_ACCOUNT } from '@repo/core';
 import type { ProfileDetail } from '@repo/core';
 import { ScreenHeader } from '@/components/shared/ScreenHeader';
+import * as Clipboard from 'expo-clipboard';
 
 export default function ProfileSettingsScreen() {
   const colorScheme = useColorScheme();
@@ -90,6 +92,32 @@ export default function ProfileSettingsScreen() {
   };
 
   // 회원 탈퇴 처리
+  // 애플 로그인은 이메일이 Private Relay 주소라 화면에서 잘려 보이고 외우기도 어렵다.
+  // 가계부 주인에게 전달해 초대받을 수 있도록 복사/공유 수단을 준다(BGI-22).
+  const handleEmailPress = () => {
+    const email = profile?.email;
+    if (!email) return;
+
+    Alert.alert('내 이메일', email, [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '복사',
+        onPress: async () => {
+          await Clipboard.setStringAsync(email);
+          Alert.alert('복사됨', '이메일을 복사했습니다.');
+        },
+      },
+      {
+        text: '공유',
+        onPress: () => {
+          Share.share({
+            message: `제 Bugie 계정 이메일이에요.\n${email}`,
+          }).catch(() => undefined);
+        },
+      },
+    ]);
+  };
+
   const handleDeleteAccount = async () => {
     try {
       await profileService.deleteAccount({
@@ -173,8 +201,9 @@ export default function ProfileSettingsScreen() {
           <DetailRow
             label="이메일"
             value={profile?.email || ''}
-            editable={false}
-            rightIcon={false}
+            editable={true}
+            actionable={true}
+            onPress={handleEmailPress}
             numberOfLines={1}
           />
         </DetailSection>
