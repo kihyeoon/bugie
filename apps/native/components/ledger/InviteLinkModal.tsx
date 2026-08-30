@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Modal,
   View,
   StyleSheet,
   Pressable,
   Alert,
-  ActivityIndicator,
   Share,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
@@ -13,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography } from '@/components/ui/Typography';
+import { Button } from '@/components/ui/Button';
 import { formatInviteCode, buildInviteMessage } from '@/utils/invite';
 
 interface InviteLinkModalProps {
@@ -41,6 +41,14 @@ export function InviteLinkModal({
   const [code, setCode] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (copiedTimer.current) clearTimeout(copiedTimer.current);
+    },
+    []
+  );
 
   const handleClose = () => {
     setCode(null);
@@ -67,8 +75,8 @@ export function InviteLinkModal({
     try {
       await Share.share({ message: buildInviteMessage(ledgerName, code) });
     } catch {
-      // 공유 시트를 열지 못하면 복사로 대체
-      await handleCopy();
+      // 공유 시트를 열지 못한 경우. 아래 '코드 복사' 버튼으로 안내한다.
+      Alert.alert('공유할 수 없습니다', '아래 코드 복사를 이용해주세요.');
     }
   };
 
@@ -76,7 +84,8 @@ export function InviteLinkModal({
     if (!code) return;
     await Clipboard.setStringAsync(formatInviteCode(code));
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (copiedTimer.current) clearTimeout(copiedTimer.current);
+    copiedTimer.current = setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -171,7 +180,7 @@ export function InviteLinkModal({
                 >
                   받은 사람이 앱에서 이 코드를 입력하면 가계부에 참여합니다.
                   {'\n'}
-                  링크는 7일 후 만료되며, 설정에서 언제든 폐기할 수 있습니다.
+                  코드는 7일 후 자동으로 만료됩니다.
                 </Typography>
               </View>
             </>
@@ -185,23 +194,15 @@ export function InviteLinkModal({
                 </Typography>
               </View>
 
-              <Pressable
-                style={[styles.primaryButton, { backgroundColor: colors.tint }]}
+              <Button
+                variant="primary"
+                size="large"
+                fullWidth
+                loading={isCreating}
                 onPress={handleCreate}
-                disabled={isCreating}
               >
-                {isCreating ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Typography
-                    variant="body1"
-                    weight="600"
-                    style={styles.primaryButtonText}
-                  >
-                    초대 코드 만들기
-                  </Typography>
-                )}
-              </Pressable>
+                초대 코드 만들기
+              </Button>
             </>
           )}
         </View>

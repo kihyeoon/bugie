@@ -3,8 +3,6 @@ import {
   View,
   StyleSheet,
   TextInput,
-  Pressable,
-  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -14,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography } from '@/components/ui/Typography';
+import { Button } from '@/components/ui/Button';
 import { ScreenHeader } from '@/components/shared/ScreenHeader';
 import { useServices } from '@/contexts/ServiceContext';
 import { useLedger } from '@/contexts/LedgerContext';
@@ -31,20 +30,18 @@ export default function AcceptInviteScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const { ledgerService } = useServices();
-  const { refreshLedgers, selectLedger } = useLedger();
+  const { refreshAndSelectLedger } = useLedger();
 
-  const [code, setCode] = useState(
-    codeParam ? formatInviteCode(codeParam) : ''
+  // 저장은 정규형(ABCDEFGHIJKL), 화면 표시만 표기형(ABCD-EFGH-IJKL)으로 파생한다.
+  const [code, setCode] = useState(() =>
+    normalizeInviteCode(codeParam ?? '').slice(0, CODE_LENGTH)
   );
   const [isJoining, setIsJoining] = useState(false);
 
-  const normalized = normalizeInviteCode(code);
-  const canSubmit = normalized.length === CODE_LENGTH && !isJoining;
+  const canSubmit = code.length === CODE_LENGTH && !isJoining;
 
   const handleChange = (text: string) => {
-    // 입력 즉시 표기형(ABCD-EFGH-IJKL)으로 정리
-    const next = normalizeInviteCode(text).slice(0, CODE_LENGTH);
-    setCode(formatInviteCode(next));
+    setCode(normalizeInviteCode(text).slice(0, CODE_LENGTH));
   };
 
   const handleSubmit = async () => {
@@ -52,9 +49,9 @@ export default function AcceptInviteScreen() {
 
     setIsJoining(true);
     try {
-      const ledgerId = await ledgerService.acceptInvite(normalized);
-      await refreshLedgers();
-      await selectLedger(ledgerId);
+      const ledgerId = await ledgerService.acceptInvite(code);
+      // 방금 합류한 가계부는 아직 컨텍스트 목록에 없다 → 저장 후 새로고침으로 선택
+      await refreshAndSelectLedger(ledgerId);
 
       Alert.alert('참여 완료', '가계부에 참여했습니다.', [
         { text: '확인', onPress: () => router.replace('/(tabs)') },
@@ -112,7 +109,7 @@ export default function AcceptInviteScreen() {
             ]}
             placeholder="ABCD-EFGH-IJKL"
             placeholderTextColor={colors.textDisabled}
-            value={code}
+            value={formatInviteCode(code)}
             onChangeText={handleChange}
             autoCapitalize="characters"
             autoCorrect={false}
@@ -122,32 +119,16 @@ export default function AcceptInviteScreen() {
             onSubmitEditing={handleSubmit}
           />
 
-          <Pressable
-            style={[
-              styles.submitButton,
-              {
-                backgroundColor: canSubmit
-                  ? colors.tint
-                  : colors.backgroundSecondary,
-                borderColor: colors.border,
-              },
-            ]}
-            onPress={handleSubmit}
+          <Button
+            variant="primary"
+            size="large"
+            fullWidth
+            loading={isJoining}
             disabled={!canSubmit}
+            onPress={handleSubmit}
           >
-            {isJoining ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Typography
-                variant="body1"
-                weight="600"
-                style={canSubmit ? styles.submitTextActive : undefined}
-                color={canSubmit ? 'inherit' : 'disabled'}
-              >
-                참여하기
-              </Typography>
-            )}
-          </Pressable>
+            참여하기
+          </Button>
         </View>
       </KeyboardAvoidingView>
     </View>
@@ -176,15 +157,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 2,
     textAlign: 'center',
-  },
-  submitButton: {
-    height: 48,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  submitTextActive: {
-    color: '#FFFFFF',
   },
 });

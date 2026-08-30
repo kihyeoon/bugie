@@ -9,7 +9,6 @@ import type {
 import type {
   CategoryDetail,
   LedgerDetail,
-  LedgerInviteDetail,
   LedgerWithMembers,
 } from '../../shared/types';
 import { toCurrencyCode } from '../../domain/shared/utils';
@@ -391,11 +390,6 @@ export class LedgerService {
       return await this.memberRepo.acceptInvite(code);
     } catch (error) {
       if (error instanceof Error) {
-        if (error.message.includes('유효하지 않거나 만료된 초대')) {
-          throw new BusinessRuleViolationError(
-            '유효하지 않거나 만료된 초대입니다.'
-          );
-        }
         if (error.message.includes('초대 정원이 찼습니다')) {
           throw new BusinessRuleViolationError('초대 정원이 찼습니다.');
         }
@@ -423,7 +417,7 @@ export class LedgerService {
     } catch (error) {
       if (error instanceof Error) {
         if (error.message.includes('초대를 찾을 수 없습니다')) {
-          throw new NotFoundError('초대');
+          throw new BusinessRuleViolationError('초대를 찾을 수 없습니다.');
         }
         if (error.message.includes('권한이 없습니다')) {
           throw new UnauthorizedError('초대를 폐기할 권한이 없습니다.');
@@ -433,13 +427,6 @@ export class LedgerService {
     }
   }
 
-  /**
-   * 초대 목록 조회 (수락자 포함)
-   * - RLS로 owner/admin의 가계부만 조회된다
-   */
-  async getInvites(ledgerId: string): Promise<LedgerInviteDetail[]> {
-    return this.memberRepo.findInvitesByLedger(ledgerId);
-  }
 
   /**
    * 카테고리 목록 조회

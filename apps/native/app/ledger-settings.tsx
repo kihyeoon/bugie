@@ -330,23 +330,24 @@ export default function LedgerSettingsScreen() {
               showDivider={canManageMembers}
             />
             {canManageMembers && (
-              <DetailRow
-                label="초대 링크 만들기"
-                editable={true}
-                actionable={true}
-                onPress={handleInviteByLink}
-                disabled={loading}
-                showDivider={true}
-              />
-            )}
-            {canManageMembers && (
-              <DetailRow
-                label="이메일로 초대"
-                editable={true}
-                actionable={true}
-                onPress={handleInviteMember}
-                disabled={loading}
-              />
+              <>
+                <DetailRow
+                  label="초대 링크 만들기"
+                  editable={true}
+                  actionable={true}
+                  onPress={handleInviteByLink}
+                  disabled={loading}
+                  showDivider={true}
+                />
+                <DetailRow
+                  label="이메일로 초대"
+                  value="상대 이메일을 알 때"
+                  editable={true}
+                  actionable={true}
+                  onPress={handleInviteMember}
+                  disabled={loading}
+                />
+              </>
             )}
           </DetailSection>
 

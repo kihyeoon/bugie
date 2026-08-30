@@ -17,7 +17,7 @@ export default function InviteDeepLinkScreen() {
   const { code } = useLocalSearchParams<{ code?: string }>();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const { session, loading } = useAuth();
+  const { session, loading, needsProfile } = useAuth();
 
   useEffect(() => {
     if (loading) return;
@@ -27,13 +27,20 @@ export default function InviteDeepLinkScreen() {
       return;
     }
 
+    // 프로필 미설정 사용자는 먼저 프로필 설정으로 (app/index.tsx의 게이트와 동일)
+    // 초대는 신규 가입자가 받는 경우가 많아 이 분기가 실제로 자주 걸린다.
+    if (needsProfile) {
+      router.replace('/(auth)/profile-setup');
+      return;
+    }
+
     const normalized = code ? normalizeInviteCode(code) : '';
     router.replace(
       normalized
         ? { pathname: '/accept-invite', params: { code: normalized } }
         : '/accept-invite'
     );
-  }, [loading, session, code]);
+  }, [loading, session, needsProfile, code]);
 
   return (
     <View style={[styles.center, { backgroundColor: colors.background }]}>

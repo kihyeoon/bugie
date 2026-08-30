@@ -11,7 +11,7 @@ import type {
   MemberRole,
 } from '../../../domain/ledger/types';
 import type { EntityId } from '../../../domain/shared/types';
-import type { LedgerInviteDetail } from '../../../shared/types';
+import { BusinessRuleViolationError } from '../../../domain/shared/errors';
 import { LedgerMapper, LedgerMemberMapper } from '../mappers/LedgerMapper';
 import { CategoryMapper } from '../mappers/CategoryMapper';
 
@@ -361,7 +361,9 @@ export class LedgerMemberRepository implements ILedgerMemberRepository {
       throw new Error(error.message);
     }
     if (!data) {
-      throw new Error('유효하지 않거나 만료된 초대입니다.');
+      // 이 문자열은 DB가 raise한 게 아니라 여기서 만든 것이므로,
+      // 서비스가 다시 substring 매칭하지 않도록 도메인 에러로 직접 던진다.
+      throw new BusinessRuleViolationError('유효하지 않거나 만료된 초대입니다.');
     }
 
     return data as EntityId;
@@ -380,34 +382,6 @@ export class LedgerMemberRepository implements ILedgerMemberRepository {
     }
   }
 
-  /**
-   * 가계부의 초대 목록 + 각 초대로 들어온 사람들
-   * - RPC가 아니라 RLS select로 처리한다(정책이 owner/admin의 가계부만 노출).
-   */
-  async findInvitesByLedger(ledgerId: EntityId): Promise<LedgerInviteDetail[]> {
-    const { data, error } = await this.supabase
-      .from('ledger_invites')
-      .select(
-        `
-        *,
-        ledger_invite_acceptances(
-          id,
-          user_id,
-          accepted_at,
-          profiles(
-            id,
-            full_name,
-            avatar_url
-          )
-        )
-      `
-      )
-      .eq('ledger_id', ledgerId)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return (data || []) as unknown as LedgerInviteDetail[];
-  }
 }
 
 /**

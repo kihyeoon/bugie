@@ -66,6 +66,13 @@ export default function MoreScreen() {
         router.push('/profile-settings');
       },
     },
+    {
+      title: '초대 코드 입력',
+      icon: 'plus.circle.fill',
+      onPress: () => {
+        router.push('/accept-invite');
+      },
+    },
     // 앱 설정은 Phase 2에서 구현 예정 (푸시 알림, 캐시 관리 등)
   ];
 

@@ -1,4 +1,3 @@
-import type { LedgerInviteDetail } from '../../shared/types';
 import type { EntityId, DomainDate, CurrencyCode } from '../shared/types';
 
 /**
@@ -141,8 +140,6 @@ export interface LedgerMemberRepository {
   acceptInvite(code: string): Promise<EntityId>;
   // 초대 코드 폐기 (RPC)
   revokeInvite(inviteId: EntityId): Promise<void>;
-  // 가계부의 초대 목록 + 각 초대의 수락자 (RLS로 owner/admin만 조회 가능)
-  findInvitesByLedger(ledgerId: EntityId): Promise<LedgerInviteDetail[]>;
 }
 
 export interface CategoryRepository {

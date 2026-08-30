@@ -64,7 +64,6 @@ export type {
 export type {
   LedgerWithMembers,
   LedgerDetail,
-  LedgerInviteDetail,
   CategoryDetail,
   TransactionWithDetails,
   CalendarDayData,

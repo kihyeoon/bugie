@@ -113,26 +113,3 @@ export interface DailySummary {
   transactions: TransactionWithDetails[];
 }
 
-// 초대 링크 + 그 링크로 들어온 사람들 (가계부 설정의 초대 관리 화면용)
-export interface LedgerInviteDetail {
-  id: string;
-  ledger_id: string;
-  inviter_id: string | null;
-  code: string;
-  role: MemberRole;
-  status: string;
-  max_uses: number | null;
-  use_count: number;
-  expires_at: string;
-  created_at: string;
-  ledger_invite_acceptances: Array<{
-    id: string;
-    user_id: string;
-    accepted_at: string;
-    profiles: {
-      id: string;
-      full_name: string | null;
-      avatar_url: string | null;
-    } | null;
-  }>;
-}
