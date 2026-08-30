@@ -51,8 +51,16 @@ BEGIN
   -- ================================================================
   -- 2. 프로필 + 개인 가계부 생성 (create_user_profile RPC 활용)
   -- ================================================================
+  -- BGI-38: create_user_profile/setup_new_user 에 소유권 가드(auth.uid()=대상)가 추가돼,
+  -- superuser 로 도는 seed 에서는 request.jwt.claims 로 본인 호출을 위장해야 통과한다.
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_husband_id)::text, true);
   PERFORM create_user_profile(v_husband_id, 'husband@test.com', '김철수');
+
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_wife_id)::text, true);
   PERFORM create_user_profile(v_wife_id, 'wife@test.com', '이영희');
+
+  -- 이후 직접 INSERT 를 위해 claims 원복
+  PERFORM set_config('request.jwt.claims', NULL, true);
 
   -- ================================================================
   -- 3. 공유 가계부 생성
