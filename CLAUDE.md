@@ -13,6 +13,8 @@
 - **날짜 직렬화**는 반드시 `@repo/core`의 `formatLocalDate` / `parseLocalDate`를 사용한다. `Date.toISOString().split('T')[0]` 또는 `new Date('YYYY-MM-DD')`를 그대로 쓰면 KST에서 월 경계 날짜가 하루 밀린다 (v1.2.1 hotfix 사유).
 - **`@repo/ui`만 빌드가 필요하다.** `@repo/core`/`@repo/types`는 `main: "./src/index.ts"`로 소스 직접 참조. UI 패키지 수정 후엔 `pnpm --filter @repo/ui build` 필수. `@repo/ui`의 `react`/`react-native`는 **`peerDependencies`로 둔다** — `dependencies`로 옮기면 중복 네이티브 모듈이 설치돼 `expo-doctor`가 막는다. (현재 native는 `@repo/ui`를 import하지 않아 의존성에서 빠져 있다.)
 - **새 Supabase 테이블엔 RLS 정책 + Data API GRANT를 반드시 추가한다.** RLS 누락 = 전 사용자 데이터 노출. GRANT 누락 = 2026-10-30부터 SDK에서 `42501 permission denied`(자동 GRANT 정책 종료). 템플릿은 아래 [Supabase 마이그레이션 표준 템플릿](#supabase-마이그레이션-표준-템플릿) 참조.
+- **새 `SECURITY DEFINER` 함수도 GRANT를 챙긴다.** DEFINER는 RLS 우회 → anon EXECUTE = 로그인 없이 호출됨(anon key는 앱 번들 공개값). `revoke execute ... from anon, public` 후 필요한 롤에만 부여(anon·PUBLIC 둘 다 회수해야 함). uuid 인자를 받으면 본문에서 `auth.uid()` 소유권 검사 — 비교는 `is distinct from`(=`!=`/`not in`은 NULL이면 통과돼 fail-open). RLS로 되는 읽기 집계는 DEFINER 말고 invoker(기본값). (v1.3.0 이후 BGI-37 사유)
+- **DB는 대시보드로 직접 고치지 않는다. 반드시 마이그레이션으로.** 대시보드 수정은 drift를 만들어 "코드=운영 상태" 전제를 깨고, fresh 배포 시 틀린 정의가 깔려 사고 난다. (BGI-37에서 함수 5개 drift 발견)
 - **삭제는 soft delete 패턴**(`deleted_at` 컬럼). RLS를 우회해야 하므로 `SECURITY DEFINER` RPC 함수로 처리. 회원 탈퇴는 30일 유예 후 GitHub Actions cron(`process-account-deletions.yml`)으로 완전 삭제.
 - **터치 인터랙션은 `Pressable`을 사용한다.** `TouchableOpacity` 신규 사용 금지 (기존 132군데 일괄 전환 예정).
 - **네이티브 스택 화면 헤더는 공유 `ScreenHeader`(`components/shared/ScreenHeader.tsx`)를 쓴다.** `Stack.Screen`의 네이티브 헤더(`headerLeft`/`title` 등)를 쓰면 iOS 26에서 백 버튼에 Liquid Glass 캡슐이 강제 적용된다. `headerShown: false`는 루트 `app/_layout.tsx`의 `<Stack screenOptions={{ headerShown: false }}>`가 전역 적용하므로, **새 스택 화면은 본문 최상단에 `ScreenHeader`만 렌더하면 된다.**
