@@ -13,6 +13,10 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography } from '@/components/ui/Typography';
 import { Button } from '@/components/ui/Button';
+import {
+  ModalHeader,
+  ModalHeaderButton,
+} from '@/components/shared/ModalHeader';
 import { formatInviteCode, buildInviteMessage } from '@/utils/invite';
 
 interface InviteLinkModalProps {
@@ -96,22 +100,16 @@ export function InviteLinkModal({
       onRequestClose={handleClose}
     >
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        {/* 드래그 핸들 */}
-        <View style={styles.dragHandle} />
-
-        {/* 헤더 */}
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Pressable onPress={handleClose} disabled={isCreating}>
-            <Typography variant="body1" color="primary">
-              닫기
-            </Typography>
-          </Pressable>
-          <Typography variant="h3" weight="600">
-            초대 링크
-          </Typography>
-          {/* 헤더 3분할 유지를 위한 자리 */}
-          <View style={styles.headerSpacer} />
-        </View>
+        <ModalHeader
+          title="초대 링크"
+          left={
+            <ModalHeaderButton
+              label="닫기"
+              onPress={handleClose}
+              disabled={isCreating}
+            />
+          }
+        />
 
         <View style={styles.content}>
           {code ? (
@@ -151,7 +149,7 @@ export function InviteLinkModal({
                   weight="600"
                   style={styles.primaryButtonText}
                 >
-                  카톡·메시지로 보내기
+                  초대 링크 공유하기
                 </Typography>
               </Pressable>
 
@@ -190,7 +188,7 @@ export function InviteLinkModal({
               <View style={styles.infoSection}>
                 <Typography variant="body2" color="secondary">
                   상대의 이메일을 몰라도 초대할 수 있어요. 초대 코드를 만들어
-                  카톡이나 메시지로 전달하세요.
+                  원하는 방법으로 전달하세요.
                 </Typography>
               </View>
 
@@ -214,26 +212,6 @@ export function InviteLinkModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  dragHandle: {
-    width: 36,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: '#C7C7CC',
-    alignSelf: 'center',
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  headerSpacer: {
-    width: 36,
   },
   content: {
     padding: 20,

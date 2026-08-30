@@ -14,6 +14,10 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography } from '@/components/ui/Typography';
 import { Card } from '@/components/ui/Card';
 import { useServices } from '@/contexts/ServiceContext';
+import {
+  ModalHeader,
+  ModalHeaderButton,
+} from '@/components/shared/ModalHeader';
 import { formatInviteCode } from '@/utils/invite';
 import type { LedgerInviteEntity } from '@repo/core';
 
@@ -101,19 +105,10 @@ export function ManageInvitesModal({
       onRequestClose={onClose}
     >
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.dragHandle} />
-
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Pressable onPress={onClose}>
-            <Typography variant="body1" color="primary">
-              닫기
-            </Typography>
-          </Pressable>
-          <Typography variant="h3" weight="600">
-            초대 관리
-          </Typography>
-          <View style={styles.headerSpacer} />
-        </View>
+        <ModalHeader
+          title="초대 관리"
+          left={<ModalHeaderButton label="닫기" onPress={onClose} />}
+        />
 
         {loading ? (
           <View style={styles.center}>
@@ -193,26 +188,6 @@ export function ManageInvitesModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  dragHandle: {
-    width: 36,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: '#C7C7CC',
-    alignSelf: 'center',
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  headerSpacer: {
-    width: 36,
   },
   center: {
     flex: 1,

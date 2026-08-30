@@ -13,6 +13,10 @@ import * as Haptics from 'expo-haptics';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography } from '@/components/ui/Typography';
+import {
+  ModalHeader,
+  ModalHeaderButton,
+} from '@/components/shared/ModalHeader';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import {
   PermissionService,
@@ -277,19 +281,10 @@ export function ViewMembersModal({
       onRequestClose={onClose}
     >
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        {/* 드래그 핸들 */}
-        <View style={styles.dragHandle} />
-
-        {/* 헤더 */}
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <View style={styles.headerLeft} />
-          <Typography variant="h3" weight="600">
-            멤버 목록
-          </Typography>
-          <Pressable onPress={onClose} style={styles.closeButton}>
-            <IconSymbol name="xmark" size={24} color={colors.text} />
-          </Pressable>
-        </View>
+        <ModalHeader
+          title="멤버 목록"
+          left={<ModalHeaderButton label="닫기" onPress={onClose} />}
+        />
 
         {/* 멤버 리스트 */}
         <ScrollView
@@ -419,30 +414,6 @@ export function ViewMembersModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  dragHandle: {
-    width: 36,
-    height: 5,
-    backgroundColor: '#C7C7CC',
-    borderRadius: 3,
-    alignSelf: 'center',
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  headerLeft: {
-    width: 24,
-  },
-  closeButton: {
-    padding: 4,
   },
   content: {
     flex: 1,
