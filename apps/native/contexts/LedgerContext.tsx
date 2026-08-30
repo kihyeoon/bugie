@@ -17,6 +17,12 @@ interface LedgerContextValue {
   error: Error | null;
   refreshLedgers: () => Promise<void>;
   selectLedger: (ledgerId: string) => Promise<void>;
+  /**
+   * 아직 목록에 없는 가계부로 전환한다 (초대 수락 직후 등).
+   * selectLedger는 클로저에 잡힌 ledgers에서 찾으므로 새로 합류한 가계부는 찾지 못한다.
+   * 여기서는 id를 먼저 저장한 뒤 목록을 새로 받아, loadLedgers가 저장된 id로 선택하게 한다.
+   */
+  refreshAndSelectLedger: (ledgerId: string) => Promise<void>;
 }
 
 const LedgerContext = createContext<LedgerContextValue | undefined>(undefined);
@@ -107,6 +113,14 @@ export function LedgerProvider({ children }: { children: React.ReactNode }) {
     await loadLedgers();
   }, [loadLedgers]);
 
+  const refreshAndSelectLedger = useCallback(
+    async (ledgerId: string) => {
+      await AsyncStorage.setItem(CURRENT_LEDGER_KEY, ledgerId);
+      await loadLedgers();
+    },
+    [loadLedgers]
+  );
+
   useEffect(() => {
     loadLedgers();
   }, [loadLedgers]);
@@ -118,6 +132,7 @@ export function LedgerProvider({ children }: { children: React.ReactNode }) {
     error,
     refreshLedgers,
     selectLedger,
+    refreshAndSelectLedger,
   };
 
   return (

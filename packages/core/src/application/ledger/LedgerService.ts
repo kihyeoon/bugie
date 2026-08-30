@@ -5,6 +5,7 @@ import type {
   LedgerMemberRepository,
   CategoryRepository,
   MemberRole,
+  LedgerInviteEntity,
 } from '../../domain/ledger/types';
 import type {
   CategoryDetail,
@@ -23,6 +24,7 @@ import type {
   CreateLedgerInput,
   UpdateLedgerInput,
   InviteMemberInput,
+  CreateInviteInput,
   DeleteCategoryResult,
 } from './types';
 import type { TransactionRepository } from '../../domain/transaction/types';
@@ -346,6 +348,93 @@ export class LedgerService {
       }
       throw error;
     }
+  }
+
+  /**
+   * 초대 코드 발급
+   * - owner만 발급 가능(RPC가 auth.uid()로 검증)
+   * - 반환된 코드를 공유 시트/복사로 전달한다
+   */
+  async createInvite(input: CreateInviteInput): Promise<string> {
+    try {
+      return await this.memberRepo.createInvite(
+        input.ledgerId,
+        input.role || 'member',
+        input.maxUses
+      );
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.includes('초대 링크를 만들 권한이 없습니다')) {
+          throw new UnauthorizedError('초대 링크를 만들 권한이 없습니다.');
+        }
+        if (error.message.includes('owner 역할로는 초대할 수 없습니다')) {
+          throw new BusinessRuleViolationError(
+            'owner 역할로는 초대할 수 없습니다.'
+          );
+        }
+        if (error.message.includes('활성 초대 링크가 너무 많습니다')) {
+          throw new BusinessRuleViolationError(
+            '활성 초대 링크가 너무 많습니다. 기존 링크를 폐기하고 다시 시도해주세요.'
+          );
+        }
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * 초대 코드 수락
+   * - 참여한 가계부 id를 반환한다
+   */
+  async acceptInvite(code: string): Promise<string> {
+    try {
+      return await this.memberRepo.acceptInvite(code);
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.includes('초대 정원이 찼습니다')) {
+          throw new BusinessRuleViolationError('초대 정원이 찼습니다.');
+        }
+        if (error.message.includes('이 초대는 더 이상 유효하지 않습니다')) {
+          throw new BusinessRuleViolationError(
+            '이 초대는 더 이상 유효하지 않습니다.'
+          );
+        }
+        if (error.message.includes('너무 많은 시도가 있었습니다')) {
+          throw new BusinessRuleViolationError(
+            '너무 많은 시도가 있었습니다. 잠시 후 다시 시도해주세요.'
+          );
+        }
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * 초대 코드 폐기
+   */
+  async revokeInvite(inviteId: string): Promise<void> {
+    try {
+      await this.memberRepo.revokeInvite(inviteId);
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.includes('초대를 찾을 수 없습니다')) {
+          throw new BusinessRuleViolationError('초대를 찾을 수 없습니다.');
+        }
+        if (error.message.includes('권한이 없습니다')) {
+          throw new UnauthorizedError('초대를 폐기할 권한이 없습니다.');
+        }
+      }
+      throw error;
+    }
+  }
+
+
+  /**
+   * 초대 목록 조회 (수락자 포함)
+   * - RLS로 owner/admin의 가계부만 조회된다
+   */
+  async getInvites(ledgerId: string): Promise<LedgerInviteEntity[]> {
+    return this.memberRepo.findInvitesByLedger(ledgerId);
   }
 
   /**

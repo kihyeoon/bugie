@@ -39,6 +39,7 @@ export type {
   CreateLedgerInput,
   UpdateLedgerInput,
   InviteMemberInput,
+  CreateInviteInput,
   DeleteCategoryResult,
 } from './application/ledger/types';
 

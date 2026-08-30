@@ -36,6 +36,27 @@ export interface LedgerMemberEntity {
 }
 
 /**
+ * 초대 링크 엔티티 (수락자 포함)
+ */
+export interface LedgerInviteEntity {
+  id: EntityId;
+  ledgerId: EntityId;
+  inviterId: EntityId | null;
+  code: string;
+  role: MemberRole;
+  status: 'active' | 'revoked';
+  maxUses: number | null;
+  useCount: number;
+  expiresAt: DomainDate;
+  createdAt: DomainDate;
+  acceptances: Array<{
+    userId: EntityId;
+    fullName: string | null;
+    acceptedAt: DomainDate;
+  }>;
+}
+
+/**
  * 카테고리 엔티티
  */
 export interface CategoryEntity {
@@ -130,6 +151,18 @@ export interface LedgerMemberRepository {
   removeUserFromAllLedgers(userId: EntityId): Promise<void>;
   // 소유자 권한 이전 (RPC 함수 사용)
   transferOwnership(ledgerId: EntityId, newOwnerId: EntityId): Promise<void>;
+  // 초대 코드 발급 (RPC). 생성된 코드를 반환한다.
+  createInvite(
+    ledgerId: EntityId,
+    role: MemberRole,
+    maxUses?: number
+  ): Promise<string>;
+  // 초대 코드 수락 (RPC). 참여한 가계부 id를 반환한다.
+  acceptInvite(code: string): Promise<EntityId>;
+  // 초대 코드 폐기 (RPC)
+  revokeInvite(inviteId: EntityId): Promise<void>;
+  // 가계부의 초대 목록 (RLS로 owner/admin만 조회 가능)
+  findInvitesByLedger(ledgerId: EntityId): Promise<LedgerInviteEntity[]>;
 }
 
 export interface CategoryRepository {

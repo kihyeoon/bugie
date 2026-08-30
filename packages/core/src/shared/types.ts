@@ -112,3 +112,4 @@ export interface DailySummary {
   expense: number;
   transactions: TransactionWithDetails[];
 }
+

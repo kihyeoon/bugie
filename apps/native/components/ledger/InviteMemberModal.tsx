@@ -3,7 +3,6 @@ import {
   Modal,
   View,
   StyleSheet,
-  Pressable,
   TextInput,
   Alert,
   KeyboardAvoidingView,
@@ -13,6 +12,10 @@ import {
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography } from '@/components/ui/Typography';
+import {
+  ModalHeader,
+  ModalHeaderButton,
+} from '@/components/shared/ModalHeader';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import type { MemberRole } from '@repo/core';
 
@@ -93,29 +96,23 @@ export function InviteMemberModal({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={[styles.container, { backgroundColor: colors.background }]}
       >
-        {/* 드래그 핸들 */}
-        <View style={styles.dragHandle} />
-
-        {/* 헤더 */}
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Pressable onPress={handleClose} disabled={isInviting}>
-            <Typography variant="body1" color="primary">
-              취소
-            </Typography>
-          </Pressable>
-          <Typography variant="h3" weight="600">
-            멤버 초대
-          </Typography>
-          <Pressable onPress={handleInvite} disabled={isInviting}>
-            {isInviting ? (
+        <ModalHeader
+          title="멤버 초대"
+          left={
+            <ModalHeaderButton
+              label="취소"
+              onPress={handleClose}
+              disabled={isInviting}
+            />
+          }
+          right={
+            isInviting ? (
               <ActivityIndicator size="small" color={colors.tint} />
             ) : (
-              <Typography variant="body1" weight="600" color="primary">
-                초대
-              </Typography>
-            )}
-          </Pressable>
-        </View>
+              <ModalHeaderButton label="초대" onPress={handleInvite} bold />
+            )
+          }
+        />
 
         {/* 컨텐츠 */}
         <View style={styles.content}>
@@ -200,24 +197,6 @@ export function InviteMemberModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  dragHandle: {
-    width: 36,
-    height: 5,
-    backgroundColor: '#C7C7CC',
-    borderRadius: 3,
-    alignSelf: 'center',
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   content: {
     flex: 1,

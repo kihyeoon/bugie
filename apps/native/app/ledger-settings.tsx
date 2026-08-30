@@ -10,6 +10,8 @@ import { useServices } from '@/contexts/ServiceContext';
 import { EditTextModal } from '@/components/shared/EditTextModal';
 import { ViewMembersModal } from '@/components/ledger/ViewMembersModal';
 import { InviteMemberModal } from '@/components/ledger/InviteMemberModal';
+import { InviteLinkModal } from '@/components/ledger/InviteLinkModal';
+import { ManageInvitesModal } from '@/components/ledger/ManageInvitesModal';
 import type { LedgerWithMembers, LedgerDetail, MemberRole } from '@repo/core';
 import { PermissionService } from '@repo/core';
 import { ScreenHeader } from '@/components/shared/ScreenHeader';
@@ -33,6 +35,8 @@ export default function LedgerSettingsScreen() {
   const [viewMembersModalVisible, setViewMembersModalVisible] = useState(false);
   const [inviteMemberModalVisible, setInviteMemberModalVisible] =
     useState(false);
+  const [inviteLinkModalVisible, setInviteLinkModalVisible] = useState(false);
+  const [manageInvitesVisible, setManageInvitesVisible] = useState(false);
 
   useEffect(() => {
     // URL 파라미터로 받은 ledgerId로 가계부 찾기
@@ -131,6 +135,16 @@ export default function LedgerSettingsScreen() {
 
   const handleInviteMember = () => {
     setInviteMemberModalVisible(true);
+  };
+
+  const handleInviteByLink = () => {
+    setInviteLinkModalVisible(true);
+  };
+
+  // 초대 코드 발급. 모달이 반환된 코드를 공유/복사한다.
+  const handleCreateInviteCode = async () => {
+    if (!ledger) throw new Error('가계부를 찾을 수 없습니다.');
+    return ledgerService.createInvite({ ledgerId: ledger.id });
   };
 
   const handleInviteMemberSubmit = async (email: string, role: MemberRole) => {
@@ -318,13 +332,32 @@ export default function LedgerSettingsScreen() {
               showDivider={canManageMembers}
             />
             {canManageMembers && (
-              <DetailRow
-                label="멤버 초대"
-                editable={true}
-                actionable={true}
-                onPress={handleInviteMember}
-                disabled={loading}
-              />
+              <>
+                <DetailRow
+                  label="초대 링크 만들기"
+                  editable={true}
+                  actionable={true}
+                  onPress={handleInviteByLink}
+                  disabled={loading}
+                  showDivider={true}
+                />
+                <DetailRow
+                  label="이메일로 초대"
+                  value="상대 이메일을 알 때"
+                  editable={true}
+                  actionable={true}
+                  onPress={handleInviteMember}
+                  disabled={loading}
+                  showDivider={true}
+                />
+                <DetailRow
+                  label="초대 관리"
+                  editable={true}
+                  actionable={true}
+                  onPress={() => setManageInvitesVisible(true)}
+                  disabled={loading}
+                />
+              </>
             )}
           </DetailSection>
 
@@ -415,7 +448,26 @@ export default function LedgerSettingsScreen() {
         onTransferOwnership={handleTransferOwnership}
       />
 
-      {/* 멤버 초대 모달 */}
+      {/* 초대 링크 모달 */}
+      {ledger && (
+        <InviteLinkModal
+          visible={inviteLinkModalVisible}
+          ledgerName={ledger.name}
+          onCreateCode={handleCreateInviteCode}
+          onClose={() => setInviteLinkModalVisible(false)}
+        />
+      )}
+
+      {/* 초대 관리 모달 */}
+      {ledger && (
+        <ManageInvitesModal
+          visible={manageInvitesVisible}
+          ledgerId={ledger.id}
+          onClose={() => setManageInvitesVisible(false)}
+        />
+      )}
+
+      {/* 멤버 초대 모달 (이메일 방식, 보조) */}
       {ledger && (
         <InviteMemberModal
           visible={inviteMemberModalVisible}
