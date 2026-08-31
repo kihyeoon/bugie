@@ -17,6 +17,9 @@ export function formatInviteCode(code: string): string {
   return normalized.replace(/(.{4})(?=.)/g, '$1-');
 }
 
+/** App Store 링크 (미설치자 → 설치 → 코드 입력으로 참여) */
+const APP_STORE_URL = 'https://apps.apple.com/app/id6754210865';
+
 /** 초대 코드로 딥링크 URL 생성 */
 export function buildInviteUrl(code: string): string {
   return `bugie://invite?code=${normalizeInviteCode(code)}`;
@@ -32,5 +35,7 @@ export function buildInviteMessage(ledgerName: string, code: string): string {
     '',
     'Bugie 앱에서 코드를 입력하면 참여할 수 있어요.',
     buildInviteUrl(code),
+    '',
+    `앱 설치: ${APP_STORE_URL}`,
   ].join('\n');
 }
