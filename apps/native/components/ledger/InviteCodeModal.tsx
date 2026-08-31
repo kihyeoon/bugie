@@ -62,7 +62,7 @@ export function InviteCodeModal({
   const colors = Colors[colorScheme ?? 'light'];
   const { ledgerService } = useServices();
 
-  const [invites, setInvites] = useState<LedgerInviteEntity[]>([]);
+  const [invite, setInvite] = useState<LedgerInviteEntity | null>(null);
   const [loading, setLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -75,9 +75,16 @@ export function InviteCodeModal({
     []
   );
 
-  const fetchInvites = useCallback(async () => {
+  const fetchInvite = useCallback(async () => {
     try {
-      setInvites(await ledgerService.getInvites(ledgerId));
+      const invites = await ledgerService.getInvites(ledgerId);
+      // created_at desc 정렬이라 첫 활성 코드가 최신. 코드는 하나만 쓰는 스펙이라
+      // 그 하나만 보여준다. (출시 전 테스트로 생긴 여분 활성 코드는 7일 내 자동 만료)
+      setInvite(
+        invites.find(
+          (i) => i.status === 'active' && i.expiresAt.getTime() > Date.now()
+        ) ?? null
+      );
     } catch (error) {
       Alert.alert(
         '오류',
@@ -89,8 +96,8 @@ export function InviteCodeModal({
   useEffect(() => {
     if (!visible) return;
     setLoading(true);
-    fetchInvites().finally(() => setLoading(false));
-  }, [visible, fetchInvites]);
+    fetchInvite().finally(() => setLoading(false));
+  }, [visible, fetchInvite]);
 
   const handleClose = () => {
     setCopied(false);
@@ -101,7 +108,7 @@ export function InviteCodeModal({
     setIsCreating(true);
     try {
       await ledgerService.createInvite({ ledgerId });
-      await fetchInvites();
+      await fetchInvite();
     } catch (error) {
       const message =
         error instanceof Error ? error.message : '초대 코드를 만들지 못했습니다.';
@@ -127,10 +134,10 @@ export function InviteCodeModal({
     copiedTimer.current = setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleRevoke = (invite: LedgerInviteEntity) => {
+  const handleRevoke = (target: LedgerInviteEntity) => {
     Alert.alert(
       '초대 코드 폐기',
-      `${formatInviteCode(invite.code)} 코드를 폐기할까요?\n이미 참여한 멤버는 그대로 유지됩니다.`,
+      `${formatInviteCode(target.code)} 코드를 폐기할까요?\n이미 참여한 멤버는 그대로 유지됩니다.`,
       [
         { text: '취소', style: 'cancel' },
         {
@@ -138,8 +145,8 @@ export function InviteCodeModal({
           style: 'destructive',
           onPress: async () => {
             try {
-              await ledgerService.revokeInvite(invite.id);
-              await fetchInvites();
+              await ledgerService.revokeInvite(target.id);
+              await fetchInvite();
             } catch (error) {
               Alert.alert(
                 '오류',
@@ -151,12 +158,6 @@ export function InviteCodeModal({
       ]
     );
   };
-
-  const activeInvites = invites.filter(
-    (i) => i.status === 'active' && i.expiresAt.getTime() > Date.now()
-  );
-  // created_at desc 정렬이라 첫 번째가 최신. 정상 흐름에선 하나만 존재한다.
-  const [current, ...others] = activeInvites;
 
   return (
     <Modal
@@ -183,7 +184,7 @@ export function InviteCodeModal({
           </View>
         ) : (
           <ScrollView contentContainerStyle={styles.content}>
-            {current ? (
+            {invite ? (
               <>
                 {/* 활성 코드 */}
                 <View
@@ -196,17 +197,17 @@ export function InviteCodeModal({
                   ]}
                 >
                   <Typography variant="h2" weight="700" style={styles.codeText}>
-                    {formatInviteCode(current.code)}
+                    {formatInviteCode(invite.code)}
                   </Typography>
                   <Typography variant="caption" color="secondary">
-                    {formatExpiry(current.expiresAt)} · {formatUseCount(current)}
+                    {formatExpiry(invite.expiresAt)} · {formatUseCount(invite)}
                   </Typography>
                 </View>
 
                 {/* 공유 / 복사 */}
                 <Pressable
                   style={[styles.primaryButton, { backgroundColor: colors.tint }]}
-                  onPress={() => handleShare(current.code)}
+                  onPress={() => handleShare(invite.code)}
                 >
                   <Ionicons name="share-outline" size={18} color="#FFFFFF" />
                   <Typography
@@ -220,7 +221,7 @@ export function InviteCodeModal({
 
                 <Pressable
                   style={[styles.secondaryButton, { borderColor: colors.border }]}
-                  onPress={() => handleCopy(current.code)}
+                  onPress={() => handleCopy(invite.code)}
                 >
                   <Ionicons
                     name={copied ? 'checkmark' : 'copy-outline'}
@@ -233,7 +234,7 @@ export function InviteCodeModal({
                 </Pressable>
 
                 {/* 참여자 */}
-                {current.acceptances.length > 0 && (
+                {invite.acceptances.length > 0 && (
                   <View style={styles.section}>
                     <Typography
                       variant="caption"
@@ -243,7 +244,7 @@ export function InviteCodeModal({
                       이 코드로 참여
                     </Typography>
                     <Card variant="outlined" padding="medium" style={styles.card}>
-                      {current.acceptances.map((a) => (
+                      {invite.acceptances.map((a) => (
                         <View key={a.userId} style={styles.acceptanceRow}>
                           <Ionicons
                             name="person-circle-outline"
@@ -274,55 +275,13 @@ export function InviteCodeModal({
                 {/* 폐기 */}
                 <Pressable
                   style={styles.revokeButton}
-                  onPress={() => handleRevoke(current)}
+                  onPress={() => handleRevoke(invite)}
                 >
                   <Typography variant="body2" weight="600" color="error">
                     코드 폐기
                   </Typography>
                 </Pressable>
 
-                {/* 예전에 만들어진 활성 코드가 더 있는 경우 (정상 흐름에선 없음) */}
-                {others.length > 0 && (
-                  <View style={styles.section}>
-                    <Typography
-                      variant="caption"
-                      color="secondary"
-                      style={styles.label}
-                    >
-                      이전 코드
-                    </Typography>
-                    {others.map((invite) => (
-                      <Card
-                        key={invite.id}
-                        variant="outlined"
-                        padding="medium"
-                        style={styles.card}
-                      >
-                        <View style={styles.cardHeader}>
-                          <Typography variant="body1" weight="700">
-                            {formatInviteCode(invite.code)}
-                          </Typography>
-                          <Pressable
-                            onPress={() => handleRevoke(invite)}
-                            hitSlop={8}
-                          >
-                            <Typography
-                              variant="caption"
-                              weight="600"
-                              color="error"
-                            >
-                              폐기
-                            </Typography>
-                          </Pressable>
-                        </View>
-                        <Typography variant="caption" color="secondary">
-                          {formatExpiry(invite.expiresAt)} ·{' '}
-                          {formatUseCount(invite)}
-                        </Typography>
-                      </Card>
-                    ))}
-                  </View>
-                )}
               </>
             ) : (
               <>
@@ -408,11 +367,6 @@ const styles = StyleSheet.create({
   },
   card: {
     gap: 6,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
   },
   acceptanceRow: {
     flexDirection: 'row',
