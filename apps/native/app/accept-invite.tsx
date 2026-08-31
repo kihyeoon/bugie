@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,6 +8,7 @@ import {
   Platform,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -37,6 +38,14 @@ export default function AcceptInviteScreen() {
     normalizeInviteCode(codeParam ?? '').slice(0, CODE_LENGTH)
   );
   const [isJoining, setIsJoining] = useState(false);
+
+  // 딥링크 콜드 스타트는 이 화면이 초기 라우트라 app/index.tsx를 거치지 않는다.
+  // 여기서 숨기지 않으면 스플래시가 영원히 남는다.
+  useEffect(() => {
+    SplashScreen.hideAsync().catch((e) =>
+      console.warn('SplashScreen hide error:', e)
+    );
+  }, []);
 
   const canSubmit = code.length === CODE_LENGTH && !isJoining;
 

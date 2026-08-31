@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,6 +19,14 @@ export default function InviteDeepLinkScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const { session, loading, needsProfile } = useAuth();
+
+  // 딥링크 콜드 스타트는 이 화면이 초기 라우트라 app/index.tsx를 거치지 않는다.
+  // 여기서 숨기지 않으면 스플래시가 영원히 남는다.
+  useEffect(() => {
+    SplashScreen.hideAsync().catch((e) =>
+      console.warn('SplashScreen hide error:', e)
+    );
+  }, []);
 
   useEffect(() => {
     if (loading) return;
