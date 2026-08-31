@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { normalizeInviteCode } from '@/utils/invite';
+import { useHideSplashOnMount } from '@/hooks/useHideSplashOnMount';
 
 /**
  * 초대 딥링크 수신 (bugie://invite?code=...)
@@ -20,13 +20,8 @@ export default function InviteDeepLinkScreen() {
   const colors = Colors[colorScheme ?? 'light'];
   const { session, loading, needsProfile } = useAuth();
 
-  // 딥링크 콜드 스타트는 이 화면이 초기 라우트라 app/index.tsx를 거치지 않는다.
-  // 여기서 숨기지 않으면 스플래시가 영원히 남는다.
-  useEffect(() => {
-    SplashScreen.hideAsync().catch((e) =>
-      console.warn('SplashScreen hide error:', e)
-    );
-  }, []);
+  // 딥링크 콜드 스타트의 초기 라우트 — app/index.tsx를 거치지 않는다.
+  useHideSplashOnMount();
 
   useEffect(() => {
     if (loading) return;

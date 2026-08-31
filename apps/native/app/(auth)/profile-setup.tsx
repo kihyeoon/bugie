@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,26 +8,16 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as SplashScreen from 'expo-splash-screen';
 import { useAuth } from '../../contexts/AuthContext';
 import { router } from 'expo-router';
+import { useHideSplashOnMount } from '@/hooks/useHideSplashOnMount';
 
 export default function ProfileSetupScreen() {
   const { updateProfile } = useAuth();
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // 프로필 설정 화면 마운트 시 스플래시 숨김
-  useEffect(() => {
-    async function hideSplash() {
-      try {
-        await SplashScreen.hideAsync();
-      } catch (e) {
-        console.warn('SplashScreen hide error:', e);
-      }
-    }
-    hideSplash();
-  }, []);
+  useHideSplashOnMount();
 
   const handleSaveProfile = async () => {
     if (!fullName.trim()) {

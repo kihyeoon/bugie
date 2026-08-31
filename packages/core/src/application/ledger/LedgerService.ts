@@ -365,7 +365,8 @@ export class LedgerService {
     } catch (error) {
       if (error instanceof Error) {
         if (error.message.includes('초대 링크를 만들 권한이 없습니다')) {
-          throw new UnauthorizedError('초대 링크를 만들 권한이 없습니다.');
+          // includes() 매칭 원문은 DB RAISE 문구라 그대로 두고, 사용자 노출 메시지만 '코드'로 통일
+          throw new UnauthorizedError('초대 코드를 만들 권한이 없습니다.');
         }
         if (error.message.includes('owner 역할로는 초대할 수 없습니다')) {
           throw new BusinessRuleViolationError(
@@ -374,7 +375,7 @@ export class LedgerService {
         }
         if (error.message.includes('활성 초대 링크가 너무 많습니다')) {
           throw new BusinessRuleViolationError(
-            '활성 초대 링크가 너무 많습니다. 기존 링크를 폐기하고 다시 시도해주세요.'
+            '활성 초대 코드가 너무 많습니다. 기존 코드를 폐기하고 다시 시도해주세요.'
           );
         }
       }

@@ -236,11 +236,7 @@ export function InviteCodeModal({
                 {/* 참여자 */}
                 {invite.acceptances.length > 0 && (
                   <View style={styles.section}>
-                    <Typography
-                      variant="caption"
-                      color="secondary"
-                      style={styles.label}
-                    >
+                    <Typography variant="caption" color="secondary">
                       이 코드로 참여
                     </Typography>
                     <Card variant="outlined" padding="medium" style={styles.card}>
@@ -327,9 +323,6 @@ const styles = StyleSheet.create({
   section: {
     marginTop: 8,
     gap: 8,
-  },
-  label: {
-    textTransform: 'uppercase',
   },
   codeBox: {
     borderRadius: 12,

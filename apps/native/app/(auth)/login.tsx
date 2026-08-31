@@ -11,12 +11,12 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as SplashScreen from 'expo-splash-screen';
 import { router } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
 import { SocialLoginButton } from '../../components/auth/SocialLoginButton';
 import { supabase } from '../../utils/supabase';
 import type { OAuthProvider } from '@repo/types';
+import { useHideSplashOnMount } from '@/hooks/useHideSplashOnMount';
 
 const { height } = Dimensions.get('window');
 
@@ -26,17 +26,7 @@ export default function LoginScreen() {
     null
   );
 
-  // 로그인 화면 마운트 시 스플래시 숨김
-  useEffect(() => {
-    async function hideSplash() {
-      try {
-        await SplashScreen.hideAsync();
-      } catch (e) {
-        console.warn('SplashScreen hide error:', e);
-      }
-    }
-    hideSplash();
-  }, []);
+  useHideSplashOnMount();
 
   // 인증 완료 시 리다이렉트 (패스워드 로그인 대응)
   useEffect(() => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,7 +8,6 @@ import {
   Platform,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -18,6 +17,7 @@ import { ScreenHeader } from '@/components/shared/ScreenHeader';
 import { useServices } from '@/contexts/ServiceContext';
 import { useLedger } from '@/contexts/LedgerContext';
 import { formatInviteCode, normalizeInviteCode } from '@/utils/invite';
+import { useHideSplashOnMount } from '@/hooks/useHideSplashOnMount';
 
 const CODE_LENGTH = 12;
 
@@ -39,13 +39,8 @@ export default function AcceptInviteScreen() {
   );
   const [isJoining, setIsJoining] = useState(false);
 
-  // 딥링크 콜드 스타트는 이 화면이 초기 라우트라 app/index.tsx를 거치지 않는다.
-  // 여기서 숨기지 않으면 스플래시가 영원히 남는다.
-  useEffect(() => {
-    SplashScreen.hideAsync().catch((e) =>
-      console.warn('SplashScreen hide error:', e)
-    );
-  }, []);
+  // 보통은 invite.tsx를 거쳐 오지만, bugie://accept-invite 직접 콜드 진입 대비(방어적).
+  useHideSplashOnMount();
 
   const canSubmit = code.length === CODE_LENGTH && !isJoining;
 

@@ -433,14 +433,12 @@ export default function LedgerSettingsScreen() {
       />
 
       {/* 초대 코드 모달 */}
-      {ledger && (
-        <InviteCodeModal
-          visible={inviteCodeModalVisible}
-          ledgerId={ledger.id}
-          ledgerName={ledger.name}
-          onClose={() => setInviteCodeModalVisible(false)}
-        />
-      )}
+      <InviteCodeModal
+        visible={inviteCodeModalVisible}
+        ledgerId={ledger.id}
+        ledgerName={ledger.name}
+        onClose={() => setInviteCodeModalVisible(false)}
+      />
 
       {/* 멤버 초대 모달 (이메일 방식, 보조) */}
       {ledger && (
