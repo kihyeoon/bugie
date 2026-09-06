@@ -18,6 +18,7 @@ import { AmountDisplay } from '@/components/ui/AmountDisplay';
 import { getIoniconName } from '@/constants/categories';
 import { formatDateKorean } from '@/utils/dateFormatter';
 import { EditAmountModal } from '@/components/transaction/EditAmountModal';
+import { TransactionInfoRow } from '@/components/transaction/TransactionInfoRow';
 import { EditTextModal } from '@/components/shared/EditTextModal';
 import { PaidByBottomSheet } from '@/components/shared/PaidByBottomSheet';
 import { PaymentMethodBottomSheet } from '@/components/shared/PaymentMethodBottomSheet';
@@ -327,7 +328,7 @@ export default function TransactionDetailScreen() {
                 color={transaction.category_color}
               />
             </View>
-            <Typography variant="body1" weight="500">
+            <Typography variant="body1" weight="500" style={styles.title}>
               {transaction.title}
             </Typography>
           </View>
@@ -357,212 +358,64 @@ export default function TransactionDetailScreen() {
         <View
           style={[styles.infoSection, { backgroundColor: colors.background }]}
         >
-          {/* 카테고리 설정 */}
-          <Pressable
-            style={[
-              styles.infoRow,
-              !canUpdateTransaction && styles.disabledRow,
-            ]}
-            onPress={
-              canUpdateTransaction
-                ? () => setCategoryModalVisible(true)
-                : undefined
-            }
+          <TransactionInfoRow
+            label="카테고리 설정"
+            value={transaction.category_name}
+            onPress={() => setCategoryModalVisible(true)}
             disabled={!canUpdateTransaction}
-          >
-            <Typography variant="body1" color="secondary" weight="500">
-              카테고리 설정
-            </Typography>
-            <View style={styles.valueContainer}>
-              <Typography variant="body1">
-                {transaction.category_name}
-              </Typography>
-              {canUpdateTransaction && (
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color={colors.textSecondary}
-                />
-              )}
-            </View>
-          </Pressable>
-
-          {/* 제목 */}
-          <Pressable
-            style={[
-              styles.infoRow,
-              !canUpdateTransaction && styles.disabledRow,
-            ]}
-            onPress={
-              canUpdateTransaction
-                ? () => setTitleModalVisible(true)
-                : undefined
-            }
+          />
+          <TransactionInfoRow
+            label="제목"
+            value={transaction.title}
+            onPress={() => setTitleModalVisible(true)}
             disabled={!canUpdateTransaction}
-          >
-            <Typography variant="body1" color="secondary" weight="500">
-              제목
-            </Typography>
-            <View style={styles.valueContainer}>
-              <Typography variant="body1">{transaction.title}</Typography>
-              {canUpdateTransaction && (
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color={colors.textSecondary}
-                />
-              )}
-            </View>
-          </Pressable>
-
-          {/* 메모 */}
-          <Pressable
-            style={[
-              styles.infoRow,
-              !canUpdateTransaction && styles.disabledRow,
-            ]}
-            onPress={
-              canUpdateTransaction ? () => setMemoModalVisible(true) : undefined
-            }
+          />
+          <TransactionInfoRow
+            label="메모"
+            value={transaction.description}
+            placeholder="메모를 남겨보세요"
+            multiline
+            onPress={() => setMemoModalVisible(true)}
             disabled={!canUpdateTransaction}
-          >
-            <Typography variant="body1" color="secondary" weight="500">
-              메모
-            </Typography>
-            <View style={styles.valueContainer}>
-              <Typography
-                variant="body1"
-                color={transaction.description ? 'primary' : 'secondary'}
-                numberOfLines={2}
-                ellipsizeMode="tail"
-                style={{ flex: 1, textAlign: 'right' }}
-              >
-                {transaction.description || '메모를 남겨보세요'}
-              </Typography>
-              {canUpdateTransaction && (
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color={colors.textSecondary}
-                />
-              )}
-            </View>
-          </Pressable>
-
-          {/* 거래 날짜 */}
-          <Pressable
-            style={[
-              styles.infoRow,
-              !canUpdateTransaction && styles.disabledRow,
-            ]}
-            onPress={
-              canUpdateTransaction
-                ? () => setDatePickerVisible(true)
-                : undefined
-            }
+          />
+          <TransactionInfoRow
+            label="거래일"
+            value={formatDateKorean(transaction.transaction_date)}
+            onPress={() => setDatePickerVisible(true)}
             disabled={!canUpdateTransaction}
-          >
-            <Typography variant="body1" color="secondary" weight="500">
-              거래일
-            </Typography>
-            <View style={styles.valueContainer}>
-              <Typography variant="body1">
-                {formatDateKorean(transaction.transaction_date)}
-              </Typography>
-              {canUpdateTransaction && (
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color={colors.textSecondary}
-                />
-              )}
-            </View>
-          </Pressable>
-
-          {/* 지출자 - 공유 가계부에서만 수정 가능 */}
-          {isSharedLedger ? (
-            <Pressable
-              style={[
-                styles.infoRow,
-                !canUpdateTransaction && styles.disabledRow,
-              ]}
-              onPress={
-                canUpdateTransaction
-                  ? () => setPaidByModalVisible(true)
-                  : undefined
+          />
+          {/* 지출자 - 공유 가계부에서만 표시 */}
+          {isSharedLedger && (
+            <TransactionInfoRow
+              label="지출자"
+              value={
+                transaction.paid_by
+                  ? transaction.paid_by_name || DELETED_USER_LABEL
+                  : transaction.created_by_name || DELETED_USER_LABEL
               }
+              onPress={() => setPaidByModalVisible(true)}
               disabled={!canUpdateTransaction}
-            >
-              <Typography variant="body1" color="secondary" weight="500">
-                지출자
-              </Typography>
-              <View style={styles.valueContainer}>
-                <Typography variant="body1">
-                  {transaction.paid_by
-                    ? transaction.paid_by_name || DELETED_USER_LABEL
-                    : transaction.created_by_name || DELETED_USER_LABEL}
-                </Typography>
-                {canUpdateTransaction && (
-                  <Ionicons
-                    name="chevron-forward"
-                    size={20}
-                    color={colors.textSecondary}
-                  />
-                )}
-              </View>
-            </Pressable>
-          ) : null}
-
+            />
+          )}
           {/* 결제 수단 - 지출 거래에서만 표시 */}
           {transaction.type === 'expense' && (
-            <Pressable
-              style={[
-                styles.infoRow,
-                !canUpdateTransaction && styles.disabledRow,
-              ]}
-              onPress={
-                canUpdateTransaction
-                  ? () => setPaymentMethodModalVisible(true)
-                  : undefined
+            <TransactionInfoRow
+              label="결제 수단"
+              value={
+                transaction.payment_method_name
+                  ? `${transaction.payment_method_name}${transaction.payment_method_is_shared ? ' (공동)' : ''}`
+                  : null
               }
+              placeholder="미지정"
+              onPress={() => setPaymentMethodModalVisible(true)}
               disabled={!canUpdateTransaction}
-            >
-              <Typography variant="body1" color="secondary" weight="500">
-                결제 수단
-              </Typography>
-              <View style={styles.valueContainer}>
-                <Typography
-                  variant="body1"
-                  color={
-                    transaction.payment_method_name ? 'primary' : 'secondary'
-                  }
-                  numberOfLines={1}
-                  style={{ flex: 1, textAlign: 'right' }}
-                >
-                  {transaction.payment_method_name
-                    ? `${transaction.payment_method_name}${transaction.payment_method_is_shared ? ' (공동)' : ''}`
-                    : '미지정'}
-                </Typography>
-                {canUpdateTransaction && (
-                  <Ionicons
-                    name="chevron-forward"
-                    size={20}
-                    color={colors.textSecondary}
-                  />
-                )}
-              </View>
-            </Pressable>
+            />
           )}
-
           {/* 작성자 - 수정 불가 */}
-          <View style={styles.infoRow}>
-            <Typography variant="body1" color="secondary" weight="500">
-              작성자
-            </Typography>
-            <Typography variant="body1">
-              {transaction.created_by_name || DELETED_USER_LABEL}
-            </Typography>
-          </View>
+          <TransactionInfoRow
+            label="작성자"
+            value={transaction.created_by_name || DELETED_USER_LABEL}
+          />
         </View>
       </ScrollView>
 
@@ -718,6 +571,9 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 8,
   },
+  title: {
+    flexShrink: 1,
+  },
   categoryIconSmall: {
     width: 32,
     height: 32,
@@ -740,21 +596,6 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   infoSection: {},
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    minHeight: 56,
-  },
-  valueContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
   deleteButtonContainer: {
     paddingHorizontal: 24,
     paddingVertical: 16,
@@ -764,8 +605,5 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
-  },
-  disabledRow: {
-    opacity: 0.6,
   },
 });
