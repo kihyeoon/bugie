@@ -52,7 +52,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // React StrictMode 대응을 위한 초기화 플래그
   const isInitialized = useRef(false);
-  const isSettingSession = useRef(false);
 
   // 프로필 데이터 가져오기 (간소화됨)
   const getProfile = useCallback(async (userId: string, userEmail?: string | null) => {
@@ -81,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ),
       ]);
 
-      if (!session || isSettingSession.current) {
+      if (!session) {
         setAuthState((prev) => ({ ...prev, loading: false }));
         return;
       }
@@ -156,11 +155,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 인증 상태 변경 리스너
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        // 이미 세션 설정 중이면 무시
-        if (isSettingSession.current) {
-          return;
-        }
-
         if (event === 'SIGNED_IN' && session) {
           const profile = await getProfile(session.user.id, session.user.email);
           if (profile) {
