@@ -31,14 +31,19 @@ export default function InviteDeepLinkScreen() {
       return;
     }
 
-    // 프로필 미설정 사용자는 먼저 프로필 설정으로 (app/index.tsx의 게이트와 동일)
-    // 초대는 신규 가입자가 받는 경우가 많아 이 분기가 실제로 자주 걸린다.
+    const normalized = code ? normalizeInviteCode(code) : '';
+
+    // 닉네임 미설정 사용자는 먼저 닉네임 화면으로 (app/index.tsx의 게이트와 동일).
+    // 초대는 신규 가입자가 받는 경우가 많아 이 분기가 실제로 자주 걸린다. 코드를 넘겨 저장 후 수락으로 잇는다.
     if (needsProfile) {
-      router.replace('/(auth)/profile-setup');
+      router.replace(
+        normalized
+          ? { pathname: '/(auth)/profile-setup', params: { code: normalized } }
+          : '/(auth)/profile-setup'
+      );
       return;
     }
 
-    const normalized = code ? normalizeInviteCode(code) : '';
     router.replace(
       normalized
         ? { pathname: '/accept-invite', params: { code: normalized } }

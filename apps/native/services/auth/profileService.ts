@@ -1,3 +1,4 @@
+import { ProfileRules } from '@repo/core';
 import { supabase } from '../../utils/supabase';
 import type { AuthProfile as Profile } from '@repo/types';
 import type { User } from '@supabase/supabase-js';
@@ -295,6 +296,57 @@ const createDefaultLedger = async (
  */
 export const needsOnboarding = (profile: Profile | null): boolean =>
   !profile || profile.onboarded_at === null;
+
+/** 닉네임 규칙 위반 메시지. 규칙에 맞으면 null. */
+export const nicknameError = (nickname: string): string | null => {
+  try {
+    ProfileRules.validateNickname(nickname);
+    return null;
+  } catch (error) {
+    return error instanceof Error ? error.message : '사용할 수 없는 닉네임입니다.';
+  }
+};
+
+/**
+ * 닉네임 입력칸의 기본값. 애플·구글이 준 이름은 규칙에 맞지 않을 수 있어(`Gil-dong Hong`, `O'Brien`)
+ * 허용하지 않는 문자를 빼고 20자로 자른다. 이메일 앞부분(제공자 이름이 없을 때의 폴백)이거나
+ * 정리해도 규칙에 맞지 않으면 빈칸으로 둔다.
+ */
+export const toNicknameDraft = (
+  name: string | null | undefined,
+  email: string | null | undefined
+): string => {
+  if (!name || name === email?.split('@')[0]) return '';
+
+  const draft = name
+    .normalize('NFC')
+    .replace(/[^가-힣a-zA-Z0-9\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 20)
+    .trim();
+  return nicknameError(draft) ? '' : draft;
+};
+
+/** 가입 때 setup_new_user가 만드는 기본 가계부 이름 */
+export const defaultLedgerName = (name: string) => `${name}의 가계부`;
+
+/**
+ * 가입 때 만들어진 기본 가계부를 찾는다. 표시는 없으므로 "내가 만들었고 이름이 자동으로 붙은 형식 그대로"인
+ * 가계부로 본다. 사용자가 이름을 바꾼 가계부는 걸리지 않는다.
+ */
+export const findDefaultLedger = <T extends { name: string; created_by: string }>(
+  ledgers: T[],
+  userId: string | undefined,
+  currentName: string | null | undefined
+): T | undefined => {
+  if (!userId || !currentName) return undefined;
+  return ledgers.find(
+    (ledger) =>
+      ledger.created_by === userId &&
+      ledger.name === defaultLedgerName(currentName)
+  );
+};
 
 /**
  * 프로필 업데이트
