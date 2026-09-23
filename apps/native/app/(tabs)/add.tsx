@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router/react-navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { getIoniconName } from '@/constants/categories';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -27,6 +28,7 @@ import { useLedger } from '@/contexts/LedgerContext';
 import { useServices } from '@/contexts/ServiceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSelectedDate } from '@/contexts/SelectedDateContext';
+import { invalidateTransactionLists } from '@/utils/queryClient';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { addYears } from 'date-fns';
@@ -62,6 +64,7 @@ export default function AddTransactionScreen() {
   const router = useRouter();
   const { currentLedger } = useLedger();
   const { transactionService } = useServices();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const { selectedDate: sharedDate } = useSelectedDate();
   const {
@@ -208,6 +211,7 @@ export default function AddTransactionScreen() {
 
       // 거래 저장
       await transactionService.createTransaction(transactionInput);
+      invalidateTransactionLists(queryClient);
 
       // 성공 - 폼 초기화 후 홈 화면으로 이동
       resetForm();

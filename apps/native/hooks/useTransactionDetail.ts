@@ -5,7 +5,7 @@ import {
   type QueryClient,
 } from '@tanstack/react-query';
 import { useServices } from '../contexts/ServiceContext';
-import { queryKeys } from '../utils/queryClient';
+import { invalidateTransactionLists, queryKeys } from '../utils/queryClient';
 import type {
   TransactionWithDetails,
   UpdateTransactionInput,
@@ -138,19 +138,6 @@ export function useTransactionDetail(
     await refetchQuery({ cancelRefetch: false });
   }, [refetchQuery]);
 
-  /**
-   * 이 거래가 바뀌면 홈·목록의 행도 낡은 데이터가 된다.
-   * 표시만 해두고 다시 받지는 않는다. 두 화면이 돌아올 때 어차피 재조회하므로 여기서 받으면 요청만 두 번이 된다.
-   */
-  const invalidateLists = useCallback(
-    () =>
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.transactions.all,
-        refetchType: 'none',
-      }),
-    [queryClient]
-  );
-
   const updateTransaction = useCallback(
     async (updates: UpdateTransactionInputWithCategoryDetails) => {
       if (!transactionId) {
@@ -197,7 +184,7 @@ export function useTransactionDetail(
 
         // 백그라운드에서 데이터 재검증 (로딩 화면 없이)
         queryClient.invalidateQueries({ queryKey });
-        invalidateLists();
+        invalidateTransactionLists(queryClient);
       } catch (err) {
         // 지출자/결제 수단 낙관적 반영 실패 시 직전 상태로 롤백
         if (isPaidByUpdate || isPaymentMethodUpdate) {
@@ -208,7 +195,7 @@ export function useTransactionDetail(
           : new Error('거래를 수정할 수 없습니다.');
       }
     },
-    [transactionId, transactionService, queryClient, queryKey, invalidateLists]
+    [transactionId, transactionService, queryClient, queryKey]
   );
 
   const deleteTransaction = async () => {
@@ -219,7 +206,7 @@ export function useTransactionDetail(
     try {
       await transactionService.deleteTransaction(transactionId);
       // 상세 쿼리는 지우지 않는다. 이 화면이 떠 있는 동안 지우면 삭제된 거래를 다시 받으려다 에러가 번쩍인다.
-      invalidateLists();
+      invalidateTransactionLists(queryClient);
     } catch (err) {
       console.error('TransactionService deleteTransaction error:', err);
       throw err instanceof Error
