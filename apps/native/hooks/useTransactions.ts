@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { SectionListData } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import { useServices } from '../contexts/ServiceContext';
+import { queryKeys } from '../utils/queryClient';
 import { formatLocalDate, type TransactionWithDetails } from '@repo/core';
 
 interface UseTransactionsOptions {
@@ -31,6 +33,8 @@ interface UseTransactionsReturn {
 // 한 달 단위 화면이라 페이지네이션 없이 한 번에 로드. 일반 사용자 한 달 거래량 상한선을 넉넉히 잡음.
 const FETCH_LIMIT = 1000;
 
+const NO_TRANSACTIONS: TransactionWithDetails[] = [];
+
 export function useTransactions({
   ledgerId,
   year,
@@ -40,67 +44,36 @@ export function useTransactions({
   enabled = true,
 }: UseTransactionsOptions): UseTransactionsReturn {
   const { transactionService } = useServices();
-  const [transactions, setTransactions] = useState<TransactionWithDetails[]>(
-    []
-  );
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const isEnabled = enabled && !!ledgerId;
 
-  // 월의 날짜 범위 계산
-  const startDate = useMemo(() => {
-    return formatLocalDate(new Date(year, month - 1, 1));
-  }, [year, month]);
-
-  const endDate = useMemo(() => {
-    return formatLocalDate(new Date(year, month, 0));
-  }, [year, month]);
-
-  const fetchTransactions = useCallback(async () => {
-    if (!ledgerId || !enabled) {
-      setLoading(false);
-      return;
-    }
-
-    try {
+  const query = useQuery({
+    queryKey: queryKeys.transactions.month(ledgerId, year, month, {
+      categoryId,
+      type,
+    }),
+    queryFn: async () => {
       const result = await transactionService.getTransactions({
-        ledgerId,
-        startDate,
-        endDate,
+        ledgerId: ledgerId!,
+        startDate: formatLocalDate(new Date(year, month - 1, 1)),
+        endDate: formatLocalDate(new Date(year, month, 0)),
         categoryId,
         type,
         limit: FETCH_LIMIT,
         offset: 0,
       });
+      return result.data;
+    },
+    enabled: isEnabled,
+  });
 
-      if (result && result.data) {
-        setTransactions(result.data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch transactions:', err);
-      setError(err instanceof Error ? err : new Error('Unknown error'));
-    } finally {
-      setLoading(false);
-    }
-  }, [
-    ledgerId,
-    startDate,
-    endDate,
-    categoryId,
-    type,
-    enabled,
-    transactionService,
-  ]);
+  const transactions = query.data ?? NO_TRANSACTIONS;
+  const { refetch: refetchQuery } = query;
 
-  useEffect(() => {
-    setLoading(true);
-    fetchTransactions();
-  }, [fetchTransactions]);
-
+  // useQuery의 refetch는 enabled를 무시한다. 홈은 날짜를 고르기 전에도 포커스마다 refetch를 부르므로 여기서 막는다.
+  // 마운트 직후 포커스 refetch가 겹치면 진행 중인 요청을 같이 쓴다(기본값은 취소 후 재요청).
   const refetch = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    await fetchTransactions();
-  }, [fetchTransactions]);
+    if (isEnabled) await refetchQuery({ cancelRefetch: false });
+  }, [isEnabled, refetchQuery]);
 
   // 날짜별로 거래 그룹화
   const groupedTransactions = useMemo(() => {
@@ -126,8 +99,9 @@ export function useTransactions({
   return {
     transactions,
     groupedTransactions,
-    loading,
-    error,
+    // isPending은 비활성 쿼리에서도 true라 쓰지 않는다. 데이터가 없고 실제로 받는 중일 때만 로딩이다.
+    loading: query.isLoading,
+    error: query.error,
     refetch,
   };
 }
