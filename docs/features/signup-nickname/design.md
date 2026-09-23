@@ -54,7 +54,7 @@
 ```
 로그인 화면 ─ 애플 ─▶ 이름 정리 → rememberSignupName ─▶ signInWithIdToken ─▶ finally: 이름 비움
    │                                                      └ SIGNED_IN 리스너(여기서 await됨)
-   │                                                         └ ensureProfile: 새 프로필이면 takeSignupName 사용
+   │                                                         └ ensureProfile: 새 프로필이면 보관된 이름 사용
    └ 구글 ─▶ signInWithIdToken ─▶ 리스너 → ensureProfile(메타데이터 이름)
                  ▼
       상태 세팅: profile(onboarded_at = null) → needsProfile = true
@@ -101,7 +101,8 @@
   - 입력 중에는 오류를 보여주지 않는다. 한글 조합 중간 상태(`길ㄷ`)가 규칙에 걸려 오류가 깜빡이기 때문이다.
   - 버튼은 저장 중일 때와 입력이 비었을 때만 꺼진다. 누르면 검증하고, 실패하면 입력칸 아래에 오류를 보여준다.
     말없이 꺼진 버튼이 생기지 않는다.
-  - 오류는 입력을 바꾸면 지운다. 도메인 오류 문구는 합니다체라, 화면에는 해요체로 바꿔 보여준다.
+  - 오류는 입력을 바꾸면 지운다. 문구는 도메인 규칙(`ProfileRules`)의 것을 그대로 쓴다. 프로필 설정의 닉네임 수정과
+    같은 문구를 보여주기 위해서다(해요체로 바꾸려면 메시지 문자열에 의존하는 매핑이 필요해 하지 않았다).
 - **가계부 안내 줄**
   - 표시 조건: 입력값(trim)이 규칙을 통과하고, 현재 이름과 다르고, `findDefaultLedger`가 찾은 가계부가 있을 때만.
   - 오류가 있으면 오류가 먼저 보인다.
@@ -190,7 +191,7 @@ export const findDefaultLedger = (ledgers, userId, currentName) =>
 const fullName = formatAppleFullName(credential.fullName); // 빈 값이면 undefined
 rememberSignupName(fullName);
 try {
-  await supabase.auth.signInWithIdToken(...); // 리스너가 이 안에서 takeSignupName으로 사용
+  await supabase.auth.signInWithIdToken(...); // 리스너가 이 안에서 보관된 이름으로 프로필 생성
 } finally {
   rememberSignupName(undefined); // 실패·취소·기존 계정이어도 남지 않는다
 }
@@ -205,9 +206,9 @@ try {
   - 둘 다 비었으면 `undefined`. 애플은 재로그인 때 값이 전부 null인 객체를 준다. 지금 코드는 이때 `''`를 만들고,
     `COALESCE`를 통과해 이름이 `''`, 가계부가 `의 가계부`가 된다.
 - `toNicknameDraft(name)`(순수 함수, 기본값 정리)
-  - 순서: NFC 정규화 → 허용하지 않는 문자 제거 → 공백 하나로 합치기 → 20자로 자르기.
+  - 순서: 악센트 제거(NFD → 결합 문자 제거 → NFC, 한글은 다시 조합됨) → 허용하지 않는 문자 제거 → 공백 하나로 합치기 → 20자로 자르기.
   - 결과가 규칙에 맞지 않거나 이메일 앞부분이면 빈칸.
-  - 예: `Gil-dong Hong`→`Gildong Hong`, `O'Brien`→`OBrien`, `홍`(1자)→빈칸.
+  - 예: `Gil-dong Hong`→`Gildong Hong`, `O'Brien`→`OBrien`, `José García`→`Jose Garcia`, `홍`(1자)→빈칸, `山田太郎`→빈칸.
 
 ### 5.5 화면 이동과 중복 정리
 
@@ -249,28 +250,33 @@ try {
 | 6 | fix | 애플 이름 전달, `formatAppleFullName` | `services/auth/authService.ts`, `services/auth/profileService.ts` |
 | 7 | docs | 아키텍처 문서(가입 플로우, useAuth) | `docs/architecture.md` |
 
+- 4·5는 화면 한 파일을 두 번 고치게 돼 한 커밋(`eba2b1c`)으로 합쳤다.
 - 테스트 인프라(jest/vitest)는 없고, 이번에 추가하지 않는다. 대신 판정과 정리 규칙을 의존성 없는 순수 함수로 둔다
   (`needsOnboarding`, `formatAppleFullName`, `toNicknameDraft`, `findDefaultLedger`). 나중에 테스트를 붙이기 쉽게 하기 위해서다.
 - 생성 타입 재생성 명령(`npx supabase gen types typescript --local`)은 문서에만 남기고, 재생성은 별도 작업으로 한다.
 
 ## 7. 검증
 
+> 2026-09-24 시뮬레이터에서 확인한 항목은 [x]로 표시했다. 애플·구글 로그인은 시뮬레이터에서 안 되므로 실기기 항목으로 남는다.
+
 **로컬 DB**
-- [ ] `db reset` 뒤 김철수·이영희는 `onboarded_at`이 있고, `new@test.com`은 null이며 이름 `new`, 가계부 `new의 가계부`다
-- [ ] 백필 SQL: `db reset`은 마이그레이션을 seed보다 먼저 돌려서 백필을 검증하지 못한다. 그래서 다음 순서로 따로 확인한다.
+- [x] `db reset` 뒤 김철수·이영희는 `onboarded_at`이 있고, `new@test.com`은 null이며 이름 `new`, 가계부 `new의 가계부`다
+- [x] 백필 SQL: `db reset`은 마이그레이션을 seed보다 먼저 돌려서 백필을 검증하지 못한다. 실제로는 기존 DB에서 트랜잭션 안에 앞부분 이름·빈 이름 사용자를 넣고 마이그레이션을 실행한 뒤 롤백해 확인했다(앞부분·빈 이름만 null). 아래는 대안 절차다.
   1. `npx supabase db reset --version 20260830000013`
   2. 이메일 앞부분 이름 사용자를 넣는다
   3. `npx supabase migration up --local`
 
 **시뮬레이터 (dev 로그인)**
-- [ ] 신규: 닉네임 화면이 뜨고 기본값은 빈칸이다. 입력하면 안내 줄이 보이고, 저장하면 홈 상단과 가계부 선택 목록에 새 이름이 뜬다
-- [ ] 신규 저장 후 콜드 스타트: 화면이 뜨지 않는다
-- [ ] 김철수: 화면이 뜨지 않는다
-- [ ] 옛 캐시: AsyncStorage 캐시에서 `onboarded_at` 키를 빼고 콜드 스타트해도 화면이 뜨지 않는다
+- [x] 신규: 닉네임 화면이 뜨고 기본값은 빈칸이다. 입력하면 안내 줄이 보이고, 저장하면 홈 상단과 가계부 선택 목록에 새 이름이 뜬다
+- [x] 신규 저장 후 콜드 스타트: 화면이 뜨지 않는다
+- [x] 김철수: 화면이 뜨지 않는다
+- [x] 옛 캐시: AsyncStorage 캐시에서 `onboarded_at` 키를 빼고 콜드 스타트해도 화면이 뜨지 않는다
+- [x] 백필 대상 재현(DB null + 캐시에 키 없음): 첫 실행은 홈, 두 번째 실행부터 닉네임 화면
+- [x] "다른 계정으로 로그인": 로그인 화면으로 돌아간다
 - [ ] 캐시는 null인데 서버는 완료인 경우: 화면이 잠깐 떴다가 홈으로 넘어간다
-- [ ] 저장 실패(네트워크 끊김): 화면에 남고 알림은 한 번만 뜬다
+- [x] 저장 실패(로컬에서 profiles UPDATE 권한을 잠시 회수해 재현): 화면에 남고 알림은 한 번만 뜬다
 - [ ] 닉네임 화면이 한 번만 마운트된다(이중 이동 없음)
-- [ ] 한글 입력 중 오류가 깜빡이지 않는다. 규칙 위반 입력은 누르면 오류가 뜬다
+- [x] 한글 입력 중 오류가 깜빡이지 않는다. 규칙 위반 입력은 누르면 오류가 뜬다
 - [ ] 프로필 설정 닉네임 수정: 가계부 이름은 그대로이고, 실패하면 알림이 한 번만 뜬다
 - [ ] 로그인한 상태에서 `bugie://invite?code=…`로 연 미완료 사용자: 닉네임 → 초대 수락 화면
 

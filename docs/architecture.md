@@ -74,7 +74,7 @@ app/
   _layout.tsx            # Root Layout (Provider 체인)
   (auth)/                # 인증 그룹
     login.tsx            # 소셜 로그인 (Google, Apple)
-    profile-setup.tsx    # 최초 프로필 설정
+    profile-setup.tsx    # 가입 닉네임 설정 (onboarded_at이 없으면 한 번 거침)
   (tabs)/                # 탭 네비게이션 그룹
     index.tsx            # 홈 (월간 캘린더)
     add.tsx              # 빠른 입력 (커스텀 키패드)
@@ -96,7 +96,7 @@ app/
 | 목적 | 진입점 | 반환 |
 |------|--------|------|
 | core 서비스 | `useServices()` | `{ ledgerService, transactionService, profileService }` |
-| 인증 상태 | `useAuth()` | `{ user, session, loading, needsProfile }` |
+| 인증 상태 | `useAuth()` | `{ user, session, profile, loading, needsProfile }` |
 | 현재 가계부 | `useLedger()` | `{ currentLedger, ledgers, selectLedger, refreshLedgers }` |
 | 데이터 fetch | `useMonthlyData`, `useTransactions`, `useTransactionDetail`, `useCategories` | 각 hook 시그니처 참조 |
 
@@ -111,6 +111,16 @@ app/
 - **거래를 바꾸면 `invalidateTransactionLists`를 부른다.** 홈·목록은 돌아올 때 재조회하므로 표시만 해둔다
   (`refetchType: 'none'`). 카테고리·결제 수단·닉네임도 거래 행에 조인돼 있어 같이 무효화한다
 - 가계부 목록(`LedgerContext`), 가계부 설정·프로필 설정·초대 코드는 아직 캐시 밖이다
+
+## Native 앱 — 로그인과 가입
+
+- **프로필은 `AuthContext`의 `SIGNED_IN` 리스너 한 곳에서 만든다.** `signInWithIdToken`은 리스너가 끝날 때까지
+  기다리므로, 애플이 첫 승인 때만 주는 이름은 로그인 전에 `rememberSignupName`으로 넘긴다
+- **로그인 뒤 화면 이동은 상태를 보는 화면이 맡는다**(`index.tsx`, `(auth)/login.tsx`, `invite.tsx`). 로그인 서비스는
+  이동하지 않는다
+- **`needsProfile`은 `profile`에서 계산한다**(`needsOnboarding`). `profiles.onboarded_at`이 null이면 닉네임 화면을
+  보여준다. 옛 프로필 캐시에는 키가 없어(undefined) 완료로 본다 — `!onboarded_at`로 바꾸면 기존 사용자가 전부 튕긴다
+- 상세: `docs/features/signup-nickname/design.md`
 
 ## Native 앱 — 컴포넌트 계층
 
