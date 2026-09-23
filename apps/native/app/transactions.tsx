@@ -485,8 +485,8 @@ export default function TransactionsScreen() {
     return renderScreen(<LoadingState message="거래 내역을 불러오는 중..." />);
   }
 
-  // 에러 상태 — 재조회만 실패했으면 캐시된 목록을 그대로 보여준다
-  if (error && !transactions.length) {
+  // 에러 상태
+  if (error) {
     return renderScreen(
       <ErrorState message="거래 내역을 불러올 수 없습니다" onRetry={refetch} />
     );

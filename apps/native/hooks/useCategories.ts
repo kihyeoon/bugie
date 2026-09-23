@@ -1,10 +1,11 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert } from 'react-native';
 import type { CategoryDetail } from '@repo/core';
 import { useLedger } from '../contexts/LedgerContext';
 import { useServices } from '../contexts/ServiceContext';
 import { invalidateTransactionLists, queryKeys } from '../utils/queryClient';
+import { useQueryStatus } from './useQueryStatus';
 
 const NO_CATEGORIES: CategoryDetail[] = [];
 
@@ -18,7 +19,7 @@ export function useCategories(type?: 'income' | 'expense') {
   const { ledgerService } = useServices();
   const queryClient = useQueryClient();
   const ledgerId = currentLedger?.id;
-  const queryKey = queryKeys.categories(ledgerId);
+  const queryKey = useMemo(() => queryKeys.categories(ledgerId), [ledgerId]);
 
   // 수입/지출 필터는 한 캐시에서 골라낸다. 타입마다 따로 받으면 같은 목록을 두 번 받는다.
   const selectByType = useCallback(
@@ -35,18 +36,11 @@ export function useCategories(type?: 'income' | 'expense') {
   });
 
   const categories = query.data ?? NO_CATEGORIES;
-  const { refetch: refetchQuery } = query;
-  const refresh = useCallback(async () => {
-    if (ledgerId) await refetchQuery({ cancelRefetch: false });
-  }, [ledgerId, refetchQuery]);
-
-  const setCategories = useCallback(
-    (update: (prev: CategoryDetail[]) => CategoryDetail[]) =>
-      queryClient.setQueryData<CategoryDetail[]>(queryKey, (prev) =>
-        update(prev ?? [])
-      ),
-    [queryClient, queryKey]
-  );
+  const {
+    loading,
+    error,
+    refetch: refresh,
+  } = useQueryStatus(query, !!ledgerId);
 
   /**
    * 커스텀 카테고리 수정
@@ -61,7 +55,7 @@ export function useCategories(type?: 'income' | 'expense') {
         queryClient.getQueryData<CategoryDetail[]>(queryKey) ?? [];
 
       // 낙관적 업데이트 - UI 즉시 반영
-      setCategories((prev) =>
+      queryClient.setQueryData<CategoryDetail[]>(queryKey, (prev = []) =>
         prev.map((cat) =>
           cat.id === categoryId ? { ...cat, ...updates } : cat
         )
@@ -77,7 +71,7 @@ export function useCategories(type?: 'income' | 'expense') {
         console.error('Failed to update category:', err);
 
         // 실패 시 롤백
-        setCategories(() => previousCategories);
+        queryClient.setQueryData(queryKey, previousCategories);
 
         const errorMessage =
           err instanceof Error ? err.message : '카테고리 수정에 실패했습니다.';
@@ -85,7 +79,7 @@ export function useCategories(type?: 'income' | 'expense') {
         throw err;
       }
     },
-    [ledgerService, queryClient, queryKey, setCategories]
+    [ledgerService, queryClient, queryKey]
   );
 
   /**
@@ -120,8 +114,9 @@ export function useCategories(type?: 'income' | 'expense') {
                   invalidateTransactionLists(queryClient);
 
                   // 목록에서 즉시 제거 (낙관적 업데이트)
-                  setCategories((prev) =>
-                    prev.filter((c) => c.id !== categoryId)
+                  queryClient.setQueryData<CategoryDetail[]>(
+                    queryKey,
+                    (prev = []) => prev.filter((c) => c.id !== categoryId)
                   );
 
                   resolve(true);
@@ -140,14 +135,13 @@ export function useCategories(type?: 'income' | 'expense') {
         );
       });
     },
-    [categories, ledgerService, queryClient, setCategories]
+    [categories, ledgerService, queryClient, queryKey]
   );
 
   return {
     categories,
-    // 가계부가 없어 비활성일 때도 true인 isPending 대신, 실제로 처음 받는 중일 때만 로딩
-    loading: query.isLoading,
-    error: query.error,
+    loading,
+    error,
     refresh, // 새로고침 함수
     updateCategory, // 카테고리 수정 함수
     deleteCategory, // 카테고리 삭제 함수

@@ -181,8 +181,7 @@ export default function HomeScreen() {
     return null;
   }
 
-  // 재조회만 실패했으면 받아둔 달력을 그대로 보여준다
-  if (ledgerError || (dataError && !monthlySummary)) {
+  if (ledgerError || dataError) {
     return (
       <ErrorState
         message="데이터를 불러올 수 없습니다"

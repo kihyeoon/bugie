@@ -1,8 +1,9 @@
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import { SectionListData } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useServices } from '../contexts/ServiceContext';
 import { queryKeys } from '../utils/queryClient';
+import { useQueryStatus } from './useQueryStatus';
 import { formatLocalDate, type TransactionWithDetails } from '@repo/core';
 
 interface UseTransactionsOptions {
@@ -67,13 +68,7 @@ export function useTransactions({
   });
 
   const transactions = query.data ?? NO_TRANSACTIONS;
-  const { refetch: refetchQuery } = query;
-
-  // useQuery의 refetch는 enabled를 무시한다. 홈은 날짜를 고르기 전에도 포커스마다 refetch를 부르므로 여기서 막는다.
-  // 마운트 직후 포커스 refetch가 겹치면 진행 중인 요청을 같이 쓴다(기본값은 취소 후 재요청).
-  const refetch = useCallback(async () => {
-    if (isEnabled) await refetchQuery({ cancelRefetch: false });
-  }, [isEnabled, refetchQuery]);
+  const { loading, error, refetch } = useQueryStatus(query, isEnabled);
 
   // 날짜별로 거래 그룹화
   const groupedTransactions = useMemo(() => {
@@ -99,9 +94,8 @@ export function useTransactions({
   return {
     transactions,
     groupedTransactions,
-    // isPending은 비활성 쿼리에서도 true라 쓰지 않는다. 데이터가 없고 실제로 받는 중일 때만 로딩이다.
-    loading: query.isLoading,
-    error: query.error,
+    loading,
+    error,
     refetch,
   };
 }

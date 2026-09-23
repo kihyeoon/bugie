@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   useQuery,
   useQueryClient,
@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-query';
 import { useServices } from '../contexts/ServiceContext';
 import { invalidateTransactionLists, queryKeys } from '../utils/queryClient';
+import { useQueryStatus } from './useQueryStatus';
 import type {
   TransactionWithDetails,
   UpdateTransactionInput,
@@ -39,11 +40,9 @@ interface UseTransactionDetailReturn {
 }
 
 function applyTransactionUpdates(
-  prev: TransactionWithDetails | null,
+  prev: TransactionWithDetails,
   updates: UpdateTransactionInputWithCategoryDetails
-): TransactionWithDetails | null {
-  if (!prev) return prev;
-
+): TransactionWithDetails {
   const {
     categoryId,
     paidBy,
@@ -95,6 +94,8 @@ function applyTransactionUpdates(
   };
 }
 
+const MISSING_ID_ERROR = new Error('거래 ID가 없습니다.');
+
 /** 홈·목록이 이미 받아둔 한 달치 행에서 같은 거래를 찾는다. 있으면 상세를 로딩 없이 바로 그린다. */
 function findInTransactionLists(
   queryClient: QueryClient,
@@ -121,22 +122,23 @@ export function useTransactionDetail(
 ): UseTransactionDetailReturn {
   const { transactionService } = useServices();
   const queryClient = useQueryClient();
-  const queryKey = queryKeys.transaction(transactionId);
+  const queryKey = useMemo(
+    () => queryKeys.transaction(transactionId),
+    [transactionId]
+  );
+  const cached = useMemo(
+    () => findInTransactionLists(queryClient, transactionId),
+    [queryClient, transactionId]
+  );
 
   const query = useQuery({
     queryKey,
     queryFn: () => transactionService.getTransaction(transactionId!),
     enabled: !!transactionId,
-    initialData: () =>
-      findInTransactionLists(queryClient, transactionId)?.transaction,
-    initialDataUpdatedAt: () =>
-      findInTransactionLists(queryClient, transactionId)?.updatedAt,
+    initialData: cached?.transaction,
+    initialDataUpdatedAt: cached?.updatedAt,
   });
-
-  const { refetch: refetchQuery } = query;
-  const refetch = useCallback(async () => {
-    await refetchQuery({ cancelRefetch: false });
-  }, [refetchQuery]);
+  const { loading, error, refetch } = useQueryStatus(query, !!transactionId);
 
   const updateTransaction = useCallback(
     async (updates: UpdateTransactionInputWithCategoryDetails) => {
@@ -147,9 +149,9 @@ export function useTransactionDetail(
       const previousTransaction =
         queryClient.getQueryData<TransactionWithDetails>(queryKey);
       const applyUpdates = () =>
-        queryClient.setQueryData<TransactionWithDetails | null>(
+        queryClient.setQueryData<TransactionWithDetails>(
           queryKey,
-          (prev) => applyTransactionUpdates(prev ?? null, updates)
+          (prev) => prev && applyTransactionUpdates(prev, updates)
         );
       const isPaidByUpdate = Boolean(updates.paidBy);
       const isPaymentMethodUpdate = updates.paymentMethodId !== undefined;
@@ -217,8 +219,8 @@ export function useTransactionDetail(
 
   return {
     transaction: query.data ?? null,
-    initialLoading: query.isLoading,
-    error: transactionId ? query.error : new Error('거래 ID가 없습니다.'),
+    initialLoading: loading,
+    error: transactionId ? error : MISSING_ID_ERROR,
     refetch,
     updateTransaction,
     deleteTransaction,

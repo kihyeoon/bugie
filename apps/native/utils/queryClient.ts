@@ -40,14 +40,17 @@ export const queryKeys = {
 };
 
 /**
- * 거래를 추가·수정·삭제하면 홈 합계와 목록 행이 낡은 데이터가 된다.
- * 표시만 해두고 다시 받지는 않는다. 홈·목록은 돌아올 때 어차피 재조회하므로 여기서 받으면 요청만 두 번이 된다.
+ * 거래(또는 거래 행에 조인되는 카테고리·결제 수단·닉네임)를 바꾸면 홈 합계와 목록 행이 낡은 데이터가 된다.
+ * 낡았다고 표시만 하고 다시 받지는 않는다(refetchType: 'none'). 홈·목록은 돌아올 때 어차피 재조회하므로
+ * 여기서 받으면 요청만 두 번이 된다. staleTime을 늘리더라도 이 표시 덕분에 바뀐 데이터는 다시 받는다.
  */
 export function invalidateTransactionLists(client: QueryClient) {
-  for (const queryKey of [
-    queryKeys.transactions.all,
-    queryKeys.monthlySummary.all,
-  ]) {
-    client.invalidateQueries({ queryKey, refetchType: 'none' });
-  }
+  client.invalidateQueries({
+    queryKey: queryKeys.transactions.all,
+    refetchType: 'none',
+  });
+  client.invalidateQueries({
+    queryKey: queryKeys.monthlySummary.all,
+    refetchType: 'none',
+  });
 }

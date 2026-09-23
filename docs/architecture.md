@@ -105,9 +105,9 @@ app/
 
 - **캐시를 먼저 보여주고 뒤에서 갱신한다.** `staleTime`은 기본값 0이라 화면에 들어올 때마다 재조회한다.
   공유 가계부라 상대방 입력이 보여야 하기 때문이다(Realtime 구독 없음)
-- **hook의 `loading`은 `isLoading`이다.** `isPending`은 비활성 쿼리(`enabled: false`, 가계부 없음)에서도
-  true라 홈 스플래시가 풀리지 않는다
-- **`refetch()`는 `enabled`를 무시한다.** 그래서 hook이 래퍼로 감싸 비활성일 땐 아무것도 하지 않는다
+- **hook이 화면에 넘기는 `loading`·`error`·`refetch`는 `useQueryStatus`로 만든다.** `loading`은 `isLoading`
+  (`isPending`은 비활성 쿼리에서도 true라 홈 스플래시가 안 풀림), `error`는 보여줄 데이터가 없을 때만,
+  `refetch`는 비활성이면 아무것도 안 한다(`useQuery`의 `refetch`는 `enabled`를 무시함)
 - **거래를 바꾸면 `invalidateTransactionLists`를 부른다.** 홈·목록은 돌아올 때 재조회하므로 표시만 해둔다
   (`refetchType: 'none'`). 카테고리·결제 수단·닉네임도 거래 행에 조인돼 있어 같이 무효화한다
 - 가계부 목록(`LedgerContext`), 가계부 설정·프로필 설정·초대 코드는 아직 캐시 밖이다
