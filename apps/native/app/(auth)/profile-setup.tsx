@@ -49,7 +49,6 @@ export default function ProfileSetupScreen() {
 
   // 저장이 끝났을 때와, 다른 기기에서 이미 설정해 캐시만 옛 값이던 경우를 같은 길로 보낸다.
   useEffect(() => {
-    if (saving) return;
     if (!user) {
       router.replace('/(auth)/login');
     } else if (!needsProfile) {
@@ -57,14 +56,15 @@ export default function ProfileSetupScreen() {
         code ? { pathname: '/accept-invite', params: { code } } : '/(tabs)'
       );
     }
-  }, [saving, user, needsProfile, code]);
+  }, [user, needsProfile, code]);
 
   const trimmed = nickname.trim();
-  const ledgerToRename = findDefaultLedger(ledgers, user?.id, currentName);
+  const canSave = !!trimmed && !saving;
+  const defaultLedger = findDefaultLedger(ledgers, user?.id, currentName);
   // 한글 조합 중간 상태(길ㄷ)가 규칙에 걸리므로 입력 중에는 오류를 띄우지 않는다. 안내만 조용히 계산한다.
-  const renamedLedgerName =
-    ledgerToRename && trimmed !== currentName && !nicknameError(trimmed)
-      ? defaultLedgerName(trimmed)
+  const ledgerRename =
+    defaultLedger && trimmed !== currentName && !nicknameError(trimmed)
+      ? { ledgerId: defaultLedger.id, name: defaultLedgerName(trimmed) }
       : null;
 
   const handleChange = (text: string) => {
@@ -72,8 +72,20 @@ export default function ProfileSetupScreen() {
     setError(null);
   };
 
+  // 가계부 이름은 못 바꿔도 가입은 계속한다. 가계부 설정에서 직접 바꿀 수 있다.
+  const renameDefaultLedger = async (
+    rename: NonNullable<typeof ledgerRename>
+  ) => {
+    try {
+      await ledgerService.updateLedger(rename);
+      await refreshLedgers();
+    } catch (err) {
+      console.warn('기본 가계부 이름 변경 실패:', err);
+    }
+  };
+
   const handleSave = async () => {
-    if (saving) return;
+    if (!canSave) return;
     const message = nicknameError(trimmed);
     if (message) {
       setError(message);
@@ -82,6 +94,8 @@ export default function ProfileSetupScreen() {
 
     setSaving(true);
     try {
+      // 가계부 이름을 먼저 바꾼다. 프로필이 저장되는 순간 needsProfile이 false가 되어 effect가 홈으로 보내기 때문이다.
+      if (ledgerRename) await renameDefaultLedger(ledgerRename);
       await updateProfile({
         full_name: trimmed,
         onboarded_at: new Date().toISOString(),
@@ -89,23 +103,9 @@ export default function ProfileSetupScreen() {
     } catch (err) {
       console.error('Profile setup error:', err);
       Alert.alert('저장하지 못했어요', '잠시 후 다시 시도해주세요.');
+    } finally {
       setSaving(false);
-      return;
     }
-
-    // 가계부 이름은 못 바꿔도 가입은 계속한다. 가계부 설정에서 직접 바꿀 수 있다.
-    if (renamedLedgerName && ledgerToRename) {
-      try {
-        await ledgerService.updateLedger({
-          ledgerId: ledgerToRename.id,
-          name: renamedLedgerName,
-        });
-        await refreshLedgers();
-      } catch (err) {
-        console.warn('기본 가계부 이름 변경 실패:', err);
-      }
-    }
-    setSaving(false);
   };
 
   return (
@@ -150,9 +150,9 @@ export default function ProfileSetupScreen() {
             <Text style={styles.error} accessibilityLiveRegion="polite">
               {error}
             </Text>
-          ) : renamedLedgerName ? (
+          ) : ledgerRename ? (
             <Text style={styles.hint}>
-              가계부 이름도 &apos;{renamedLedgerName}&apos;로 바뀌어요
+              가계부 이름도 &apos;{ledgerRename.name}&apos;로 바뀌어요
             </Text>
           ) : null}
         </View>
@@ -161,13 +161,13 @@ export default function ProfileSetupScreen() {
           <Pressable
             style={({ pressed }) => [
               styles.button,
-              (!trimmed || saving) && styles.buttonDisabled,
+              !canSave && styles.buttonDisabled,
               pressed && styles.buttonPressed,
             ]}
             onPress={handleSave}
-            disabled={!trimmed || saving}
+            disabled={!canSave}
             accessibilityRole="button"
-            accessibilityState={{ disabled: !trimmed || saving, busy: saving }}
+            accessibilityState={{ disabled: !canSave, busy: saving }}
           >
             {saving ? (
               <ActivityIndicator color={colors.background} />

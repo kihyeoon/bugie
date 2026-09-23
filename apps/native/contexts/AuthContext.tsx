@@ -13,6 +13,7 @@ import type {
   AuthState,
   AuthProfile as Profile,
   OAuthProvider,
+  Session,
 } from '@repo/types';
 import { supabase } from '../utils/supabase';
 import { signInWithOAuth as authSignInWithOAuth } from '../services/auth';
@@ -34,13 +35,26 @@ interface AuthContextValue extends AuthState {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+const SIGNED_OUT_STATE: AuthState = {
+  user: null,
+  profile: null,
+  session: null,
+  loading: false,
+  error: null,
+};
+
+const signedInState = (session: Session, profile: Profile | null): AuthState => ({
+  user: session.user,
+  profile,
+  session,
+  loading: false,
+  error: null,
+});
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    profile: null,
-    session: null,
+    ...SIGNED_OUT_STATE,
     loading: true,
-    error: null,
   });
 
   // 로그아웃되면 캐시를 비운다. 안 그러면 다음에 로그인한 사용자에게 이전 사용자 가계부가 보인다.
@@ -90,13 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (cachedProfileJson) {
         try {
           const cachedProfile = JSON.parse(cachedProfileJson);
-          setAuthState({
-            user: session.user,
-            profile: cachedProfile,
-            session,
-            loading: false,
-            error: null,
-          });
+          setAuthState(signedInState(session, cachedProfile));
         } catch (e) {
           console.warn('Failed to parse cached profile:', e);
         }
@@ -105,24 +113,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // 백그라운드에서 최신 프로필 동기화
       const latestProfile = await getProfile(session.user.id, session.user.email);
 
-      // 최신 프로필로 업데이트 (캐시와 다른 경우에만)
-      if (latestProfile && JSON.stringify(latestProfile) !== cachedProfileJson) {
+      // 최신 프로필로 업데이트 (캐시와 다르거나 캐시가 없던 경우에만)
+      const changed =
+        latestProfile && JSON.stringify(latestProfile) !== cachedProfileJson;
+      if (changed) {
         await AsyncStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(latestProfile));
-        setAuthState({
-          user: session.user,
-          profile: latestProfile,
-          session,
-          loading: false,
-          error: null,
-        });
-      } else if (!cachedProfileJson) {
-        setAuthState({
-          user: session.user,
-          profile: latestProfile,
-          session,
-          loading: false,
-          error: null,
-        });
+      }
+      if (changed || !cachedProfileJson) {
+        setAuthState(signedInState(session, latestProfile));
       }
     } catch (err) {
       console.error('Auth initialization failed:', err);
@@ -153,41 +151,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 인증 상태 변경 리스너
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
+        if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
           const profile = await getProfile(session.user.id, session.user.email);
           if (profile) {
             await AsyncStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile));
           }
-          setAuthState({
-            user: session.user,
-            profile,
-            session,
-            loading: false,
-            error: null,
-          });
+          setAuthState(signedInState(session, profile));
         } else if (event === 'SIGNED_OUT') {
           await AsyncStorage.removeItem(PROFILE_CACHE_KEY);
-          setAuthState({
-            user: null,
-            profile: null,
-            session: null,
-            loading: false,
-            error: null,
-          });
+          setAuthState(SIGNED_OUT_STATE);
         } else if (event === 'TOKEN_REFRESHED' && session) {
           setAuthState((prev: AuthState) => ({ ...prev, session }));
-        } else if (event === 'INITIAL_SESSION' && session) {
-          const profile = await getProfile(session.user.id, session.user.email);
-          if (profile) {
-            await AsyncStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile));
-          }
-          setAuthState({
-            user: session.user,
-            profile,
-            session,
-            loading: false,
-            error: null,
-          });
         }
       }
     );
@@ -247,13 +221,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // 캐시 삭제
       await AsyncStorage.removeItem(PROFILE_CACHE_KEY);
       // 성공하거나 AuthSessionMissingError인 경우 상태 정리
-      setAuthState({
-        user: null,
-        profile: null,
-        session: null,
-        loading: false,
-        error: null,
-      });
+      setAuthState(SIGNED_OUT_STATE);
     }
   }, []);
 

@@ -1,3 +1,9 @@
+/**
+ * 소셜 로그인. 제공자 인증 후 Supabase 세션만 만든다.
+ *
+ * 프로필 생성과 화면 이동은 여기서 하지 않는다. signInWithIdToken이 AuthContext의 SIGNED_IN 리스너를
+ * 기다리는 동안 리스너가 프로필을 만들고 상태를 세팅하며, 이동은 그 상태를 보는 화면들이 맡는다.
+ */
 import { supabase } from '../../utils/supabase';
 import type { OAuthProvider } from '@repo/types';
 import { signInWithGoogle, GoogleAuthError } from './googleAuth';
@@ -8,8 +14,6 @@ import {
 } from './appleAuth';
 import { rememberSignupName } from './profileService';
 
-// 프로필 생성과 화면 이동은 여기서 하지 않는다. signInWithIdToken이 AuthContext의 SIGNED_IN 리스너를
-// 기다리는 동안 리스너가 프로필을 만들고 상태를 세팅하며, 이동은 그 상태를 보는 화면들이 맡는다.
 export interface AuthResult {
   success: boolean;
   error?: string;

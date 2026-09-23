@@ -152,7 +152,6 @@ DO $$
 DECLARE
   v_husband_id uuid := '11111111-1111-1111-1111-111111111111';
   v_wife_id uuid := '22222222-2222-2222-2222-222222222222';
-  v_new_id uuid := '33333333-3333-3333-3333-333333333333';
   v_shared_ledger_id uuid;
   v_cat_food uuid;
   v_cat_transport uuid;

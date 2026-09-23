@@ -4,6 +4,10 @@ import { BusinessRuleViolationError } from '../shared/errors';
  * 프로필 관련 비즈니스 규칙
  */
 export class ProfileRules {
+  /** 닉네임에 쓸 수 있는 문자(한글, 영문, 숫자, 공백). 정규식 문자 클래스 안에 넣어 쓴다. */
+  static readonly NICKNAME_CHARS = '가-힣a-zA-Z0-9\\s';
+  static readonly NICKNAME_MAX_LENGTH = 20;
+
   /**
    * 닉네임 유효성 검사
    */
@@ -19,12 +23,12 @@ export class ProfileRules {
       throw new BusinessRuleViolationError('닉네임은 최소 2자 이상이어야 합니다.');
     }
 
-    if (trimmedNickname.length > 20) {
+    if (trimmedNickname.length > ProfileRules.NICKNAME_MAX_LENGTH) {
       throw new BusinessRuleViolationError('닉네임은 최대 20자까지 가능합니다.');
     }
 
     // 허용 문자 검사 (한글, 영문, 숫자, 공백만 허용)
-    const nicknameRegex = /^[가-힣a-zA-Z0-9\s]+$/;
+    const nicknameRegex = new RegExp(`^[${ProfileRules.NICKNAME_CHARS}]+$`);
     if (!nicknameRegex.test(trimmedNickname)) {
       throw new BusinessRuleViolationError(
         '닉네임은 한글, 영문, 숫자, 공백만 사용 가능합니다.'

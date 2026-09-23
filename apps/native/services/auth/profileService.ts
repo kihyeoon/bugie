@@ -4,6 +4,13 @@ import type { AuthProfile as Profile } from '@repo/types';
 import type { User } from '@supabase/supabase-js';
 
 /**
+ * 이메일 앞부분. 제공자가 이름을 주지 않았을 때 프로필 이름의 폴백이다
+ * (SQL create_user_profile의 COALESCE, 마이그레이션 20260924000001 백필과 같은 규칙).
+ */
+const emailLocalPart = (email: string | null | undefined) =>
+  email?.split('@')[0];
+
+/**
  * 가입 중인 사용자의 이름(애플이 첫 승인 때만 주는 이름).
  *
  * signInWithIdToken은 AuthContext의 SIGNED_IN 리스너가 끝날 때까지 기다리고, 그 리스너가 프로필을 만든다.
@@ -130,7 +137,7 @@ const createProfileDirectly = async (
     .insert({
       id: userId,
       email: email,
-      full_name: userData?.fullName || email.split('@')[0],
+      full_name: userData?.fullName || emailLocalPart(email),
       avatar_url: userData?.avatarUrl || null,
       currency: 'KRW',
       timezone: 'Asia/Seoul',
@@ -217,11 +224,7 @@ export const createProfile = async (
 export const ensureProfile = async (
   userId: string,
   email?: string | null,
-  user?: User | null,
-  userData?: {
-    fullName?: string;
-    avatarUrl?: string;
-  }
+  user?: User | null
 ): Promise<Profile | null> => {
   try {
     // 1. 기존 프로필 조회
@@ -247,12 +250,11 @@ export const ensureProfile = async (
     if (!profile && email) {
       console.log('Profile not found, creating new profile...');
 
-      // 사용자 메타데이터 추출 (전달된 userData 우선 사용)
+      // 가입 중 넘겨받은 이름(애플)이 있으면 우선, 없으면 제공자 메타데이터(구글)
       const metadataFromUser = user ? extractUserMetadata(user) : undefined;
       const finalUserData = {
-        fullName:
-          userData?.fullName || pendingSignupName || metadataFromUser?.fullName,
-        avatarUrl: userData?.avatarUrl || metadataFromUser?.avatarUrl,
+        fullName: pendingSignupName || metadataFromUser?.fullName,
+        avatarUrl: metadataFromUser?.avatarUrl,
       };
 
       const { data: newProfile, error } = await createProfile(
@@ -330,22 +332,22 @@ export const toNicknameDraft = (
   name: string | null | undefined,
   email: string | null | undefined
 ): string => {
-  if (!name || name === email?.split('@')[0]) return '';
+  if (!name || name === emailLocalPart(email)) return '';
 
   const draft = name
     // 악센트만 떼고(José → Jose) 한글은 다시 조합한다
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .normalize('NFC')
-    .replace(/[^가-힣a-zA-Z0-9\s]/g, '')
+    .replace(new RegExp(`[^${ProfileRules.NICKNAME_CHARS}]`, 'g'), '')
     .replace(/\s+/g, ' ')
     .trim()
-    .slice(0, 20)
+    .slice(0, ProfileRules.NICKNAME_MAX_LENGTH)
     .trim();
   return nicknameError(draft) ? '' : draft;
 };
 
-/** 가입 때 setup_new_user가 만드는 기본 가계부 이름 */
+/** 가입 때 setup_new_user가 만드는 기본 가계부 이름(SQL `user_name || '의 가계부'`와 같은 형식) */
 export const defaultLedgerName = (name: string) => `${name}의 가계부`;
 
 /**
@@ -363,35 +365,4 @@ export const findDefaultLedger = <T extends { name: string; created_by: string }
       ledger.created_by === userId &&
       ledger.name === defaultLedgerName(currentName)
   );
-};
-
-/**
- * 프로필 업데이트
- */
-export const updateProfile = async (
-  userId: string,
-  data: Partial<Profile>
-): Promise<{ data: Profile | null; error: Error | null }> => {
-  try {
-    const { data: updatedProfile, error } = await supabase
-      .from('profiles')
-      .update({
-        ...data,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', userId)
-      .select()
-      .single();
-
-    if (error) {
-      return { data: null, error: new Error(error.message) };
-    }
-
-    return { data: updatedProfile, error: null };
-  } catch (error) {
-    return {
-      data: null,
-      error: error instanceof Error ? error : new Error('Unknown error'),
-    };
-  }
 };
