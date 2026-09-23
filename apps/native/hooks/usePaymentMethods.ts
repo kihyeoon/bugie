@@ -1,9 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert } from 'react-native';
 import type { PaymentMethodEntity, CreatePaymentMethodInput, UpdatePaymentMethodInput } from '@repo/core';
 import { useLedger } from '../contexts/LedgerContext';
 import { useServices } from '../contexts/ServiceContext';
 import { useAuth } from '../contexts/AuthContext';
+import { invalidateTransactionLists, queryKeys } from '../utils/queryClient';
+import { useQueryStatus } from './useQueryStatus';
+
+const NO_PAYMENT_METHODS: PaymentMethodEntity[] = [];
 
 export interface OwnerGroup {
   ownerId: string;
@@ -69,34 +74,17 @@ export function usePaymentMethods(ledgerIdParam?: string) {
 
   const ledgerId = ledgerIdParam ?? currentLedger?.id;
 
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodEntity[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const queryClient = useQueryClient();
+  const queryKey = useMemo(() => queryKeys.paymentMethods(ledgerId), [ledgerId]);
 
-  const loadPaymentMethods = useCallback(async () => {
-    if (!ledgerId) {
-      setPaymentMethods([]);
-      setLoading(false);
-      return;
-    }
+  const query = useQuery({
+    queryKey,
+    queryFn: () => paymentMethodService.getByLedger(ledgerId!),
+    enabled: !!ledgerId,
+  });
 
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await paymentMethodService.getByLedger(ledgerId);
-      setPaymentMethods(data);
-    } catch (err) {
-      console.error('Failed to load payment methods:', err);
-      setError(err instanceof Error ? err : new Error('결제 수단을 불러올 수 없습니다.'));
-      setPaymentMethods([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [ledgerId, paymentMethodService]);
-
-  useEffect(() => {
-    loadPaymentMethods();
-  }, [loadPaymentMethods]);
+  const paymentMethods = query.data ?? NO_PAYMENT_METHODS;
+  const { loading, error, refetch: refresh } = useQueryStatus(query, !!ledgerId);
 
   const create = useCallback(
     async (input: Omit<CreatePaymentMethodInput, 'ledgerId'>) => {
@@ -119,7 +107,7 @@ export function usePaymentMethods(ledgerIdParam?: string) {
           updatedAt: now,
           isDeleted: false,
         };
-        setPaymentMethods((prev) => [...prev, newMethod]);
+        queryClient.setQueryData<PaymentMethodEntity[]>(queryKey, (prev = []) => [...prev, newMethod]);
       } catch (err) {
         console.error('Failed to create payment method:', err);
         const message = err instanceof Error ? err.message : '결제 수단 추가에 실패했습니다.';
@@ -127,29 +115,31 @@ export function usePaymentMethods(ledgerIdParam?: string) {
         throw err;
       }
     },
-    [ledgerId, paymentMethodService, user]
+    [ledgerId, paymentMethodService, user, queryClient, queryKey]
   );
 
   const update = useCallback(
     async (id: string, input: UpdatePaymentMethodInput) => {
-      const previous = [...paymentMethods];
+      const previous = queryClient.getQueryData<PaymentMethodEntity[]>(queryKey);
 
       // 낙관적 업데이트
-      setPaymentMethods((prev) =>
+      queryClient.setQueryData<PaymentMethodEntity[]>(queryKey, (prev = []) =>
         prev.map((m) => (m.id === id ? { ...m, ...input, updatedAt: new Date() } : m))
       );
 
       try {
         await paymentMethodService.update(id, input);
+        // 거래 행에 결제 수단 이름이 조인돼 있다
+        invalidateTransactionLists(queryClient);
       } catch (err) {
         console.error('Failed to update payment method:', err);
-        setPaymentMethods(previous);
+        queryClient.setQueryData(queryKey, previous);
         const message = err instanceof Error ? err.message : '결제 수단 수정에 실패했습니다.';
         Alert.alert('오류', message);
         throw err;
       }
     },
-    [paymentMethods, paymentMethodService]
+    [paymentMethodService, queryClient, queryKey]
   );
 
   const softDelete = useCallback(
@@ -169,7 +159,10 @@ export function usePaymentMethods(ledgerIdParam?: string) {
               onPress: async () => {
                 try {
                   await paymentMethodService.softDelete(id);
-                  setPaymentMethods((prev) => prev.filter((m) => m.id !== id));
+                  queryClient.setQueryData<PaymentMethodEntity[]>(queryKey, (prev = []) =>
+                    prev.filter((m) => m.id !== id)
+                  );
+                  invalidateTransactionLists(queryClient);
                   resolve(true);
                 } catch (err) {
                   console.error('Failed to delete payment method:', err);
@@ -183,14 +176,14 @@ export function usePaymentMethods(ledgerIdParam?: string) {
         );
       });
     },
-    [paymentMethods, paymentMethodService]
+    [paymentMethods, paymentMethodService, queryClient, queryKey]
   );
 
   return {
     paymentMethods,
     loading,
     error,
-    refresh: loadPaymentMethods,
+    refresh,
     create,
     update,
     softDelete,

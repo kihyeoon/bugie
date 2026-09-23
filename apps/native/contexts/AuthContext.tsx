@@ -8,6 +8,7 @@ import React, {
 } from 'react';
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useQueryClient } from '@tanstack/react-query';
 import type {
   AuthState,
   AuthProfile as Profile,
@@ -17,6 +18,7 @@ import { supabase } from '../utils/supabase';
 import { signInWithOAuth as authSignInWithOAuth } from '../services/auth';
 import { signOutFromGoogle } from '../services/auth/googleAuth';
 import { ensureProfile, fetchProfile } from '../services/auth/profileService';
+import { invalidateTransactionLists } from '../utils/queryClient';
 
 const PROFILE_CACHE_KEY = '@auth/profile_cache';
 
@@ -39,6 +41,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     needsProfile: false,
     error: null,
   });
+
+  // 로그아웃되면 캐시를 비운다. 안 그러면 다음에 로그인한 사용자에게 이전 사용자 가계부가 보인다.
+  // 로그아웃·탈퇴·테스트 계정 전환이 모두 user가 null이 되는 경로를 거치므로 여기 한 곳에서 처리한다.
+  const queryClient = useQueryClient();
+  const userId = authState.user?.id;
+  useEffect(() => {
+    if (!userId) queryClient.clear();
+  }, [userId, queryClient]);
 
   // React StrictMode 대응을 위한 초기화 플래그
   const isInitialized = useRef(false);
@@ -288,6 +298,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           profile: updatedProfile,
           needsProfile: false,
         }));
+        // 거래 행에 지출자·작성자 이름이 조인돼 있다
+        invalidateTransactionLists(queryClient);
       } catch (error) {
         Alert.alert(
           '프로필 업데이트 오류',
@@ -297,7 +309,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         );
       }
     },
-    [authState.user]
+    [authState.user, queryClient]
   );
 
   // 세션 갱신
