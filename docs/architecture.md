@@ -59,6 +59,7 @@ createProfileService(supabase)
 
 ```
 GestureHandlerRootView
+  → QueryClientProvider (TanStack Query 캐시 — 로그아웃 시 AuthProvider가 비움)
   → AuthProvider        (인증 상태)
     → ServiceProvider   (core 서비스 인스턴스)
       → LedgerProvider  (현재 선택된 가계부)
@@ -99,7 +100,17 @@ app/
 | 현재 가계부 | `useLedger()` | `{ currentLedger, ledgers, selectLedger, refreshLedgers }` |
 | 데이터 fetch | `useMonthlyData`, `useTransactions`, `useTransactionDetail`, `useCategories` | 각 hook 시그니처 참조 |
 
-데이터 hook은 글로벌 캐시 없이 `useState`만 사용한다. 첫 진입 LoadingState 노출은 의도된 동작.
+데이터 hook은 TanStack Query 캐시를 쓴다(`useMonthlyData`, `useTransactions`, `useTransactionDetail`,
+`useCategories`, `usePaymentMethods`). 쿼리 키와 무효화 헬퍼는 `utils/queryClient.ts` 한 곳에 둔다.
+
+- **캐시를 먼저 보여주고 뒤에서 갱신한다.** `staleTime`은 기본값 0이라 화면에 들어올 때마다 재조회한다.
+  공유 가계부라 상대방 입력이 보여야 하기 때문이다(Realtime 구독 없음)
+- **hook의 `loading`은 `isLoading`이다.** `isPending`은 비활성 쿼리(`enabled: false`, 가계부 없음)에서도
+  true라 홈 스플래시가 풀리지 않는다
+- **`refetch()`는 `enabled`를 무시한다.** 그래서 hook이 래퍼로 감싸 비활성일 땐 아무것도 하지 않는다
+- **거래를 바꾸면 `invalidateTransactionLists`를 부른다.** 홈·목록은 돌아올 때 재조회하므로 표시만 해둔다
+  (`refetchType: 'none'`). 카테고리·결제 수단·닉네임도 거래 행에 조인돼 있어 같이 무효화한다
+- 가계부 목록(`LedgerContext`), 가계부 설정·프로필 설정·초대 코드는 아직 캐시 밖이다
 
 ## Native 앱 — 컴포넌트 계층
 

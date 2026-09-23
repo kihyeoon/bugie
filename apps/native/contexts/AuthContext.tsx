@@ -18,6 +18,7 @@ import { supabase } from '../utils/supabase';
 import { signInWithOAuth as authSignInWithOAuth } from '../services/auth';
 import { signOutFromGoogle } from '../services/auth/googleAuth';
 import { ensureProfile, fetchProfile } from '../services/auth/profileService';
+import { invalidateTransactionLists } from '../utils/queryClient';
 
 const PROFILE_CACHE_KEY = '@auth/profile_cache';
 
@@ -297,6 +298,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           profile: updatedProfile,
           needsProfile: false,
         }));
+        // 거래 행에 지출자·작성자 이름이 조인돼 있다
+        invalidateTransactionLists(queryClient);
       } catch (error) {
         Alert.alert(
           '프로필 업데이트 오류',
@@ -306,7 +309,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         );
       }
     },
-    [authState.user]
+    [authState.user, queryClient]
   );
 
   // 세션 갱신
