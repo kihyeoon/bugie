@@ -17,7 +17,7 @@ import type {
 import { supabase } from '../utils/supabase';
 import { signInWithOAuth as authSignInWithOAuth } from '../services/auth';
 import { signOutFromGoogle } from '../services/auth/googleAuth';
-import { ensureProfile, fetchProfile } from '../services/auth/profileService';
+import { ensureProfile } from '../services/auth/profileService';
 import { invalidateTransactionLists } from '../utils/queryClient';
 
 const PROFILE_CACHE_KEY = '@auth/profile_cache';
@@ -263,45 +263,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // 프로필 업데이트
+  // 프로필 업데이트. 실패하면 던지므로 알림은 호출하는 화면이 띄운다.
   const updateProfile = useCallback(
     async (data: Partial<Profile>) => {
       if (!authState.user) return;
 
-      try {
-        const { error } = await supabase
-          .from('profiles')
-          .update({
-            ...data,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', authState.user.id);
+      const { data: updatedProfile, error } = await supabase
+        .from('profiles')
+        .update({
+          ...data,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', authState.user.id)
+        .select()
+        .single();
 
-        if (error) throw error;
+      if (error) throw error;
 
-        // 프로필 다시 가져오기
-        const updatedProfile = await fetchProfile(authState.user.id);
-
-        // 캐시 업데이트
-        if (updatedProfile) {
-          await AsyncStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(updatedProfile));
-        }
-
-        setAuthState((prev: AuthState) => ({
-          ...prev,
-          profile: updatedProfile,
-          needsProfile: false,
-        }));
-        // 거래 행에 지출자·작성자 이름이 조인돼 있다
-        invalidateTransactionLists(queryClient);
-      } catch (error) {
-        Alert.alert(
-          '프로필 업데이트 오류',
-          error instanceof Error
-            ? error.message
-            : '프로필 업데이트 중 오류가 발생했습니다.'
-        );
-      }
+      await AsyncStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(updatedProfile));
+      setAuthState((prev: AuthState) => ({
+        ...prev,
+        profile: updatedProfile,
+        needsProfile: false,
+      }));
+      // 거래 행에 지출자·작성자 이름이 조인돼 있다
+      invalidateTransactionLists(queryClient);
     },
     [authState.user, queryClient]
   );

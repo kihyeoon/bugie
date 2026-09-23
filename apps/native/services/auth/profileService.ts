@@ -287,14 +287,6 @@ const createDefaultLedger = async (
 };
 
 /**
- * 프로필 완성 여부 확인
- */
-export const isProfileComplete = (profile: Profile | null): boolean => {
-  if (!profile) return false;
-  return !!profile.full_name;
-};
-
-/**
  * 프로필 업데이트
  */
 export const updateProfile = async (

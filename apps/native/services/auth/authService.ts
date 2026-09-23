@@ -1,14 +1,13 @@
-import { router } from 'expo-router';
 import { supabase } from '../../utils/supabase';
-import type { OAuthProvider, AuthProfile as Profile } from '@repo/types';
+import type { OAuthProvider } from '@repo/types';
 import { signInWithGoogle, GoogleAuthError } from './googleAuth';
 import { signInWithApple, AppleAuthError } from './appleAuth';
-import { ensureProfile, isProfileComplete } from './profileService';
 
+// 프로필 생성과 화면 이동은 여기서 하지 않는다. signInWithIdToken이 AuthContext의 SIGNED_IN 리스너를
+// 기다리는 동안 리스너가 프로필을 만들고 상태를 세팅하며, 이동은 그 상태를 보는 화면들이 맡는다.
 export interface AuthResult {
   success: boolean;
   error?: string;
-  needsProfile?: boolean;
 }
 
 /**
@@ -82,26 +81,7 @@ const handleGoogleSignIn = async (): Promise<AuthResult> => {
       };
     }
 
-    // 프로필 확인 및 자동 생성 (간소화)
-    const profile = await ensureProfile(
-      data.user.id,
-      data.user.email,
-      data.user
-    );
-
-    if (!profile) {
-      console.error('Failed to ensure profile for user');
-      // 프로필 생성 실패해도 로그인은 성공 처리
-      // profile-setup 화면에서 재시도 가능
-    }
-
-    // 프로필 확인 및 라우팅
-    const result = await checkProfileAndRoute(data.user.id, profile);
-
-    return {
-      success: true,
-      needsProfile: result.needsProfile,
-    };
+    return { success: true };
   } catch (error) {
     if (error instanceof Error && 'code' in error) {
       const googleError = error as GoogleAuthError;
@@ -166,33 +146,7 @@ const handleAppleSignIn = async (): Promise<AuthResult> => {
       };
     }
 
-    // Apple fullName 처리 (첫 로그인 시에만 제공됨)
-    const fullName = appleCredential.fullName
-      ? `${appleCredential.fullName.givenName || ''} ${appleCredential.fullName.familyName || ''}`.trim()
-      : undefined;
-
-    // 프로필 확인 및 자동 생성
-    const profile = await ensureProfile(
-      data.user.id,
-      data.user.email,
-      data.user,
-      {
-        fullName,
-        avatarUrl: undefined, // Apple은 프로필 사진 제공 안함
-      }
-    );
-
-    if (!profile) {
-      console.error('Failed to ensure profile for user');
-    }
-
-    // 프로필 확인 및 라우팅
-    const result = await checkProfileAndRoute(data.user.id, profile);
-
-    return {
-      success: true,
-      needsProfile: result.needsProfile,
-    };
+    return { success: true };
   } catch (error) {
     if (error instanceof Error && 'code' in error) {
       const appleError = error as AppleAuthError;
@@ -218,34 +172,5 @@ const handleAppleSignIn = async (): Promise<AuthResult> => {
           ? error.message
           : '로그인 중 오류가 발생했습니다.',
     };
-  }
-};
-
-/**
- * 프로필 확인 후 적절한 화면으로 라우팅
- */
-const checkProfileAndRoute = async (
-  userId: string,
-  profile?: Profile | null
-): Promise<{ needsProfile: boolean }> => {
-  // 프로필이 전달되지 않은 경우에만 조회
-  if (!profile) {
-    const { ensureProfile } = await import('./profileService');
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    profile = await ensureProfile(userId, user?.email, user);
-  }
-
-  // 프로필 완성 여부 확인
-  const profileComplete = isProfileComplete(profile);
-
-  // 적절한 화면으로 라우팅
-  if (!profileComplete) {
-    router.replace('/(auth)/profile-setup');
-    return { needsProfile: true };
-  } else {
-    router.replace('/(tabs)');
-    return { needsProfile: false };
   }
 };
