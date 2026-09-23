@@ -4,6 +4,19 @@ import type { AuthProfile as Profile } from '@repo/types';
 import type { User } from '@supabase/supabase-js';
 
 /**
+ * 가입 중인 사용자의 이름(애플이 첫 승인 때만 주는 이름).
+ *
+ * signInWithIdToken은 AuthContext의 SIGNED_IN 리스너가 끝날 때까지 기다리고, 그 리스너가 프로필을 만든다.
+ * 로그인 뒤에 이름을 넘기면 이미 이메일 앞부분으로 만들어진 뒤라, 로그인 전에 여기에 넣어 둔다.
+ * 넣은 쪽이 로그인이 끝나면(실패해도) 비운다.
+ */
+let pendingSignupName: string | undefined;
+
+export const rememberSignupName = (name: string | undefined) => {
+  pendingSignupName = name;
+};
+
+/**
  * 사용자 메타데이터에서 프로필 정보 추출
  */
 export const extractUserMetadata = (
@@ -237,7 +250,8 @@ export const ensureProfile = async (
       // 사용자 메타데이터 추출 (전달된 userData 우선 사용)
       const metadataFromUser = user ? extractUserMetadata(user) : undefined;
       const finalUserData = {
-        fullName: userData?.fullName || metadataFromUser?.fullName,
+        fullName:
+          userData?.fullName || pendingSignupName || metadataFromUser?.fullName,
         avatarUrl: userData?.avatarUrl || metadataFromUser?.avatarUrl,
       };
 
@@ -309,7 +323,7 @@ export const nicknameError = (nickname: string): string | null => {
 
 /**
  * 닉네임 입력칸의 기본값. 애플·구글이 준 이름은 규칙에 맞지 않을 수 있어(`Gil-dong Hong`, `O'Brien`)
- * 허용하지 않는 문자를 빼고 20자로 자른다. 이메일 앞부분(제공자 이름이 없을 때의 폴백)이거나
+ * 악센트와 허용하지 않는 문자를 빼고 20자로 자른다. 이메일 앞부분(제공자 이름이 없을 때의 폴백)이거나
  * 정리해도 규칙에 맞지 않으면 빈칸으로 둔다.
  */
 export const toNicknameDraft = (
@@ -319,6 +333,9 @@ export const toNicknameDraft = (
   if (!name || name === email?.split('@')[0]) return '';
 
   const draft = name
+    // 악센트만 떼고(José → Jose) 한글은 다시 조합한다
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .normalize('NFC')
     .replace(/[^가-힣a-zA-Z0-9\s]/g, '')
     .replace(/\s+/g, ' ')
