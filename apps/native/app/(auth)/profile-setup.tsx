@@ -29,6 +29,7 @@ export default function ProfileSetupScreen() {
       setLoading(true);
       await updateProfile({
         full_name: fullName.trim(),
+        onboarded_at: new Date().toISOString(),
       });
       router.replace('/(tabs)');
     } catch (error) {

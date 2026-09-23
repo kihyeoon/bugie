@@ -14,6 +14,8 @@ export interface Profile {
   created_at: string | null;
   updated_at: string | null;
   deleted_at?: string | null;
+  /** 닉네임 설정 완료 시각. 이 컬럼이 생기기 전에 저장된 프로필 캐시에는 키가 없다(undefined). */
+  onboarded_at?: string | null;
 }
 
 export interface Session extends SupabaseSession {
@@ -25,7 +27,6 @@ export interface AuthState {
   profile: Profile | null;
   session: Session | null;
   loading: boolean;
-  needsProfile: boolean;
   error: Error | null;
 }
 

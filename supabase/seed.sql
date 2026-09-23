@@ -5,6 +5,7 @@ DO $$
 DECLARE
   v_husband_id uuid := '11111111-1111-1111-1111-111111111111';
   v_wife_id uuid := '22222222-2222-2222-2222-222222222222';
+  v_new_id uuid := '33333333-3333-3333-3333-333333333333';
   v_shared_ledger_id uuid;
 BEGIN
   -- ================================================================
@@ -46,6 +47,20 @@ BEGIN
     now(), now(),
     '', '', '', '', '', '', '', '',
     false, false
+  ),
+  -- 닉네임 설정 전 신규 가입자 (BGI-40). 애플 가입처럼 이름 없이 가입해 이메일 앞부분('new')이 이름이 된다.
+  (
+    v_new_id,
+    '00000000-0000-0000-0000-000000000000',
+    'authenticated', 'authenticated',
+    'new@test.com',
+    crypt('password123', gen_salt('bf')),
+    now(),
+    '{"provider":"email","providers":["email"]}',
+    '{}',
+    now(), now(),
+    '', '', '', '', '', '', '', '',
+    false, false
   );
 
   -- ================================================================
@@ -58,6 +73,13 @@ BEGIN
 
   PERFORM set_config('request.jwt.claims', json_build_object('sub', v_wife_id)::text, true);
   PERFORM create_user_profile(v_wife_id, 'wife@test.com', '이영희');
+
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_new_id)::text, true);
+  PERFORM create_user_profile(v_new_id, 'new@test.com', NULL);
+
+  -- 마이그레이션(백필)이 seed보다 먼저 돌아 여기서 만든 프로필은 onboarded_at이 비어 있다.
+  -- 김철수·이영희는 닉네임을 정한 사용자로 둔다. new@test.com은 닉네임 화면 확인용으로 비워 둔다.
+  UPDATE profiles SET onboarded_at = created_at WHERE id IN (v_husband_id, v_wife_id);
 
   -- 이후 직접 INSERT 를 위해 claims 원복
   PERFORM set_config('request.jwt.claims', NULL, true);
@@ -130,6 +152,7 @@ DO $$
 DECLARE
   v_husband_id uuid := '11111111-1111-1111-1111-111111111111';
   v_wife_id uuid := '22222222-2222-2222-2222-222222222222';
+  v_new_id uuid := '33333333-3333-3333-3333-333333333333';
   v_shared_ledger_id uuid;
   v_cat_food uuid;
   v_cat_transport uuid;

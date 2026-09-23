@@ -17,12 +17,14 @@ import type {
 import { supabase } from '../utils/supabase';
 import { signInWithOAuth as authSignInWithOAuth } from '../services/auth';
 import { signOutFromGoogle } from '../services/auth/googleAuth';
-import { ensureProfile } from '../services/auth/profileService';
+import { ensureProfile, needsOnboarding } from '../services/auth/profileService';
 import { invalidateTransactionLists } from '../utils/queryClient';
 
 const PROFILE_CACHE_KEY = '@auth/profile_cache';
 
 interface AuthContextValue extends AuthState {
+  /** 닉네임 화면을 보여줘야 하는지. profile에서 계산한다. */
+  needsProfile: boolean;
   signOut: () => Promise<void>;
   signInWithOAuth: (provider: OAuthProvider) => Promise<void>;
   updateProfile: (data: Partial<Profile>) => Promise<void>;
@@ -38,7 +40,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     profile: null,
     session: null,
     loading: true,
-    needsProfile: false,
     error: null,
   });
 
@@ -94,7 +95,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             profile: cachedProfile,
             session,
             loading: false,
-            needsProfile: !cachedProfile?.full_name,
             error: null,
           });
         } catch (e) {
@@ -113,7 +113,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           profile: latestProfile,
           session,
           loading: false,
-          needsProfile: !latestProfile?.full_name,
           error: null,
         });
       } else if (!cachedProfileJson) {
@@ -122,7 +121,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           profile: latestProfile,
           session,
           loading: false,
-          needsProfile: !latestProfile?.full_name,
           error: null,
         });
       }
@@ -165,7 +163,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             profile,
             session,
             loading: false,
-            needsProfile: !profile?.full_name,
             error: null,
           });
         } else if (event === 'SIGNED_OUT') {
@@ -175,7 +172,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             profile: null,
             session: null,
             loading: false,
-            needsProfile: false,
             error: null,
           });
         } else if (event === 'TOKEN_REFRESHED' && session) {
@@ -190,7 +186,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             profile,
             session,
             loading: false,
-            needsProfile: !profile?.full_name,
             error: null,
           });
         }
@@ -257,7 +252,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         profile: null,
         session: null,
         loading: false,
-        needsProfile: false,
         error: null,
       });
     }
@@ -284,7 +278,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAuthState((prev: AuthState) => ({
         ...prev,
         profile: updatedProfile,
-        needsProfile: false,
       }));
       // 거래 행에 지출자·작성자 이름이 조인돼 있다
       invalidateTransactionLists(queryClient);
@@ -311,6 +304,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value: AuthContextValue = {
     ...authState,
+    needsProfile: !!authState.user && needsOnboarding(authState.profile),
     signOut,
     signInWithOAuth,
     updateProfile,

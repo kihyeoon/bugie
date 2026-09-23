@@ -287,6 +287,16 @@ const createDefaultLedger = async (
 };
 
 /**
+ * 닉네임 화면을 보여줘야 하는지 판정한다.
+ *
+ * onboarded_at 컬럼이 생기기 전에 저장된 프로필 캐시에는 키가 없다(undefined). 이를 미완료로 보면 업데이트 직후
+ * 기존 사용자 전원이 닉네임 화면으로 튕기므로, 서버가 준 null만 미완료로 본다.
+ * 프로필을 불러오지 못했으면 이전처럼 설정 화면으로 보낸다.
+ */
+export const needsOnboarding = (profile: Profile | null): boolean =>
+  !profile || profile.onboarded_at === null;
+
+/**
  * 프로필 업데이트
  */
 export const updateProfile = async (

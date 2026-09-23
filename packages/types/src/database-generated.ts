@@ -354,6 +354,7 @@ export interface Database {
           email: string | null;
           full_name: string | null;
           id: string;
+          onboarded_at: string | null;
           timezone: string | null;
           updated_at: string | null;
         };
@@ -365,6 +366,7 @@ export interface Database {
           email?: string | null;
           full_name?: string | null;
           id: string;
+          onboarded_at?: string | null;
           timezone?: string | null;
           updated_at?: string | null;
         };
@@ -376,6 +378,7 @@ export interface Database {
           email?: string | null;
           full_name?: string | null;
           id?: string;
+          onboarded_at?: string | null;
           timezone?: string | null;
           updated_at?: string | null;
         };
