@@ -247,7 +247,7 @@ try {
 | 3 | feat | 마이그레이션과 seed(김철수·이영희는 `onboarded_at` 명시, `new@test.com`은 `p_full_name` NULL), 타입(`auth.ts`, `database-generated.ts`의 profiles 항목만 수정), `needsOnboarding`으로 판정 교체, `needsProfile` 계산화, 기존 설정 화면이 `onboarded_at`도 저장, dev "신규" 로그인 버튼 | `supabase/…`, `packages/types/…`, `services/auth/profileService.ts`, `contexts/AuthContext.tsx`, `app/(auth)/*.tsx` |
 | 4 | feat | 닉네임 화면 재작성(§4). `toNicknameDraft`, invite `code` 전달 | `app/(auth)/profile-setup.tsx`, `app/invite.tsx`, `services/auth/profileService.ts` |
 | 5 | feat | 기본 가계부 이름 변경과 안내 줄(`findDefaultLedger`) | `app/(auth)/profile-setup.tsx`, `services/auth/profileService.ts` |
-| 6 | fix | 애플 이름 전달, `formatAppleFullName` | `services/auth/authService.ts`, `services/auth/profileService.ts` |
+| 6 | fix | 애플 이름 전달(`rememberSignupName`), `formatAppleFullName` | `services/auth/authService.ts`, `services/auth/profileService.ts`, `services/auth/appleAuth.ts` |
 | 7 | docs | 아키텍처 문서(가입 플로우, useAuth) | `docs/architecture.md` |
 
 - 4·5는 화면 한 파일을 두 번 고치게 돼 한 커밋(`eba2b1c`)으로 합쳤다.
