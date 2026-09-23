@@ -16,6 +16,23 @@ export interface AppleCredential {
 }
 
 /**
+ * 애플이 준 이름을 한 줄로 만든다. 성·이름이 모두 한글이면 '홍길동'처럼 붙이고, 아니면 '이름 성'으로 띄운다.
+ * 애플은 이름을 첫 승인 때만 주고, 그 뒤로는 값이 모두 null인 객체를 준다. 이때는 undefined를 돌려준다
+ * (빈 문자열을 넘기면 프로필 이름이 ''로 저장된다).
+ */
+export const formatAppleFullName = (
+  fullName: AppleCredential['fullName']
+): string | undefined => {
+  const given = fullName?.givenName?.trim() ?? '';
+  const family = fullName?.familyName?.trim() ?? '';
+  if (!given && !family) return undefined;
+
+  const hangul = /^[가-힣]+$/;
+  if (hangul.test(given) && hangul.test(family)) return family + given;
+  return [given, family].filter(Boolean).join(' ');
+};
+
+/**
  * Apple Sign-In 사용 가능 여부 확인
  */
 const checkAppleAuthAvailable = async (): Promise<boolean> => {

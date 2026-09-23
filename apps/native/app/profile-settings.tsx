@@ -15,7 +15,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useServices } from '@/contexts/ServiceContext';
 import { EditTextModal } from '@/components/shared/EditTextModal';
 import { DeleteAccountModal } from '@/components/profile/DeleteAccountModal';
-import { ProfileRules, DELETE_ACCOUNT } from '@repo/core';
+import { DELETE_ACCOUNT } from '@repo/core';
+import { nicknameError } from '@/services/auth/profileService';
 import type { ProfileDetail } from '@repo/core';
 import { ScreenHeader } from '@/components/shared/ScreenHeader';
 import * as Clipboard from 'expo-clipboard';
@@ -247,16 +248,7 @@ export default function ProfileSettingsScreen() {
         placeholder="닉네임을 입력하세요"
         maxLength={20}
         helperText="2-20자의 한글, 영문, 숫자, 공백만 사용 가능합니다."
-        validate={(text) => {
-          try {
-            ProfileRules.validateNickname(text);
-            return null;
-          } catch (error) {
-            return error instanceof Error
-              ? error.message
-              : '유효하지 않은 닉네임입니다.';
-          }
-        }}
+        validate={nicknameError}
         validateOnChange={true}
         required={true}
         autoCapitalize="none"

@@ -116,6 +116,13 @@ export default function LoginScreen() {
                   >
                     <Text style={styles.devButtonText}>이영희</Text>
                   </Pressable>
+                  <Pressable
+                    style={styles.devButton}
+                    onPress={() => devLogin('new@test.com')}
+                    disabled={loadingProvider !== null}
+                  >
+                    <Text style={styles.devButtonText}>신규</Text>
+                  </Pressable>
                 </View>
               </View>
             )}

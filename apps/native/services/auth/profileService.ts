@@ -1,6 +1,27 @@
+import { ProfileRules } from '@repo/core';
 import { supabase } from '../../utils/supabase';
 import type { AuthProfile as Profile } from '@repo/types';
 import type { User } from '@supabase/supabase-js';
+
+/**
+ * 이메일 앞부분. 제공자가 이름을 주지 않았을 때 프로필 이름의 폴백이다
+ * (SQL create_user_profile의 COALESCE, 마이그레이션 20260924000001 백필과 같은 규칙).
+ */
+const emailLocalPart = (email: string | null | undefined) =>
+  email?.split('@')[0];
+
+/**
+ * 가입 중인 사용자의 이름(애플이 첫 승인 때만 주는 이름).
+ *
+ * signInWithIdToken은 AuthContext의 SIGNED_IN 리스너가 끝날 때까지 기다리고, 그 리스너가 프로필을 만든다.
+ * 로그인 뒤에 이름을 넘기면 이미 이메일 앞부분으로 만들어진 뒤라, 로그인 전에 여기에 넣어 둔다.
+ * 넣은 쪽이 로그인이 끝나면(실패해도) 비운다.
+ */
+let pendingSignupName: string | undefined;
+
+export const rememberSignupName = (name: string | undefined) => {
+  pendingSignupName = name;
+};
 
 /**
  * 사용자 메타데이터에서 프로필 정보 추출
@@ -116,7 +137,7 @@ const createProfileDirectly = async (
     .insert({
       id: userId,
       email: email,
-      full_name: userData?.fullName || email.split('@')[0],
+      full_name: userData?.fullName || emailLocalPart(email),
       avatar_url: userData?.avatarUrl || null,
       currency: 'KRW',
       timezone: 'Asia/Seoul',
@@ -203,11 +224,7 @@ export const createProfile = async (
 export const ensureProfile = async (
   userId: string,
   email?: string | null,
-  user?: User | null,
-  userData?: {
-    fullName?: string;
-    avatarUrl?: string;
-  }
+  user?: User | null
 ): Promise<Profile | null> => {
   try {
     // 1. 기존 프로필 조회
@@ -233,11 +250,11 @@ export const ensureProfile = async (
     if (!profile && email) {
       console.log('Profile not found, creating new profile...');
 
-      // 사용자 메타데이터 추출 (전달된 userData 우선 사용)
+      // 가입 중 넘겨받은 이름(애플)이 있으면 우선, 없으면 제공자 메타데이터(구글)
       const metadataFromUser = user ? extractUserMetadata(user) : undefined;
       const finalUserData = {
-        fullName: userData?.fullName || metadataFromUser?.fullName,
-        avatarUrl: userData?.avatarUrl || metadataFromUser?.avatarUrl,
+        fullName: pendingSignupName || metadataFromUser?.fullName,
+        avatarUrl: metadataFromUser?.avatarUrl,
       };
 
       const { data: newProfile, error } = await createProfile(
@@ -287,40 +304,65 @@ const createDefaultLedger = async (
 };
 
 /**
- * 프로필 완성 여부 확인
+ * 닉네임 화면을 보여줘야 하는지 판정한다.
+ *
+ * onboarded_at 컬럼이 생기기 전에 저장된 프로필 캐시에는 키가 없다(undefined). 이를 미완료로 보면 업데이트 직후
+ * 기존 사용자 전원이 닉네임 화면으로 튕기므로, 서버가 준 null만 미완료로 본다.
+ * 프로필을 불러오지 못했으면 이전처럼 설정 화면으로 보낸다.
  */
-export const isProfileComplete = (profile: Profile | null): boolean => {
-  if (!profile) return false;
-  return !!profile.full_name;
+export const needsOnboarding = (profile: Profile | null): boolean =>
+  !profile || profile.onboarded_at === null;
+
+/** 닉네임 규칙 위반 메시지. 규칙에 맞으면 null. */
+export const nicknameError = (nickname: string): string | null => {
+  try {
+    ProfileRules.validateNickname(nickname);
+    return null;
+  } catch (error) {
+    return error instanceof Error ? error.message : '사용할 수 없는 닉네임입니다.';
+  }
 };
 
 /**
- * 프로필 업데이트
+ * 닉네임 입력칸의 기본값. 애플·구글이 준 이름은 규칙에 맞지 않을 수 있어(`Gil-dong Hong`, `O'Brien`)
+ * 악센트와 허용하지 않는 문자를 빼고 20자로 자른다. 이메일 앞부분(제공자 이름이 없을 때의 폴백)이거나
+ * 정리해도 규칙에 맞지 않으면 빈칸으로 둔다.
  */
-export const updateProfile = async (
-  userId: string,
-  data: Partial<Profile>
-): Promise<{ data: Profile | null; error: Error | null }> => {
-  try {
-    const { data: updatedProfile, error } = await supabase
-      .from('profiles')
-      .update({
-        ...data,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', userId)
-      .select()
-      .single();
+export const toNicknameDraft = (
+  name: string | null | undefined,
+  email: string | null | undefined
+): string => {
+  if (!name || name === emailLocalPart(email)) return '';
 
-    if (error) {
-      return { data: null, error: new Error(error.message) };
-    }
+  const draft = name
+    // 악센트만 떼고(José → Jose) 한글은 다시 조합한다
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .normalize('NFC')
+    .replace(new RegExp(`[^${ProfileRules.NICKNAME_CHARS}]`, 'g'), '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, ProfileRules.NICKNAME_MAX_LENGTH)
+    .trim();
+  return nicknameError(draft) ? '' : draft;
+};
 
-    return { data: updatedProfile, error: null };
-  } catch (error) {
-    return {
-      data: null,
-      error: error instanceof Error ? error : new Error('Unknown error'),
-    };
-  }
+/** 가입 때 setup_new_user가 만드는 기본 가계부 이름(SQL `user_name || '의 가계부'`와 같은 형식) */
+export const defaultLedgerName = (name: string) => `${name}의 가계부`;
+
+/**
+ * 가입 때 만들어진 기본 가계부를 찾는다. 표시는 없으므로 "내가 만들었고 이름이 자동으로 붙은 형식 그대로"인
+ * 가계부로 본다. 사용자가 이름을 바꾼 가계부는 걸리지 않는다.
+ */
+export const findDefaultLedger = <T extends { name: string; created_by: string }>(
+  ledgers: T[],
+  userId: string | undefined,
+  currentName: string | null | undefined
+): T | undefined => {
+  if (!userId || !currentName) return undefined;
+  return ledgers.find(
+    (ledger) =>
+      ledger.created_by === userId &&
+      ledger.name === defaultLedgerName(currentName)
+  );
 };
