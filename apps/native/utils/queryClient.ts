@@ -30,6 +30,8 @@ export const queryKeys = {
     ['transaction', transactionId] as const,
   categories: (ledgerId: string | undefined) =>
     ['categories', ledgerId] as const,
+  paymentMethods: (ledgerId: string | undefined) =>
+    ['paymentMethods', ledgerId] as const,
   monthlySummary: {
     all: ['monthlySummary'] as const,
     month: (ledgerId: string | undefined, year: number, month: number) =>

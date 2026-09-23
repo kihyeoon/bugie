@@ -1,9 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert } from 'react-native';
 import type { PaymentMethodEntity, CreatePaymentMethodInput, UpdatePaymentMethodInput } from '@repo/core';
 import { useLedger } from '../contexts/LedgerContext';
 import { useServices } from '../contexts/ServiceContext';
 import { useAuth } from '../contexts/AuthContext';
+import { invalidateTransactionLists, queryKeys } from '../utils/queryClient';
+
+const NO_PAYMENT_METHODS: PaymentMethodEntity[] = [];
 
 export interface OwnerGroup {
   ownerId: string;
@@ -69,34 +73,26 @@ export function usePaymentMethods(ledgerIdParam?: string) {
 
   const ledgerId = ledgerIdParam ?? currentLedger?.id;
 
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodEntity[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const queryClient = useQueryClient();
+  const queryKey = queryKeys.paymentMethods(ledgerId);
 
-  const loadPaymentMethods = useCallback(async () => {
-    if (!ledgerId) {
-      setPaymentMethods([]);
-      setLoading(false);
-      return;
-    }
+  const query = useQuery({
+    queryKey,
+    queryFn: () => paymentMethodService.getByLedger(ledgerId!),
+    enabled: !!ledgerId,
+  });
 
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await paymentMethodService.getByLedger(ledgerId);
-      setPaymentMethods(data);
-    } catch (err) {
-      console.error('Failed to load payment methods:', err);
-      setError(err instanceof Error ? err : new Error('결제 수단을 불러올 수 없습니다.'));
-      setPaymentMethods([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [ledgerId, paymentMethodService]);
+  const paymentMethods = query.data ?? NO_PAYMENT_METHODS;
+  const { refetch: refetchQuery } = query;
+  const refresh = useCallback(async () => {
+    if (ledgerId) await refetchQuery({ cancelRefetch: false });
+  }, [ledgerId, refetchQuery]);
 
-  useEffect(() => {
-    loadPaymentMethods();
-  }, [loadPaymentMethods]);
+  const setPaymentMethods = useCallback(
+    (update: (prev: PaymentMethodEntity[]) => PaymentMethodEntity[]) =>
+      queryClient.setQueryData<PaymentMethodEntity[]>(queryKey, (prev) => update(prev ?? [])),
+    [queryClient, queryKey]
+  );
 
   const create = useCallback(
     async (input: Omit<CreatePaymentMethodInput, 'ledgerId'>) => {
@@ -127,7 +123,7 @@ export function usePaymentMethods(ledgerIdParam?: string) {
         throw err;
       }
     },
-    [ledgerId, paymentMethodService, user]
+    [ledgerId, paymentMethodService, user, setPaymentMethods]
   );
 
   const update = useCallback(
@@ -141,15 +137,17 @@ export function usePaymentMethods(ledgerIdParam?: string) {
 
       try {
         await paymentMethodService.update(id, input);
+        // 거래 행에 결제 수단 이름이 조인돼 있다
+        invalidateTransactionLists(queryClient);
       } catch (err) {
         console.error('Failed to update payment method:', err);
-        setPaymentMethods(previous);
+        setPaymentMethods(() => previous);
         const message = err instanceof Error ? err.message : '결제 수단 수정에 실패했습니다.';
         Alert.alert('오류', message);
         throw err;
       }
     },
-    [paymentMethods, paymentMethodService]
+    [paymentMethods, paymentMethodService, queryClient, setPaymentMethods]
   );
 
   const softDelete = useCallback(
@@ -170,6 +168,7 @@ export function usePaymentMethods(ledgerIdParam?: string) {
                 try {
                   await paymentMethodService.softDelete(id);
                   setPaymentMethods((prev) => prev.filter((m) => m.id !== id));
+                  invalidateTransactionLists(queryClient);
                   resolve(true);
                 } catch (err) {
                   console.error('Failed to delete payment method:', err);
@@ -183,14 +182,15 @@ export function usePaymentMethods(ledgerIdParam?: string) {
         );
       });
     },
-    [paymentMethods, paymentMethodService]
+    [paymentMethods, paymentMethodService, queryClient, setPaymentMethods]
   );
 
   return {
     paymentMethods,
-    loading,
-    error,
-    refresh: loadPaymentMethods,
+    // 가계부가 없어 비활성일 때도 true인 isPending 대신, 실제로 처음 받는 중일 때만 로딩
+    loading: query.isLoading,
+    error: query.error,
+    refresh,
     create,
     update,
     softDelete,
