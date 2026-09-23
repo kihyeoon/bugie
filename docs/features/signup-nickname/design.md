@@ -4,7 +4,9 @@
 저장돼 공유 가계부 상대방에게 그대로 보이는 문제를 고친다.
 
 > 개정 이력: 2026-09-23 재조사 → 2026-09-24 사용자 결정 반영 → 2026-09-24 4개 관점 리뷰(인증 흐름, DB·배포,
-> UX·심사, 단순성·범위) 반영(§9).
+> UX·심사, 단순성·범위) 반영(§9) → 2026-09-24 구현(`feature/bgi-40`)·simplify 반영.
+>
+> **현재 상태**: 구현과 시뮬레이터 검증 완료. 실기기 검증(§7), main 병합, 프로덕션 마이그레이션 배포(§8)가 남았다.
 
 ## 1. 문제 (프로덕션 실측 2026-09-23, 탈퇴자 제외)
 
@@ -209,6 +211,7 @@ try {
     `COALESCE`를 통과해 이름이 `''`, 가계부가 `의 가계부`가 된다.
 - `toNicknameDraft(name)`(순수 함수, 기본값 정리)
   - 순서: 악센트 제거(NFD → 결합 문자 제거 → NFC, 한글은 다시 조합됨) → 허용하지 않는 문자 제거 → 공백 하나로 합치기 → 20자로 자르기.
+  - 허용 문자와 최대 길이는 검증과 같은 원천(`ProfileRules.NICKNAME_CHARS`, `NICKNAME_MAX_LENGTH`)을 쓴다.
   - 결과가 규칙에 맞지 않거나 이메일 앞부분이면 빈칸.
   - 예: `Gil-dong Hong`→`Gildong Hong`, `O'Brien`→`OBrien`, `José García`→`Jose Garcia`, `홍`(1자)→빈칸, `山田太郎`→빈칸.
 
@@ -253,6 +256,8 @@ try {
 | 7 | docs | 아키텍처 문서(가입 플로우, useAuth) | `docs/architecture.md` |
 
 - 4·5는 화면 한 파일을 두 번 고치게 돼 한 커밋(`eba2b1c`)으로 합쳤다.
+- 이후 simplify(`8c5a7ca`): AuthContext 상태 객체 헬퍼화, 안 쓰는 `ensureProfile` 인자·`profileService.updateProfile` 제거,
+  닉네임 규칙 상수 공유, 저장 순서 변경(§5.3).
 - 테스트 인프라(jest/vitest)는 없고, 이번에 추가하지 않는다. 대신 판정과 정리 규칙을 의존성 없는 순수 함수로 둔다
   (`needsOnboarding`, `formatAppleFullName`, `toNicknameDraft`, `findDefaultLedger`). 나중에 테스트를 붙이기 쉽게 하기 위해서다.
 - 생성 타입 재생성 명령(`npx supabase gen types typescript --local`)은 문서에만 남기고, 재생성은 별도 작업으로 한다.
