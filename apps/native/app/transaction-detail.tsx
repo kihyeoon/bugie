@@ -283,8 +283,8 @@ export default function TransactionDetailScreen() {
     );
   }
 
-  // 에러 상태
-  if (error || !transaction) {
+  // 에러 상태 — 재조회만 실패했으면 받아둔 거래를 그대로 보여준다
+  if (!transaction) {
     return renderScreen(
       <View
         style={[styles.errorContainer, { backgroundColor: colors.background }]}

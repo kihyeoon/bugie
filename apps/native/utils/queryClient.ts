@@ -26,4 +26,6 @@ export const queryKeys = {
       filters: TransactionFilters
     ) => ['transactions', ledgerId, year, month, filters] as const,
   },
+  transaction: (transactionId: string | undefined) =>
+    ['transaction', transactionId] as const,
 };
