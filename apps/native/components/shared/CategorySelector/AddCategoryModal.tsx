@@ -246,7 +246,7 @@ export function AddCategoryModal({
             style={styles.keyboardAvoidingView}
           >
             {/* 헤더 */}
-            <View style={styles.header}>
+            <View style={[styles.header, { borderBottomColor: colors.border }]}>
               <Text style={[styles.title, { color: colors.text }]}>
                 커스텀 카테고리 추가
               </Text>
@@ -483,7 +483,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 20,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E5E8EB',
   },
   title: {
     fontSize: 18,

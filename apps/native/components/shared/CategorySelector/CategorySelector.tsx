@@ -1,11 +1,5 @@
 import React, { useState } from 'react';
-import {
-  TouchableOpacity,
-  Text,
-  View,
-  StyleSheet,
-  ActivityIndicator,
-} from 'react-native';
+import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CategoryBottomSheet } from './CategoryBottomSheet';
 import { Colors } from '@/constants/Colors';
@@ -67,12 +61,11 @@ export function CategorySelector({
         ]}
         onPress={handleOpenBottomSheet}
         activeOpacity={0.7}
-        disabled={loading}
       >
+        {/* 선택칸은 로딩 중에도 그대로 둔다. 금액을 먼저 입력하므로 누를 때쯤이면 받아져 있고,
+            그 전에 누르면 시트 안에서 로딩을 보여준다. */}
         <View style={styles.content}>
-          {loading ? (
-            <ActivityIndicator size="small" color={colors.textSecondary} />
-          ) : selectedCategory ? (
+          {selectedCategory ? (
             <>
               <Ionicons
                 name={getIoniconName(selectedCategory.icon, true)}

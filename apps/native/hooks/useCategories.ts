@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert } from 'react-native';
 import type { CategoryDetail } from '@repo/core';
@@ -8,6 +8,28 @@ import { invalidateTransactionLists, queryKeys } from '../utils/queryClient';
 import { useQueryStatus } from './useQueryStatus';
 
 const NO_CATEGORIES: CategoryDetail[] = [];
+
+/**
+ * 빠른입력·거래 상세에 처음 들어갈 때 카테고리가 이미 캐시에 있도록 미리 받아 둔다.
+ * 홈 첫 화면을 늦추지 않도록 호출하는 쪽이 준비된 뒤(ready)에만 받는다.
+ */
+export function usePrefetchCategories(ready: boolean) {
+  const { currentLedger } = useLedger();
+  const { ledgerService } = useServices();
+  const queryClient = useQueryClient();
+  const ledgerId = currentLedger?.id;
+
+  useEffect(() => {
+    if (!ledgerId || !ready) return;
+    // 이미 있으면 받지 않는다. 신선도는 빠른입력이 포커스 때 재조회해 챙긴다.
+    const queryKey = queryKeys.categories(ledgerId);
+    if (queryClient.getQueryData(queryKey) !== undefined) return;
+    queryClient.prefetchQuery({
+      queryKey,
+      queryFn: () => ledgerService.getCategories(ledgerId),
+    });
+  }, [ledgerId, ready, queryClient, ledgerService]);
+}
 
 /**
  * 현재 선택된 가계부의 카테고리 목록을 가져오는 Hook

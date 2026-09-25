@@ -237,7 +237,7 @@ export function EditPaymentMethodModal({
               <Switch
                 value={isShared}
                 onValueChange={setIsShared}
-                trackColor={{ false: '#E5E5EA', true: colors.tint }}
+                trackColor={{ true: colors.tint }}
                 thumbColor="#FFFFFF"
               />
             </View>

@@ -308,7 +308,10 @@ export default function TransactionDetailScreen() {
     <>
       <ScrollView
         style={[styles.container, { backgroundColor: colors.background }]}
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={[
+          styles.contentContainer,
+          { backgroundColor: colors.backgroundSecondary },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* 상단 금액 섹션 */}
@@ -544,7 +547,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    backgroundColor: '#F2F4F6',
     gap: 8,
   },
   loadingContainer: {

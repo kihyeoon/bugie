@@ -17,6 +17,7 @@ import { Calendar } from '@/components/shared/calendar';
 import { useLedger } from '../../contexts/LedgerContext';
 import { useSelectedDate } from '@/contexts/SelectedDateContext';
 import { useMonthlyData } from '../../hooks/useMonthlyData';
+import { usePrefetchCategories } from '../../hooks/useCategories';
 import { useTransactions } from '../../hooks/useTransactions';
 import { SelectedDayTransactions } from '@/components/transaction/SelectedDayTransactions';
 import { ErrorState } from '../../components/shared/ErrorState';
@@ -74,6 +75,7 @@ export default function HomeScreen() {
     error: dataError,
     refetch: refetchData,
   } = useMonthlyData(year, month);
+  usePrefetchCategories(!dataLoading);
 
   // 거래 행은 날짜를 처음 고르는 시점에야 필요하다. 홈 첫 진입을 느리게 만들지 않도록 지연 로드한다.
   const {
