@@ -2,6 +2,7 @@ import { StyleSheet, View, ScrollView, Alert } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { ComponentProps } from 'react';
 import { router } from 'expo-router';
+import Constants from 'expo-constants';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography, ListItem, Card } from '@/components/ui';
@@ -142,7 +143,7 @@ export default function MoreScreen() {
 
       <View style={styles.footer}>
         <Typography variant="caption" color="secondary">
-          버전 1.0.0
+          버전 {Constants.expoConfig?.version}
         </Typography>
       </View>
     </ScrollView>
