@@ -1,13 +1,24 @@
 import { useCallback, useEffect, useMemo } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryOptions, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert } from 'react-native';
-import type { CategoryDetail } from '@repo/core';
+import type { CategoryDetail, LedgerService } from '@repo/core';
 import { useLedger } from '../contexts/LedgerContext';
 import { useServices } from '../contexts/ServiceContext';
 import { invalidateTransactionLists, queryKeys } from '../utils/queryClient';
 import { useQueryStatus } from './useQueryStatus';
 
 const NO_CATEGORIES: CategoryDetail[] = [];
+
+// 미리 받기와 useQuery가 같은 키에 같은 방법으로 받도록 한 곳에서 정의한다.
+function categoriesQuery(
+  ledgerService: LedgerService,
+  ledgerId: string | undefined
+) {
+  return queryOptions({
+    queryKey: queryKeys.categories(ledgerId),
+    queryFn: () => ledgerService.getCategories(ledgerId!),
+  });
+}
 
 /**
  * 빠른입력·거래 상세에 처음 들어갈 때 카테고리가 이미 캐시에 있도록 미리 받아 둔다.
@@ -21,13 +32,11 @@ export function usePrefetchCategories(ready: boolean) {
 
   useEffect(() => {
     if (!ledgerId || !ready) return;
-    // 이미 있으면 받지 않는다. 신선도는 빠른입력이 포커스 때 재조회해 챙긴다.
-    const queryKey = queryKeys.categories(ledgerId);
-    if (queryClient.getQueryData(queryKey) !== undefined) return;
-    queryClient.prefetchQuery({
-      queryKey,
-      queryFn: () => ledgerService.getCategories(ledgerId),
-    });
+    // 캐시에 있으면 받지 않는다. 신선도는 빠른입력이 포커스 때 재조회해 챙긴다.
+    // 실패해도 빠른입력이 다시 받으므로 무시한다.
+    queryClient
+      .ensureQueryData(categoriesQuery(ledgerService, ledgerId))
+      .catch(() => undefined);
   }, [ledgerId, ready, queryClient, ledgerService]);
 }
 
@@ -41,7 +50,11 @@ export function useCategories(type?: 'income' | 'expense') {
   const { ledgerService } = useServices();
   const queryClient = useQueryClient();
   const ledgerId = currentLedger?.id;
-  const queryKey = useMemo(() => queryKeys.categories(ledgerId), [ledgerId]);
+  const options = useMemo(
+    () => categoriesQuery(ledgerService, ledgerId),
+    [ledgerService, ledgerId]
+  );
+  const { queryKey } = options;
 
   // 수입/지출 필터는 한 캐시에서 골라낸다. 타입마다 따로 받으면 같은 목록을 두 번 받는다.
   const selectByType = useCallback(
@@ -51,8 +64,7 @@ export function useCategories(type?: 'income' | 'expense') {
   );
 
   const query = useQuery({
-    queryKey,
-    queryFn: () => ledgerService.getCategories(ledgerId!),
+    ...options,
     enabled: !!ledgerId,
     select: selectByType,
   });
