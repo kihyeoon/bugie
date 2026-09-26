@@ -94,6 +94,7 @@ pnpm check                            # lint + format --check
 ```bash
 pnpm --filter @repo/core lint                  # core 변경 시
 cd apps/native && npx tsc --noEmit             # native 타입체크
+pnpm --filter native lint                      # native lint (에러 0이어야 함)
 pnpm --filter web build                        # web 변경 시
 ```
 

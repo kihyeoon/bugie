@@ -20,6 +20,17 @@ module.exports = [
     },
   },
 
+  // React Compiler 전용 규칙 (eslint-plugin-react-hooks 7) — 컴파일러를 켜지 않아 경고로 둔다.
+  // 기존 위반(대부분 useRef(new Animated.Value()) 패턴)은 BGI-51에서 정리한다.
+  {
+    rules: {
+      'react-hooks/refs': 'warn',
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/immutability': 'warn',
+      'react-hooks/preserve-manual-memoization': 'warn',
+    },
+  },
+
   // Expo 특화 ignore 패턴
   {
     ignores: ['dist/**', '.expo/**', 'android/**', 'ios/**'],
