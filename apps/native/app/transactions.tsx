@@ -31,6 +31,7 @@ import { EmptyState } from '../components/shared/EmptyState';
 import { useLedger } from '../contexts/LedgerContext';
 import { useTransactions } from '../hooks/useTransactions';
 import { useMonthlyData } from '../hooks/useMonthlyData';
+import { parseLocalDate } from '@repo/core';
 import type { TransactionWithDetails } from '@repo/core';
 import {
   addMonths,
@@ -99,7 +100,7 @@ export default function TransactionsScreen() {
   const { currentLedger } = useLedger();
 
   const [selectedDate, setSelectedDate] = useState<Date>(
-    params.date ? new Date(params.date as string) : new Date()
+    params.date ? parseLocalDate(params.date as string) : new Date()
   );
   const [calendarViewType, setCalendarViewType] = useState<'month' | 'week'>(
     'month'
@@ -253,7 +254,7 @@ export default function TransactionsScreen() {
   // 그대로 표시되므로 stale 여부 판정을 위한 메타.
   const renderedMonth = useMemo(() => {
     if (groupedTransactions.length === 0) return null;
-    const date = new Date(groupedTransactions[0].date);
+    const date = parseLocalDate(groupedTransactions[0].date);
     return { year: date.getFullYear(), month: date.getMonth() + 1 };
   }, [groupedTransactions]);
 
@@ -316,7 +317,7 @@ export default function TransactionsScreen() {
       if (!userHasDraggedSinceChange.current) return;
       const firstVisibleSection = viewableItems[0]?.section;
       if (!firstVisibleSection?.date) return;
-      const newDate = new Date(firstVisibleSection.date);
+      const newDate = parseLocalDate(firstVisibleSection.date);
       // belt-and-suspenders: 가시 섹션이 현재 month 윈도우 밖이면 무시.
       if (newDate.getFullYear() !== year || newDate.getMonth() + 1 !== month) {
         return;

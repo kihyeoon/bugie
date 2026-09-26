@@ -29,7 +29,7 @@ import { CategoryBottomSheet } from '@/components/shared/CategorySelector/Catego
 import { useCategories } from '@/hooks/useCategories';
 import { useLedger } from '@/contexts/LedgerContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { PermissionService, formatLocalDate } from '@repo/core';
+import { PermissionService, formatLocalDate, parseLocalDate } from '@repo/core';
 import type { MemberRole } from '@repo/core';
 import { ScreenHeader } from '@/components/shared/ScreenHeader';
 
@@ -509,7 +509,7 @@ export default function TransactionDetailScreen() {
             mode="date"
             onConfirm={handleDateConfirm}
             onCancel={() => setDatePickerVisible(false)}
-            date={new Date(transaction.transaction_date)}
+            date={parseLocalDate(transaction.transaction_date)}
             maximumDate={addYears(new Date(), 1)}
             locale="ko"
             confirmTextIOS="완료"

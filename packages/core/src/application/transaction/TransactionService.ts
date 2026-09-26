@@ -17,7 +17,7 @@ import type { AuthService } from '../../domain/auth/types';
 import { TransactionRules } from '../../domain/transaction/rules';
 import { TransactionViewRepository } from '../../infrastructure/supabase/repositories/TransactionViewRepository';
 import { UnauthorizedError, NotFoundError } from '../../domain/shared/errors';
-import { formatLocalDate } from '../../domain/shared/utils';
+import { formatLocalDate, parseLocalDate } from '../../domain/shared/utils';
 import { PermissionService } from '../permission/PermissionService';
 
 export class TransactionService {
@@ -49,8 +49,10 @@ export class TransactionService {
     // Convert to domain filter
     const domainFilter: TransactionFilter = {
       ledgerId: filter.ledgerId,
-      startDate: filter.startDate ? new Date(filter.startDate) : undefined,
-      endDate: filter.endDate ? new Date(filter.endDate) : undefined,
+      startDate: filter.startDate
+        ? parseLocalDate(filter.startDate)
+        : undefined,
+      endDate: filter.endDate ? parseLocalDate(filter.endDate) : undefined,
       type: filter.type,
       categoryId: filter.categoryId,
       limit: filter.limit,
@@ -131,7 +133,7 @@ export class TransactionService {
       title: input.title,
       description: input.description,
       transactionDate: input.transactionDate
-        ? new Date(input.transactionDate)
+        ? parseLocalDate(input.transactionDate)
         : undefined,
     });
 
@@ -183,7 +185,7 @@ export class TransactionService {
       title: input.title,
       description: input.description,
       transactionDate: input.transactionDate
-        ? new Date(input.transactionDate)
+        ? parseLocalDate(input.transactionDate)
         : undefined,
     });
 

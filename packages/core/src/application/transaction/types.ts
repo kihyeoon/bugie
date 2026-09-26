@@ -13,6 +13,7 @@ export interface CreateTransactionInput {
   type: CategoryType;
   title: string;
   description?: string;
+  /** YYYY-MM-DD (formatLocalDate) */
   transactionDate?: string;
 }
 
@@ -25,12 +26,15 @@ export interface UpdateTransactionInput {
   type?: CategoryType;
   title?: string;
   description?: string;
+  /** YYYY-MM-DD (formatLocalDate) */
   transactionDate?: string;
 }
 
 export interface TransactionFilterInput {
   ledgerId: string;
+  /** YYYY-MM-DD (formatLocalDate) */
   startDate?: string;
+  /** YYYY-MM-DD (formatLocalDate) */
   endDate?: string;
   type?: CategoryType;
   categoryId?: string;
