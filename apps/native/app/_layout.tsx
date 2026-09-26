@@ -14,6 +14,7 @@ import 'react-native-reanimated';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useAppStateHandler } from '../hooks/useAppStateHandler';
 import { AppErrorBoundary } from '../components/shared/AppErrorBoundary';
+import { ForceUpdateGate } from '../components/shared/ForceUpdateGate';
 import { AuthProvider } from '../contexts/AuthContext';
 import { ServiceProvider } from '../contexts/ServiceContext';
 import { LedgerProvider } from '../contexts/LedgerContext';
@@ -59,6 +60,7 @@ export default function RootLayout() {
                         options={{ headerShown: true, title: 'Oops!' }}
                       />
                     </Stack>
+                    <ForceUpdateGate />
                     <StatusBar style="auto" />
                   </ThemeProvider>
                 </SelectedDateProvider>

@@ -24,6 +24,7 @@ import { ErrorState } from '../../components/shared/ErrorState';
 import { EmptyState } from '../../components/shared/EmptyState';
 import { CreateLedgerModal } from '../../components/ledger/CreateLedgerModal';
 import { formatLocalDate } from '@repo/core';
+import { useRecommendedUpdateAlert } from '@/hooks/useRecommendedUpdateAlert';
 
 // Constants
 const CONSTANTS = {
@@ -120,6 +121,8 @@ export default function HomeScreen() {
 
     prepare();
   }, [ledgerLoading, dataLoading, appReady]);
+
+  useRecommendedUpdateAlert(appReady);
 
   // 화면 포커스 시 데이터 새로고침 (디바운싱 적용)
   useFocusEffect(

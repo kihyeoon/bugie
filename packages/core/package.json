@@ -4,7 +4,8 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "lint": "eslint . --config eslint.config.js && tsc --noEmit"
+    "lint": "eslint . --config eslint.config.js && tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.52.0",
@@ -12,6 +13,7 @@
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
-    "typescript": "5.5.4"
+    "typescript": "5.5.4",
+    "vitest": "^3.2.7"
   }
 }

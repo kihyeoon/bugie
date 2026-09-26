@@ -14,6 +14,27 @@ export interface Database {
   };
   public: {
     Tables: {
+      app_versions: {
+        Row: {
+          min_supported_version: string | null;
+          platform: string;
+          recommended_message: string | null;
+          recommended_version: string | null;
+        };
+        Insert: {
+          min_supported_version?: string | null;
+          platform: string;
+          recommended_message?: string | null;
+          recommended_version?: string | null;
+        };
+        Update: {
+          min_supported_version?: string | null;
+          platform?: string;
+          recommended_message?: string | null;
+          recommended_version?: string | null;
+        };
+        Relationships: [];
+      };
       budgets: {
         Row: {
           amount: number;

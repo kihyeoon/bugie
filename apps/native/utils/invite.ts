@@ -6,6 +6,8 @@
  * 앱에서도 정리해 보내 불필요한 실패 시도(rate limit 소모)를 줄인다.
  */
 
+import { APP_STORE_URL } from '../constants/appStore';
+
 /** 표기형(ABCD-EFGH-IJKL) → 저장형(ABCDEFGHIJKL) */
 export function normalizeInviteCode(input: string): string {
   return input.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
@@ -16,9 +18,6 @@ export function formatInviteCode(code: string): string {
   const normalized = normalizeInviteCode(code);
   return normalized.replace(/(.{4})(?=.)/g, '$1-');
 }
-
-/** App Store 링크 (미설치자 → 설치 → 코드 입력으로 참여) */
-const APP_STORE_URL = 'https://apps.apple.com/app/id6754210865';
 
 /** 초대 코드로 딥링크 URL 생성 */
 export function buildInviteUrl(code: string): string {

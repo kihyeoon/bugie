@@ -59,7 +59,7 @@ createProfileService(supabase)
 
 ```
 GestureHandlerRootView
-  → QueryClientProvider (TanStack Query 캐시 — 로그아웃 시 AuthProvider가 비움)
+  → QueryClientProvider (TanStack Query 캐시 — 로그아웃 시 AuthProvider가 clearUserQueries로 비움)
   → AuthProvider        (인증 상태)
     → ServiceProvider   (core 서비스 인스턴스)
       → LedgerProvider  (현재 선택된 가계부)
@@ -108,6 +108,9 @@ app/
 - **hook이 화면에 넘기는 `loading`·`error`·`refetch`는 `useQueryStatus`로 만든다.** `loading`은 `isLoading`
   (`isPending`은 비활성 쿼리에서도 true라 홈 스플래시가 안 풀림), `error`는 보여줄 데이터가 없을 때만,
   `refetch`는 비활성이면 아무것도 안 한다(`useQuery`의 `refetch`는 `enabled`를 무시함)
+- **로그인 전에도 구독되는 쿼리에는 `meta: { userScoped: false }`를 단다.** `AuthProvider`는 로그아웃 상태(앱 시작 직후 포함)에서
+  캐시를 비우는데(`clearUserQueries`), 이 표시가 없으면 먼저 구독한 옵저버가 캐시에서 빠진 쿼리에 붙은 채 남아 결과를 영영 못 받는다
+  (BGI-52 강제 업데이트 게이트가 이걸로 안 떴다). 현재는 `useUpdatePrompt` 하나
 - **거래를 바꾸면 `invalidateTransactionLists`를 부른다.** 홈·목록은 돌아올 때 재조회하므로 표시만 해둔다
   (`refetchType: 'none'`). 카테고리·결제 수단·닉네임도 거래 행에 조인돼 있어 같이 무효화한다
 - 가계부 목록(`LedgerContext`), 가계부 설정·프로필 설정·초대 코드는 아직 캐시 밖이다

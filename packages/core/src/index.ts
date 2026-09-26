@@ -11,6 +11,7 @@ export * from './domain/ledger/types';
 export * from './domain/transaction/types';
 export * from './domain/payment-method/types';
 export * from './domain/profile/types';
+export * from './domain/app-version/types';
 
 // 도메인 규칙
 export {
@@ -21,6 +22,7 @@ export {
 export { TransactionRules } from './domain/transaction/rules';
 export { PaymentMethodRules } from './domain/payment-method/rules';
 export { ProfileRules } from './domain/profile/rules';
+export { AppVersionRules } from './domain/app-version/rules';
 
 // 도메인 상수
 export { DELETE_ACCOUNT } from './domain/profile/constants';
@@ -78,6 +80,7 @@ import { LedgerService } from './application/ledger/LedgerService';
 import { TransactionService } from './application/transaction/TransactionService';
 import { PaymentMethodService } from './application/payment-method/PaymentMethodService';
 import { ProfileService } from './application/profile/ProfileService';
+import { AppVersionService } from './application/app-version/AppVersionService';
 
 // Infrastructure imports
 import {
@@ -90,6 +93,7 @@ import { TransactionViewRepository } from './infrastructure/supabase/repositorie
 import { SupabasePaymentMethodRepository } from './infrastructure/supabase/repositories/SupabasePaymentMethodRepository';
 import { SupabaseAuthService } from './infrastructure/supabase/auth/SupabaseAuthService';
 import { SupabaseProfileRepository } from './infrastructure/supabase/profile/SupabaseProfileRepository';
+import { SupabaseAppVersionPolicyRepository } from './infrastructure/supabase/app-version/SupabaseAppVersionPolicyRepository';
 
 export function createLedgerService(supabase: SupabaseClient): LedgerService {
   const ledgerRepo = new LedgerRepository(supabase);
@@ -147,8 +151,20 @@ export function createProfileService(supabase: SupabaseClient): ProfileService {
   );
 }
 
+export function createAppVersionService(
+  supabase: SupabaseClient
+): AppVersionService {
+  return new AppVersionService(new SupabaseAppVersionPolicyRepository(supabase));
+}
+
 // 서비스 클래스 Export (타입용)
-export type { LedgerService, TransactionService, PaymentMethodService, ProfileService };
+export type {
+  LedgerService,
+  TransactionService,
+  PaymentMethodService,
+  ProfileService,
+  AppVersionService,
+};
 
 // 권한 관리 서비스 Export
 export { PermissionService } from './application/permission/PermissionService';
