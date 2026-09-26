@@ -27,7 +27,6 @@ import { ScreenHeader } from '@/components/shared/ScreenHeader';
 import { TransactionItem } from '@/components/transaction/TransactionItem';
 import { LoadingState } from '../components/shared/LoadingState';
 import { ErrorState } from '../components/shared/ErrorState';
-import { EmptyState } from '../components/shared/EmptyState';
 import { useLedger } from '../contexts/LedgerContext';
 import { useTransactions } from '../hooks/useTransactions';
 import { useMonthlyData } from '../hooks/useMonthlyData';
@@ -464,8 +463,30 @@ export default function TransactionsScreen() {
     return { income, expense, balance: income - expense };
   }, [transactions]);
 
-  // 분기별 본문을 동일 래퍼로 감싸 헤더를 화면당 1회만 합성.
-  const renderScreen = (body: React.ReactNode) => (
+  // 목록이 비었을 때 목록 자리만 바꾼다. 캘린더까지 바꾸면 월을 넘길 때마다 화면 구조가 튄다.
+  // loading·error는 받아둔 데이터가 없을 때만 참이라 항상 빈 목록과 함께 온다.
+  const renderListEmpty = () => {
+    if (loading) {
+      return <LoadingState message="거래 내역을 불러오는 중..." />;
+    }
+    if (error) {
+      return (
+        <ErrorState
+          message="거래 내역을 불러올 수 없습니다"
+          onRetry={refetch}
+        />
+      );
+    }
+    return (
+      <View style={styles.emptyList}>
+        <Typography variant="body1" color="secondary">
+          이 달에는 거래가 없어요
+        </Typography>
+      </View>
+    );
+  };
+
+  return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScreenHeader
         background={colors.background}
@@ -477,112 +498,90 @@ export default function TransactionsScreen() {
           />
         }
       />
-      {body}
-    </View>
-  );
+      <SafeAreaView style={styles.content} edges={['left', 'right', 'bottom']}>
+        {/* 애니메이션 캘린더 */}
+        <Animated.View
+          style={[animatedCalendarStyle, styles.calendarContainer]}
+        >
+          <Calendar
+            mode="scrollable"
+            viewType={calendarViewType}
+            selectedDate={selectedDate}
+            transactions={monthlyCalendarData ?? {}}
+            onDateSelect={handleDateSelect}
+            onViewTypeChange={handleCalendarViewChange}
+            scrollY={scrollY}
+            showHeader={false}
+          />
+        </Animated.View>
 
-  // 로딩 상태
-  if (loading && !transactions.length) {
-    return renderScreen(<LoadingState message="거래 내역을 불러오는 중..." />);
-  }
-
-  // 에러 상태
-  if (error) {
-    return renderScreen(
-      <ErrorState message="거래 내역을 불러올 수 없습니다" onRetry={refetch} />
-    );
-  }
-
-  // 빈 상태
-  if (!loading && transactions.length === 0) {
-    return renderScreen(
-      <EmptyState
-        icon="receipt-outline"
-        title="거래 내역이 없습니다"
-        message="이번 달에는 아직 거래가 없어요"
-      />
-    );
-  }
-
-  return renderScreen(
-    <SafeAreaView style={styles.content} edges={['left', 'right', 'bottom']}>
-      {/* 애니메이션 캘린더 */}
-      <Animated.View style={[animatedCalendarStyle, styles.calendarContainer]}>
-        <Calendar
-          mode="scrollable"
-          viewType={calendarViewType}
-          selectedDate={selectedDate}
-          transactions={monthlyCalendarData ?? {}}
-          onDateSelect={handleDateSelect}
-          onViewTypeChange={handleCalendarViewChange}
-          scrollY={scrollY}
-          showHeader={false}
+        {/* 거래 목록 */}
+        <SectionList
+          ref={listRef}
+          sections={groupedTransactions}
+          renderItem={renderTransaction}
+          renderSectionHeader={renderSectionHeader}
+          keyExtractor={(item) => item.id}
+          onScroll={handleScroll}
+          onScrollBeginDrag={onScrollBeginDrag}
+          scrollEventThrottle={16}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          stickySectionHeadersEnabled={false}
+          onScrollToIndexFailed={onScrollToIndexFailed}
+          viewabilityConfig={viewabilityConfig}
+          onViewableItemsChanged={onViewableItemsChanged}
+          // 한 달 거래 = 섹션 + 아이템 합쳐 ~70~100 frame. 첫 렌더에 충분히 마운트되어야
+          // 오래된 날짜로의 자동 스크롤 시 onScrollToIndexFailed가 발화하지 않는다.
+          initialNumToRender={80}
+          maxToRenderPerBatch={20}
+          windowSize={31}
+          ListEmptyComponent={renderListEmpty()}
+          ListFooterComponent={
+            transactions.length > 0 ? (
+              <View style={styles.footer}>
+                <View style={styles.footerRow}>
+                  <Typography variant="body1" color="secondary">
+                    수입
+                  </Typography>
+                  <AmountDisplay
+                    amount={totals.income}
+                    type="income"
+                    size="medium"
+                  />
+                </View>
+                <View style={styles.footerRow}>
+                  <Typography variant="body1" color="secondary">
+                    지출
+                  </Typography>
+                  <AmountDisplay
+                    amount={totals.expense}
+                    type="expense"
+                    size="medium"
+                  />
+                </View>
+                <View
+                  style={[
+                    styles.footerRow,
+                    styles.footerTotal,
+                    { borderTopColor: colors.border },
+                  ]}
+                >
+                  <Typography variant="body1" weight="600">
+                    이번 달 잔액
+                  </Typography>
+                  <AmountDisplay
+                    amount={totals.balance}
+                    type="neutral"
+                    size="large"
+                  />
+                </View>
+              </View>
+            ) : null
+          }
         />
-      </Animated.View>
-
-      {/* 거래 목록 */}
-      <SectionList
-        ref={listRef}
-        sections={groupedTransactions}
-        renderItem={renderTransaction}
-        renderSectionHeader={renderSectionHeader}
-        keyExtractor={(item) => item.id}
-        onScroll={handleScroll}
-        onScrollBeginDrag={onScrollBeginDrag}
-        scrollEventThrottle={16}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        stickySectionHeadersEnabled={false}
-        onScrollToIndexFailed={onScrollToIndexFailed}
-        viewabilityConfig={viewabilityConfig}
-        onViewableItemsChanged={onViewableItemsChanged}
-        // 한 달 거래 = 섹션 + 아이템 합쳐 ~70~100 frame. 첫 렌더에 충분히 마운트되어야
-        // 오래된 날짜로의 자동 스크롤 시 onScrollToIndexFailed가 발화하지 않는다.
-        initialNumToRender={80}
-        maxToRenderPerBatch={20}
-        windowSize={31}
-        ListFooterComponent={
-          <View style={styles.footer}>
-            <View style={styles.footerRow}>
-              <Typography variant="body1" color="secondary">
-                수입
-              </Typography>
-              <AmountDisplay
-                amount={totals.income}
-                type="income"
-                size="medium"
-              />
-            </View>
-            <View style={styles.footerRow}>
-              <Typography variant="body1" color="secondary">
-                지출
-              </Typography>
-              <AmountDisplay
-                amount={totals.expense}
-                type="expense"
-                size="medium"
-              />
-            </View>
-            <View
-              style={[
-                styles.footerRow,
-                styles.footerTotal,
-                { borderTopColor: colors.border },
-              ]}
-            >
-              <Typography variant="body1" weight="600">
-                이번 달 잔액
-              </Typography>
-              <AmountDisplay
-                amount={totals.balance}
-                type="neutral"
-                size="large"
-              />
-            </View>
-          </View>
-        }
-      />
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
@@ -605,7 +604,14 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   listContent: {
+    // 빈 목록 상태가 캘린더 아래 남은 공간을 채워 가운데 오도록
+    flexGrow: 1,
     paddingBottom: 16,
+  },
+  emptyList: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   sectionHeader: {
     paddingHorizontal: 16,
