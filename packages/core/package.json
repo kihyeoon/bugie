@@ -8,8 +8,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@repo/types": "workspace:*",
-    "@supabase/supabase-js": "^2.52.0"
+    "@supabase/supabase-js": "^2.52.0",
+    "@repo/types": "workspace:*"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",

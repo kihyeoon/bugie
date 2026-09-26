@@ -15,13 +15,14 @@ const DEFAULT_MESSAGE = '새로운 기능이 추가됐어요. 지금 업데이�
  */
 export function useRecommendedUpdateAlert(ready: boolean) {
   const prompt = useUpdatePrompt();
-  const version = prompt.type === 'recommended' ? prompt.version : null;
-  const message = prompt.type === 'recommended' ? prompt.message : null;
+  // React Query의 구조적 공유 덕분에 값이 같으면 참조도 같아 effect가 다시 돌지 않는다
+  const recommended = prompt.type === 'recommended' ? prompt : null;
 
   useEffect(() => {
-    if (!ready || !version) {
+    if (!ready || !recommended) {
       return;
     }
+    const { version, message } = recommended;
 
     let cancelled = false;
     (async () => {
@@ -46,5 +47,5 @@ export function useRecommendedUpdateAlert(ready: boolean) {
     return () => {
       cancelled = true;
     };
-  }, [ready, version, message]);
+  }, [ready, recommended]);
 }

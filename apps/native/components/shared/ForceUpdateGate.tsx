@@ -1,17 +1,9 @@
-import { useEffect } from 'react';
-import {
-  Linking,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import * as SplashScreen from 'expo-splash-screen';
+import { Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { APP_STORE_URL } from '@/constants/appStore';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useHideSplashOnMount } from '@/hooks/useHideSplashOnMount';
 import { useUpdatePrompt } from '@/hooks/useUpdatePrompt';
 
 /**
@@ -23,20 +15,16 @@ import { useUpdatePrompt } from '@/hooks/useUpdatePrompt';
  */
 export function ForceUpdateGate() {
   const prompt = useUpdatePrompt();
-  const colors = Colors[useColorScheme()];
-  const isRequired = prompt.type === 'required';
+  return prompt.type === 'required' ? <ForceUpdateScreen /> : null;
+}
 
+function ForceUpdateScreen() {
   // 스플래시는 첫 화면이 데이터를 준비할 때까지 남아 있으므로, 막는 화면은 직접 걷어야 보인다
-  useEffect(() => {
-    if (isRequired) {
-      SplashScreen.hideAsync().catch((e) =>
-        console.warn('SplashScreen hide error:', e)
-      );
-    }
-  }, [isRequired]);
+  useHideSplashOnMount();
+  const colors = Colors[useColorScheme()];
 
   return (
-    <Modal visible={isRequired} animationType="none">
+    <Modal visible animationType="none">
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <Ionicons
           name="arrow-up-circle-outline"
@@ -47,8 +35,7 @@ export function ForceUpdateGate() {
           업데이트가 필요해요
         </Text>
         <Text style={[styles.message, { color: colors.textSecondary }]}>
-          이 버전은 더 이상 지원되지 않아요.{'\n'}최신 버전으로 업데이트해
-          주세요.
+          {'이 버전은 더 이상 지원되지 않아요.\n최신 버전으로 업데이트해 주세요.'}
         </Text>
         <Pressable
           style={({ pressed }) => [

@@ -20,21 +20,18 @@ export interface Database {
           platform: string;
           recommended_message: string | null;
           recommended_version: string | null;
-          updated_at: string;
         };
         Insert: {
           min_supported_version?: string | null;
           platform: string;
           recommended_message?: string | null;
           recommended_version?: string | null;
-          updated_at?: string;
         };
         Update: {
           min_supported_version?: string | null;
           platform?: string;
           recommended_message?: string | null;
           recommended_version?: string | null;
-          updated_at?: string;
         };
         Relationships: [];
       };

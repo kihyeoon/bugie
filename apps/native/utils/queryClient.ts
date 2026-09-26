@@ -42,12 +42,13 @@ export const queryKeys = {
 
 /**
  * 로그아웃하면 사용자 데이터 캐시를 비운다. 안 그러면 다음에 로그인한 사용자에게 이전 사용자 가계부가 보인다.
- * 버전 정책은 사용자와 무관하고 로그인 화면에서도 강제 업데이트 게이트가 구독 중이라 남긴다.
- * clear()로 같이 지우면 게이트의 옵저버가 캐시에서 빠진 쿼리에 붙은 채 남아 결과를 영영 못 받는다 (BGI-52).
+ * `meta: { userScoped: false }`인 쿼리만 남긴다 — 로그인 전에도 구독되는 쿼리는 이 표시를 달아야 한다.
+ * clear()로 같이 지우면 구독 중인 옵저버가 캐시에서 빠진 쿼리에 붙은 채 남아 결과를 영영 못 받는다 (BGI-52).
+ * 표시가 없으면 지우는 쪽이 기본이라, 빠뜨려도 다른 사용자 데이터가 새지는 않는다.
  */
 export function clearUserQueries(client: QueryClient) {
   client.removeQueries({
-    predicate: (query) => query.queryKey[0] !== queryKeys.updatePrompt[0],
+    predicate: (query) => query.meta?.userScoped !== false,
   });
   client.getMutationCache().clear();
 }

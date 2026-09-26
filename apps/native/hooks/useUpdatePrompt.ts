@@ -25,6 +25,8 @@ export function useUpdatePrompt(): UpdatePrompt {
         Constants.expoConfig?.version
       ),
     staleTime: Infinity,
+    // 로그인 전에도 강제 게이트가 구독하므로 로그아웃 때 비우지 않는다 (clearUserQueries)
+    meta: { userScoped: false },
   });
 
   return data ?? NO_PROMPT;
