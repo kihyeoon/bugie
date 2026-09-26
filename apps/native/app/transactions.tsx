@@ -92,6 +92,56 @@ const HeaderTitle = ({
   );
 };
 
+// 월간 합계 푸터 — 홈 "이번 달 요약" 카드와 동일 시맨틱(income/expense/balance).
+const MonthTotalsFooter = ({
+  transactions,
+}: {
+  transactions: TransactionWithDetails[];
+}) => {
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? 'light'];
+
+  const totals = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+    for (const t of transactions) {
+      const amount = Number(t.amount);
+      if (t.type === 'income') income += amount;
+      else expense += amount;
+    }
+    return { income, expense, balance: income - expense };
+  }, [transactions]);
+
+  return (
+    <View style={styles.footer}>
+      <View style={styles.footerRow}>
+        <Typography variant="body1" color="secondary">
+          수입
+        </Typography>
+        <AmountDisplay amount={totals.income} type="income" size="medium" />
+      </View>
+      <View style={styles.footerRow}>
+        <Typography variant="body1" color="secondary">
+          지출
+        </Typography>
+        <AmountDisplay amount={totals.expense} type="expense" size="medium" />
+      </View>
+      <View
+        style={[
+          styles.footerRow,
+          styles.footerTotal,
+          { borderTopColor: colors.border },
+        ]}
+      >
+        <Typography variant="body1" weight="600">
+          이번 달 잔액
+        </Typography>
+        <AmountDisplay amount={totals.balance} type="neutral" size="large" />
+      </View>
+    </View>
+  );
+};
+
 export default function TransactionsScreen() {
   const params = useLocalSearchParams();
   const colorScheme = useColorScheme();
@@ -113,9 +163,9 @@ export default function TransactionsScreen() {
     useRef<SectionList<TransactionWithDetails, { date: string }>>(null);
   const isProgrammaticScroll = useRef(false);
   const hasScrolledToInitialDate = useRef(false);
-  // onScrollToIndexFailed 발생 시 측정 진행을 기다린 뒤 재시도하기 위한 마지막 의도.
-  const lastScrollAttempt = useRef<{ sectionIndex: number } | null>(null);
-  // scrollToDate가 예약한 스크롤. 재예약·month 전환 때 cancelPendingScroll로 취소한다.
+  // onScrollToIndexFailed 발생 시 측정 진행을 기다린 뒤 재시도하기 위한 마지막 의도(날짜 섹션 키).
+  const lastScrollAttempt = useRef<string | null>(null);
+  // scrollToDate가 예약한 스크롤. 다시 예약하면 이전 것은 취소한다.
   const pendingScroll = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 사용자가 month 전환/캘린더 탭 이후 직접 리스트를 드래그했는지 추적.
   // 이게 false인 동안엔 viewable 이벤트가 자연 layout으로 발화해도 selectedDate를 덮어쓰지 않는다.
@@ -134,6 +184,12 @@ export default function TransactionsScreen() {
       year,
       month,
     });
+
+  // 예약된 스크롤이 실행 시점의 목록을 보도록 최신 섹션을 ref로 노출.
+  const sectionsRef = useRef(groupedTransactions);
+  useEffect(() => {
+    sectionsRef.current = groupedTransactions;
+  }, [groupedTransactions]);
 
   // 캘린더용 월별 집계 (서버 집계와 일관 — 홈 화면과 동일 소스)
   const { calendarData: monthlyCalendarData, refetch: refetchMonthly } =
@@ -196,59 +252,43 @@ export default function TransactionsScreen() {
     [calendarViewType, scrollY, calendarHeight]
   );
 
-  // 예약된 스크롤 취소. sectionIndex가 예약 시점 목록 기준이라 목록이 바뀐 뒤 실행되면
-  // 엉뚱한 섹션으로 가거나, 새 month가 로딩 중(섹션 0개)이면 throw한다.
-  const cancelPendingScroll = useCallback(() => {
-    if (!pendingScroll.current) return;
-    clearTimeout(pendingScroll.current);
-    pendingScroll.current = null;
-    isProgrammaticScroll.current = false;
+  // 날짜 섹션으로 스크롤. 섹션 번호는 실행 시점 목록에서 찾는다 — 예약 뒤 month가 바뀌거나
+  // 재조회로 목록이 달라졌으면(로딩 중 섹션 0개 포함) 대상이 없으니 아무것도 하지 않는다.
+  const scrollToSection = useCallback((dateStr: string, animated: boolean) => {
+    const sectionIndex = sectionsRef.current.findIndex(
+      (group) => group.date === dateStr
+    );
+    if (sectionIndex === -1) return;
+    listRef.current?.scrollToLocation({
+      sectionIndex,
+      itemIndex: 0,
+      animated,
+      viewPosition: 0, // 상단에 위치
+    });
   }, []);
 
-  // 날짜로 스크롤하는 헬퍼 함수. 새로 예약하면 이전 예약은 취소한다.
+  // 날짜로 스크롤하는 헬퍼 함수. 새로 예약하면 이전 예약은 취소한다(마지막 의도만 유효).
   const scrollToDate = useCallback(
     (dateStr: string) => {
-      cancelPendingScroll();
-      const sectionIndex = groupedTransactions.findIndex(
-        (group) => group.date === dateStr
-      );
+      if (!groupedTransactions.some((group) => group.date === dateStr)) return;
+      if (pendingScroll.current) clearTimeout(pendingScroll.current);
 
-      if (sectionIndex !== -1 && listRef.current) {
-        // 프로그래매틱 스크롤 플래그 설정
-        isProgrammaticScroll.current = true;
-        lastScrollAttempt.current = { sectionIndex };
+      // 프로그래매틱 스크롤 플래그 설정
+      isProgrammaticScroll.current = true;
+      lastScrollAttempt.current = dateStr;
 
-        // 레이아웃 측정 완료를 위한 지연 후 스크롤
-        pendingScroll.current = setTimeout(() => {
-          pendingScroll.current = null;
-          try {
-            listRef.current?.scrollToLocation({
-              sectionIndex,
-              itemIndex: 0,
-              animated: true,
-              viewPosition: 0, // 상단에 위치
-            });
-          } catch (error) {
-            console.warn('ScrollToLocation failed:', error);
-            // Fallback: 첫 번째 섹션으로라도 이동
-            if (sectionIndex > 0) {
-              listRef.current?.scrollToLocation({
-                sectionIndex: 0,
-                itemIndex: 0,
-                animated: true,
-                viewPosition: 0,
-              });
-            }
-          }
+      // 레이아웃 측정 완료를 위한 지연 후 스크롤
+      pendingScroll.current = setTimeout(() => {
+        pendingScroll.current = null;
+        scrollToSection(dateStr, true);
 
-          // 스크롤 완료 후 플래그 해제 (애니메이션 시간 고려)
-          setTimeout(() => {
-            isProgrammaticScroll.current = false;
-          }, 500);
-        }, 300); // 더 긴 지연으로 안정성 확보
-      }
+        // 스크롤 완료 후 플래그 해제 (애니메이션 시간 고려)
+        setTimeout(() => {
+          isProgrammaticScroll.current = false;
+        }, 500);
+      }, 300); // 더 긴 지연으로 안정성 확보
     },
-    [groupedTransactions, cancelPendingScroll]
+    [groupedTransactions, scrollToSection]
   );
 
   // 날짜 선택 처리
@@ -262,8 +302,7 @@ export default function TransactionsScreen() {
     [scrollToDate]
   );
 
-  // 현재 그려진 SectionList 데이터의 month — fetch가 진행되는 동안 옛 transactions가
-  // 그대로 표시되므로 stale 여부 판정을 위한 메타.
+  // 현재 그려진 SectionList 데이터의 month — 비어 있으면(새 month 로딩 중 포함) stale로 본다.
   const renderedMonth = useMemo(() => {
     if (groupedTransactions.length === 0) return null;
     const date = parseLocalDate(groupedTransactions[0].date);
@@ -333,15 +372,14 @@ export default function TransactionsScreen() {
     };
   }, [debouncedDateUpdate]);
 
-  // month 전환 시 stale 정리: 옛 month 기준 pending update·예약 스크롤 취소 + 자동 스크롤 재개 + 드래그 신호 리셋.
-  // 아래 자동 스크롤 effect보다 먼저 선언해야 한다 — 같은 커밋에서 이 정리가 먼저 돌아야
-  // 캐시된 month로 돌아왔을 때 자동 스크롤이 예약한 스크롤을 지우지 않는다.
+  // month 전환 시 stale 정리: 옛 month 기준 pending update 취소 + 자동 스크롤 재개 + 드래그 신호 리셋.
+  // 아래 자동 스크롤 effect보다 먼저 선언한다 — 같은 커밋에서 이 리셋이 먼저 돌아야 캐시된 month로
+  // 돌아왔을 때 자동 스크롤이 옛 month의 "이미 스크롤함" 플래그에 막히지 않는다.
   useEffect(() => {
     debouncedDateUpdate.cancel();
-    cancelPendingScroll();
     hasScrolledToInitialDate.current = false;
     userHasDraggedSinceChange.current = false;
-  }, [year, month, debouncedDateUpdate, cancelPendingScroll]);
+  }, [year, month, debouncedDateUpdate]);
 
   // 자동 스크롤: 새 month 데이터 도착 후 selectedDate 섹션으로 한 번만 이동.
   useEffect(() => {
@@ -405,7 +443,7 @@ export default function TransactionsScreen() {
   // info.index는 섹션 헤더 + 아이템을 합산한 flat 인덱스이므로 sectionIndex로 사용하면
   // sections out-of-bounds → TypeError로 스크롤이 깨진다.
   // 1단계: averageItemLength × index 근사 오프셋으로 점프해 frame 측정을 진행시킴.
-  // 2단계: 측정이 충분히 진행될 시간을 둔 뒤 lastScrollAttempt의 정확한 sectionIndex로 재시도.
+  // 2단계: 측정이 충분히 진행될 시간을 둔 뒤 lastScrollAttempt의 날짜 섹션으로 재시도.
   // 단발성 fallback만 두면 averageItemLength이 underestimate되어(예: 42px) 목적지가 한참 앞에서 멈춘다.
 
   // 손가락 드래그가 시작된 시점부터만 viewable이 selectedDate를 갱신하도록 권한 부여.
@@ -428,20 +466,10 @@ export default function TransactionsScreen() {
 
       setTimeout(() => {
         const target = lastScrollAttempt.current;
-        if (!target || !listRef.current) return;
-        try {
-          listRef.current.scrollToLocation({
-            sectionIndex: target.sectionIndex,
-            itemIndex: 0,
-            animated: false,
-            viewPosition: 0,
-          });
-        } catch {
-          // 재시도도 실패하면 사용자가 수동으로 스크롤하면 됨.
-        }
+        if (target) scrollToSection(target, false);
       }, 100);
     },
-    []
+    [scrollToSection]
   );
 
   // TODO: Phase 2에서 검색 기능 구현
@@ -466,18 +494,6 @@ export default function TransactionsScreen() {
     }) => <DateSectionHeader date={section.date} />,
     []
   );
-
-  // 푸터용 월간 합계 — 홈 "이번 달 요약" 카드와 동일 시맨틱(income/expense/balance).
-  const totals = useMemo(() => {
-    let income = 0;
-    let expense = 0;
-    for (const t of transactions) {
-      const amount = Number(t.amount);
-      if (t.type === 'income') income += amount;
-      else expense += amount;
-    }
-    return { income, expense, balance: income - expense };
-  }, [transactions]);
 
   // 목록이 비었을 때 목록 자리만 바꾼다. 캘린더까지 바꾸면 월을 넘길 때마다 화면 구조가 튄다.
   // loading·error는 받아둔 데이터가 없을 때만 참이라 항상 빈 목록과 함께 온다.
@@ -555,44 +571,7 @@ export default function TransactionsScreen() {
           ListEmptyComponent={renderListEmpty()}
           ListFooterComponent={
             transactions.length > 0 ? (
-              <View style={styles.footer}>
-                <View style={styles.footerRow}>
-                  <Typography variant="body1" color="secondary">
-                    수입
-                  </Typography>
-                  <AmountDisplay
-                    amount={totals.income}
-                    type="income"
-                    size="medium"
-                  />
-                </View>
-                <View style={styles.footerRow}>
-                  <Typography variant="body1" color="secondary">
-                    지출
-                  </Typography>
-                  <AmountDisplay
-                    amount={totals.expense}
-                    type="expense"
-                    size="medium"
-                  />
-                </View>
-                <View
-                  style={[
-                    styles.footerRow,
-                    styles.footerTotal,
-                    { borderTopColor: colors.border },
-                  ]}
-                >
-                  <Typography variant="body1" weight="600">
-                    이번 달 잔액
-                  </Typography>
-                  <AmountDisplay
-                    amount={totals.balance}
-                    type="neutral"
-                    size="large"
-                  />
-                </View>
-              </View>
+              <MonthTotalsFooter transactions={transactions} />
             ) : null
           }
         />
