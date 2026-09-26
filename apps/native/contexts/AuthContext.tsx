@@ -19,7 +19,10 @@ import { supabase } from '../utils/supabase';
 import { signInWithOAuth as authSignInWithOAuth } from '../services/auth';
 import { signOutFromGoogle } from '../services/auth/googleAuth';
 import { ensureProfile, needsOnboarding } from '../services/auth/profileService';
-import { invalidateTransactionLists } from '../utils/queryClient';
+import {
+  clearUserQueries,
+  invalidateTransactionLists,
+} from '../utils/queryClient';
 
 const PROFILE_CACHE_KEY = '@auth/profile_cache';
 
@@ -57,12 +60,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading: true,
   });
 
-  // 로그아웃되면 캐시를 비운다. 안 그러면 다음에 로그인한 사용자에게 이전 사용자 가계부가 보인다.
+  // 로그아웃되면 사용자 데이터 캐시를 비운다(clearUserQueries 참고).
   // 로그아웃·탈퇴·테스트 계정 전환이 모두 user가 null이 되는 경로를 거치므로 여기 한 곳에서 처리한다.
   const queryClient = useQueryClient();
   const userId = authState.user?.id;
   useEffect(() => {
-    if (!userId) queryClient.clear();
+    if (!userId) clearUserQueries(queryClient);
   }, [userId, queryClient]);
 
   // React StrictMode 대응을 위한 초기화 플래그

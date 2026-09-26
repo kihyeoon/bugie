@@ -37,7 +37,20 @@ export const queryKeys = {
     month: (ledgerId: string | undefined, year: number, month: number) =>
       ['monthlySummary', ledgerId, year, month] as const,
   },
+  updatePrompt: ['updatePrompt'] as const,
 };
+
+/**
+ * 로그아웃하면 사용자 데이터 캐시를 비운다. 안 그러면 다음에 로그인한 사용자에게 이전 사용자 가계부가 보인다.
+ * 버전 정책은 사용자와 무관하고 로그인 화면에서도 강제 업데이트 게이트가 구독 중이라 남긴다.
+ * clear()로 같이 지우면 게이트의 옵저버가 캐시에서 빠진 쿼리에 붙은 채 남아 결과를 영영 못 받는다 (BGI-52).
+ */
+export function clearUserQueries(client: QueryClient) {
+  client.removeQueries({
+    predicate: (query) => query.queryKey[0] !== queryKeys.updatePrompt[0],
+  });
+  client.getMutationCache().clear();
+}
 
 /**
  * 거래(또는 거래 행에 조인되는 카테고리·결제 수단·닉네임)를 바꾸면 홈 합계와 목록 행이 낡은 데이터가 된다.
