@@ -9,7 +9,14 @@ import {
   ViewToken,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import {
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+} from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useFocusEffect } from 'expo-router/react-navigation';
 import Animated, {
@@ -186,8 +193,9 @@ export default function TransactionsScreen() {
     });
 
   // 예약된 스크롤이 실행 시점의 목록을 보도록 최신 섹션을 ref로 노출.
+  // 커밋 중에 갱신해야 재조회 커밋과 타이머 실행이 겹쳐도 옛 목록을 보지 않는다.
   const sectionsRef = useRef(groupedTransactions);
-  useEffect(() => {
+  useLayoutEffect(() => {
     sectionsRef.current = groupedTransactions;
   }, [groupedTransactions]);
 
