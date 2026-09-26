@@ -1,0 +1,1 @@
+- 서비스 인스턴스는 팩토리(`createLedgerService(supabase)` 등)로 만든다. `new TransactionService(...)` 직접 호출 금지. 계층 구조는 `docs/architecture.md` 참조.

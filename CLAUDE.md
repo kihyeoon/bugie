@@ -50,42 +50,13 @@ create policy "xxx_select_policy" on public.xxx
 
 GRANT가 빠지면 PostgREST가 `42501 permission denied`를 반환한다(RLS가 완벽해도 그 앞에서 막힘). 기존 테이블은 자동 부여된 GRANT가 유지되므로 영향 없다.
 
-## 환경변수
-
-Web과 Native에서 접두사가 다르다.
-
-| 용도 | Web (Next.js) | Native (Expo) |
-|------|--------------|---------------|
-| Supabase URL | `NEXT_PUBLIC_SUPABASE_URL` | `EXPO_PUBLIC_SUPABASE_URL` |
-| Supabase Anon Key | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `EXPO_PUBLIC_SUPABASE_ANON_KEY` |
-| Service Role Key | `SUPABASE_SERVICE_ROLE_KEY` | — |
-
 ## 의존성 설치 규칙
 
-- 웹 전용 → `pnpm add <pkg> --filter web`
-- 네이티브 전용 → `pnpm add <pkg> --filter native`
-- 공통 dev 도구 → `pnpm add <pkg> -w` (루트)
 - `@repo/core`에 새 의존성 추가 시 web/native 양쪽에서 호환되는지 확인
 
 ## 주요 명령어
 
-```bash
-# 개발
-pnpm dev                              # 전체 앱 동시 실행 (turbo)
-pnpm --filter native start            # Expo dev server만 (Metro, JS 개발 — 일상 작업은 이걸 사용)
-pnpm --filter web dev                 # Next.js만 (localhost:3000)
-pnpm --filter native ios              # 네이티브 빌드 + 설치 (expo run:ios — 네이티브 변경 시에만)
-
-# 빌드
-pnpm build                            # 전체 빌드 (의존성 순서 자동)
-pnpm --filter @repo/ui build          # UI 패키지 빌드 (tsup)
-
-# 검사
-pnpm lint                             # 전체 lint
-pnpm --filter @repo/core lint         # core lint + tsc --noEmit
-pnpm format                           # prettier 포맷팅
-pnpm check                            # lint + format --check
-```
+- 일상 개발은 `pnpm --filter native start`(Metro), `pnpm --filter native ios`(expo run:ios)는 네이티브 변경 시에만.
 
 ## Verification — 마무리 전 체크리스트
 
@@ -102,7 +73,7 @@ UI 변경은 dev 서버를 띄워 브라우저/시뮬레이터에서 직접 확�
 
 ## 아키텍처 상세
 
-@docs/architecture.md — 모노레포 구조, `@repo/core` 클린 아키텍처 3계층, native 앱 Provider 체인 / 라우팅 / hook & 컨텍스트 / 컴포넌트 계층, TypeScript 설정.
+`docs/architecture.md` (`apps/native` 작업 시 자동 로드) — 모노레포 구조, `@repo/core` 클린 아키텍처 3계층, native 앱 Provider 체인 / 라우팅 / hook & 컨텍스트 / 컴포넌트 계층, TypeScript 설정.
 
 ## 관련 문서
 
