@@ -55,7 +55,7 @@
 | 언제 | 할 일 |
 |---|---|
 | 지금 | **EAS 클라우드로 빌드한다**(Xcode 26.6). 업로드 큐가 느리면 `--auto-submit` 없이 빌드하고 `.ipa`를 받아 Transporter로 올린다 |
-| 지금 (안전장치) | `eas.json`에 Xcode 26 이미지를 고정한다. EAS가 기본 Xcode를 27로 바꾸면 클라우드 빌드도 똑같이 죽기 때문 |
+| 지금 (안전장치) | `eas.json`에 Xcode 26 이미지를 고정했다(`macos-tahoe-26.5-xcode-26.6`, 2026-09-26). EAS가 기본 Xcode를 27로 바꾸면 클라우드 빌드도 똑같이 죽기 때문. Expo가 UIScene을 지원하면 풀거나 올린다 |
 | Expo가 UIScene을 지원하면 | 그 SDK로 업그레이드 → 딥링크·소셜 로그인·스플래시 확인 → Xcode 27 빌드 가능 |
 | 시한 | App Store가 iOS 27 SDK를 필수로 요구하기 전(애플은 보통 이듬해 봄). 그 뒤엔 Xcode 26 빌드를 받아주지 않는다 |
 
