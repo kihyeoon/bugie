@@ -115,6 +115,8 @@ export default function TransactionsScreen() {
   const hasScrolledToInitialDate = useRef(false);
   // onScrollToIndexFailed 발생 시 측정 진행을 기다린 뒤 재시도하기 위한 마지막 의도.
   const lastScrollAttempt = useRef<{ sectionIndex: number } | null>(null);
+  // scrollToDate가 예약한 스크롤. 재예약·month 전환 때 cancelPendingScroll로 취소한다.
+  const pendingScroll = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 사용자가 month 전환/캘린더 탭 이후 직접 리스트를 드래그했는지 추적.
   // 이게 false인 동안엔 viewable 이벤트가 자연 layout으로 발화해도 selectedDate를 덮어쓰지 않는다.
   // (예: 4/6 선택 후 ◀▶로 이동했는데 해당 일자에 거래가 없으면 scrollToDate가 no-op이라
@@ -194,9 +196,19 @@ export default function TransactionsScreen() {
     [calendarViewType, scrollY, calendarHeight]
   );
 
-  // 날짜로 스크롤하는 헬퍼 함수
+  // 예약된 스크롤 취소. sectionIndex가 예약 시점 목록 기준이라 목록이 바뀐 뒤 실행되면
+  // 엉뚱한 섹션으로 가거나, 새 month가 로딩 중(섹션 0개)이면 throw한다.
+  const cancelPendingScroll = useCallback(() => {
+    if (!pendingScroll.current) return;
+    clearTimeout(pendingScroll.current);
+    pendingScroll.current = null;
+    isProgrammaticScroll.current = false;
+  }, []);
+
+  // 날짜로 스크롤하는 헬퍼 함수. 새로 예약하면 이전 예약은 취소한다.
   const scrollToDate = useCallback(
     (dateStr: string) => {
+      cancelPendingScroll();
       const sectionIndex = groupedTransactions.findIndex(
         (group) => group.date === dateStr
       );
@@ -207,7 +219,8 @@ export default function TransactionsScreen() {
         lastScrollAttempt.current = { sectionIndex };
 
         // 레이아웃 측정 완료를 위한 지연 후 스크롤
-        setTimeout(() => {
+        pendingScroll.current = setTimeout(() => {
+          pendingScroll.current = null;
           try {
             listRef.current?.scrollToLocation({
               sectionIndex,
@@ -235,7 +248,7 @@ export default function TransactionsScreen() {
         }, 300); // 더 긴 지연으로 안정성 확보
       }
     },
-    [groupedTransactions]
+    [groupedTransactions, cancelPendingScroll]
   );
 
   // 날짜 선택 처리
@@ -261,19 +274,6 @@ export default function TransactionsScreen() {
     !renderedMonth ||
     renderedMonth.year !== year ||
     renderedMonth.month !== month;
-
-  // 자동 스크롤: 새 month 데이터 도착 후 selectedDate 섹션으로 한 번만 이동.
-  useEffect(() => {
-    if (hasScrolledToInitialDate.current || loading || isStaleData) {
-      return;
-    }
-    const dateStr = formatDateKey(selectedDate);
-    if (groupedTransactions.some((group) => group.date === dateStr)) {
-      scrollToDate(dateStr);
-    }
-    // 해당 날짜 섹션이 없어도 한 번 시도한 것으로 간주 (반복 시도 방지).
-    hasScrolledToInitialDate.current = true;
-  }, [groupedTransactions, scrollToDate, loading, selectedDate, isStaleData]);
 
   // selectedDate를 ref로 노출 — debounced 함수가 매 변경마다 재생성되지 않게.
   const selectedDateRef = useRef(selectedDate);
@@ -333,12 +333,28 @@ export default function TransactionsScreen() {
     };
   }, [debouncedDateUpdate]);
 
-  // month 전환 시 stale 정리: 옛 month 기준 pending update 취소 + 자동 스크롤 재개 + 드래그 신호 리셋.
+  // month 전환 시 stale 정리: 옛 month 기준 pending update·예약 스크롤 취소 + 자동 스크롤 재개 + 드래그 신호 리셋.
+  // 아래 자동 스크롤 effect보다 먼저 선언해야 한다 — 같은 커밋에서 이 정리가 먼저 돌아야
+  // 캐시된 month로 돌아왔을 때 자동 스크롤이 예약한 스크롤을 지우지 않는다.
   useEffect(() => {
     debouncedDateUpdate.cancel();
+    cancelPendingScroll();
     hasScrolledToInitialDate.current = false;
     userHasDraggedSinceChange.current = false;
-  }, [year, month, debouncedDateUpdate]);
+  }, [year, month, debouncedDateUpdate, cancelPendingScroll]);
+
+  // 자동 스크롤: 새 month 데이터 도착 후 selectedDate 섹션으로 한 번만 이동.
+  useEffect(() => {
+    if (hasScrolledToInitialDate.current || loading || isStaleData) {
+      return;
+    }
+    const dateStr = formatDateKey(selectedDate);
+    if (groupedTransactions.some((group) => group.date === dateStr)) {
+      scrollToDate(dateStr);
+    }
+    // 해당 날짜 섹션이 없어도 한 번 시도한 것으로 간주 (반복 시도 방지).
+    hasScrolledToInitialDate.current = true;
+  }, [groupedTransactions, scrollToDate, loading, selectedDate, isStaleData]);
 
   // 이전/다음 월 네비게이션 — date-fns addMonths가 1/31 → 2/28 자동 클램프.
   const handlePrevMonth = useCallback(() => {
