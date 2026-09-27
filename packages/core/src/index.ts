@@ -20,6 +20,10 @@ export {
   CategoryRules,
 } from './domain/ledger/rules';
 export { TransactionRules } from './domain/transaction/rules';
+export {
+  normalizeKeyword,
+  memoMatchSnippet,
+} from './domain/transaction/search';
 export { PaymentMethodRules } from './domain/payment-method/rules';
 export { ProfileRules } from './domain/profile/rules';
 export { AppVersionRules } from './domain/app-version/rules';
@@ -49,6 +53,7 @@ export type {
   CreateTransactionInput,
   UpdateTransactionInput,
   TransactionFilterInput,
+  TransactionSearchInput,
 } from './application/transaction/types';
 
 export type {

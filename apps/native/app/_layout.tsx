@@ -55,6 +55,11 @@ export default function RootLayout() {
                     <Stack screenOptions={{ headerShown: false }}>
                       <Stack.Screen name="(auth)" />
                       <Stack.Screen name="(tabs)" />
+                      {/* 키보드가 떠 있는 채 뒤로 스와이프하면 키보드를 내린다 (iOS) */}
+                      <Stack.Screen
+                        name="search"
+                        options={{ keyboardHandlingEnabled: true }}
+                      />
                       <Stack.Screen
                         name="+not-found"
                         options={{ headerShown: true, title: 'Oops!' }}

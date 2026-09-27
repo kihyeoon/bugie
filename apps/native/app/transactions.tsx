@@ -32,6 +32,7 @@ import { Typography, AmountDisplay } from '@/components/ui';
 import { Calendar } from '@/components/shared/calendar';
 import { ScreenHeader } from '@/components/shared/ScreenHeader';
 import { TransactionItem } from '@/components/transaction/TransactionItem';
+import { DateSectionHeader } from '@/components/transaction/DateSectionHeader';
 import { MemberFilter } from '@/components/transaction/MemberFilter';
 import type { SelectableMember } from '@/components/shared/MemberSelectSheet';
 import { LoadingState } from '../components/shared/LoadingState';
@@ -47,7 +48,6 @@ import {
   formatDateKey,
 } from '@/components/shared/calendar/utils/dateHelpers';
 import { debounce } from '@/utils/timing';
-import { formatDayKorean } from '@/utils/dateFormatter';
 
 // 상수
 const CONSTANTS = {
@@ -62,15 +62,6 @@ const viewabilityConfig = {
   itemVisiblePercentThreshold: 50, // 50% 이상 보일 때 활성화
   waitForInteraction: false, // 디바운스가 타이밍 제어
 };
-
-// 날짜 섹션 헤더 컴포넌트
-const DateSectionHeader = ({ date }: { date: string }) => (
-  <View style={styles.sectionHeader}>
-    <Typography variant="body2" weight="500" color="secondary">
-      {formatDayKorean(date)}
-    </Typography>
-  </View>
-);
 
 // 헤더 타이틀 컴포넌트
 const HeaderTitle = ({
@@ -526,12 +517,6 @@ export default function TransactionsScreen() {
     [scrollToSection]
   );
 
-  // TODO: Phase 2에서 검색 기능 구현
-  // const handleSearch = useCallback(() => {
-  //   // TODO: 검색 기능 구현
-  //   console.log('Search');
-  // }, []);
-
   // 렌더 함수들
   const renderTransaction = useCallback(
     ({ item }: { item: TransactionWithDetails }) => (
@@ -673,11 +658,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  sectionHeader: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    paddingTop: 16,
   },
   footer: {
     padding: 16,
