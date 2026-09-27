@@ -106,7 +106,9 @@ function findInTransactionLists(
   for (const [queryKey, rows] of queryClient.getQueriesData<
     TransactionWithDetails[]
   >({ queryKey: queryKeys.transactions.all })) {
-    const found = rows?.find((row) => row.id === transactionId);
+    // ['transactions'] 아래에 배열이 아닌 캐시(이어 받기 등)가 생겨도 여기서 죽지 않게
+    if (!Array.isArray(rows)) continue;
+    const found = rows.find((row) => row.id === transactionId);
     if (found) {
       return {
         transaction: found,

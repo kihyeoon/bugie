@@ -28,6 +28,11 @@ export const queryKeys = {
       month: number,
       filters: TransactionFilters
     ) => ['transactions', ledgerId, year, month, filters] as const,
+    // 검색 결과도 거래 배열이라 상세 화면이 여기서도 같은 거래를 찾아 로딩 없이 열린다.
+    searchIn: (ledgerId: string | undefined) =>
+      ['transactions', 'search', ledgerId] as const,
+    search: (ledgerId: string | undefined, keyword: string) =>
+      [...queryKeys.transactions.searchIn(ledgerId), keyword] as const,
   },
   transaction: (transactionId: string | undefined) =>
     ['transaction', transactionId] as const,

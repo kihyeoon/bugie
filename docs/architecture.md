@@ -81,6 +81,7 @@ app/
     more.tsx             # 더보기 메뉴
   transactions.tsx       # 거래 목록 (스택)
   transaction-detail.tsx # 거래 상세/수정 (스택)
+  search.tsx             # 거래 검색 (스택, 홈 헤더 🔍에서 진입)
   ledger-management.tsx  # 가계부 관리 (스택)
   ledger-settings.tsx    # 가계부 설정 (스택)
   profile-settings.tsx   # 프로필 설정 (스택)
@@ -101,7 +102,7 @@ app/
 | 데이터 fetch | `useMonthlyData`, `useTransactions`, `useTransactionDetail`, `useCategories` | 각 hook 시그니처 참조 |
 
 데이터 hook은 TanStack Query 캐시를 쓴다(`useMonthlyData`, `useTransactions`, `useTransactionDetail`,
-`useCategories`, `usePaymentMethods`). 쿼리 키와 무효화 헬퍼는 `utils/queryClient.ts` 한 곳에 둔다.
+`useCategories`, `usePaymentMethods`, `useTransactionSearch`). 쿼리 키와 무효화 헬퍼는 `utils/queryClient.ts` 한 곳에 둔다.
 
 - **캐시를 먼저 보여주고 뒤에서 갱신한다.** `staleTime`은 기본값 0이라 화면에 들어올 때마다 재조회한다.
   공유 가계부라 상대방 입력이 보여야 하기 때문이다(Realtime 구독 없음)

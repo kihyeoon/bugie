@@ -71,6 +71,25 @@ export class TransactionViewRepository {
   }
 
   /**
+   * 거래 검색. 조건은 search_transactions RPC(strpos라 사용자 입력을 이스케이프하지 않는다)가,
+   * 정렬·개수 제한은 여기서 붙인다. 순서는 findWithDetails와 같다.
+   */
+  async search(
+    ledgerId: EntityId,
+    keyword: string,
+    limit: number
+  ): Promise<DbTransactionWithDetails[]> {
+    const { data, error } = await this.supabase
+      .rpc('search_transactions', { p_ledger_id: ledgerId, p_keyword: keyword })
+      .order('transaction_date', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  /**
    * UI용 특정 거래 상세 조회
    */
   async findByIdWithDetails(id: EntityId): Promise<DbTransactionWithDetails | null> {

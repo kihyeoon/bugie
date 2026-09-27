@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
-import { SectionListData } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useServices } from '../contexts/ServiceContext';
 import { queryKeys } from '../utils/queryClient';
 import { useQueryStatus } from './useQueryStatus';
+import { groupByDate, type GroupedTransaction } from '../utils/groupByDate';
 import { formatLocalDate, type TransactionWithDetails } from '@repo/core';
 
 interface UseTransactionsOptions {
@@ -16,13 +16,6 @@ interface UseTransactionsOptions {
   memberId?: string;
   /** false면 fetch하지 않는다. 홈처럼 날짜를 고른 뒤에야 필요한 화면에서 지연 로드용. */
   enabled?: boolean;
-}
-
-// GroupedTransaction은 타입 호환성을 위해 SectionListData를 확장
-interface GroupedTransaction
-  extends SectionListData<TransactionWithDetails, { date: string }> {
-  date: string;
-  data: TransactionWithDetails[];
 }
 
 interface UseTransactionsReturn {
@@ -75,26 +68,10 @@ export function useTransactions({
   const transactions = query.data ?? NO_TRANSACTIONS;
   const { loading, error, refetch } = useQueryStatus(query, isEnabled);
 
-  // 날짜별로 거래 그룹화
-  const groupedTransactions = useMemo(() => {
-    const grouped: Record<string, TransactionWithDetails[]> = {};
-
-    transactions.forEach((transaction) => {
-      const date = transaction.transaction_date;
-      if (!grouped[date]) {
-        grouped[date] = [];
-      }
-      grouped[date].push(transaction);
-    });
-
-    // 배열로 변환하고 날짜별 정렬 (내림차순)
-    return Object.entries(grouped)
-      .sort(([a], [b]) => b.localeCompare(a))
-      .map(([date, transactions]) => ({
-        date,
-        data: transactions, // SectionList는 'data' 속성을 기대함
-      }));
-  }, [transactions]);
+  const groupedTransactions = useMemo(
+    () => groupByDate(transactions),
+    [transactions]
+  );
 
   return {
     transactions,

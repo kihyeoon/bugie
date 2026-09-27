@@ -4,7 +4,9 @@ import {
   ScrollView,
   RefreshControl,
   Platform,
+  Pressable,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useRouter } from 'expo-router';
@@ -236,9 +238,23 @@ export default function HomeScreen() {
         }
       >
         <View style={styles.header}>
-          <Typography variant="h4" color="secondary">
+          <Typography
+            variant="h4"
+            color="secondary"
+            numberOfLines={1}
+            style={styles.ledgerName}
+          >
             {currentLedger.name}
           </Typography>
+          {/* 크기 24 + hitSlop 10 = 터치 영역 44pt. Pressable을 키우면 헤더가 커져 캘린더가 밀린다 */}
+          <Pressable
+            onPress={() => router.push('/search')}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="거래 검색"
+          >
+            <Ionicons name="search" size={24} color={colors.text} />
+          </Pressable>
         </View>
 
         <Calendar
@@ -331,12 +347,20 @@ const styles = StyleSheet.create({
     }),
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
     paddingTop: Platform.select({
       ios: CONSTANTS.PADDING.HEADER_TOP_IOS,
       android: CONSTANTS.PADDING.HEADER_TOP_ANDROID,
     }),
     paddingHorizontal: CONSTANTS.PADDING.HEADER_HORIZONTAL,
     paddingBottom: CONSTANTS.PADDING.HEADER_BOTTOM,
+  },
+  // 길면 말줄임되고 검색 아이콘은 밀려나지 않는다
+  ledgerName: {
+    flexShrink: 1,
   },
   calendarContainer: {
     marginTop: CONSTANTS.SPACING.CALENDAR_TOP,

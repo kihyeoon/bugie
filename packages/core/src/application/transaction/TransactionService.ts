@@ -2,6 +2,7 @@ import type {
   CreateTransactionInput,
   UpdateTransactionInput,
   TransactionFilterInput,
+  TransactionSearchInput,
 } from './types';
 import type {
   TransactionWithDetails,
@@ -67,6 +68,30 @@ export class TransactionService {
       data: result.data,
       count: result.total,
     };
+  }
+
+  /**
+   * 거래 검색 (제목·메모 부분 일치, 최신순)
+   */
+  async searchTransactions(
+    input: TransactionSearchInput
+  ): Promise<TransactionWithDetails[]> {
+    const currentUser = await this.authService.getCurrentUser();
+    if (!currentUser) throw new UnauthorizedError('인증이 필요합니다.');
+
+    const member = await this.memberRepo.findByLedgerAndUser(
+      input.ledgerId,
+      currentUser.id
+    );
+    if (!member || !member.isActive) {
+      throw new UnauthorizedError('가계부에 접근할 권한이 없습니다.');
+    }
+
+    return this.transactionViewRepo.search(
+      input.ledgerId,
+      input.keyword,
+      input.limit
+    );
   }
 
   /**

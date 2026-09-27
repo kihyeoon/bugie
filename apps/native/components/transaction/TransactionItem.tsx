@@ -16,12 +16,15 @@ interface TransactionItemProps {
   onPress: (transactionId: string) => void;
   /** 마지막 행처럼 구분선이 군더더기가 되는 자리에서 끈다. */
   showDivider?: boolean;
+  /** 두 번째 줄. 없으면 카테고리 이름 (검색에서 메모 일치를 보일 때 쓴다) */
+  subtitle?: string;
 }
 
 export const TransactionItem = memo(function TransactionItem({
   transaction,
   onPress,
   showDivider = true,
+  subtitle,
 }: TransactionItemProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -55,8 +58,8 @@ export const TransactionItem = memo(function TransactionItem({
           <Typography variant="body1" weight="500">
             {transaction.title}
           </Typography>
-          <Typography variant="caption" color="secondary">
-            {transaction.category_name}
+          <Typography variant="caption" color="secondary" numberOfLines={1}>
+            {subtitle ?? transaction.category_name}
           </Typography>
         </View>
       </View>

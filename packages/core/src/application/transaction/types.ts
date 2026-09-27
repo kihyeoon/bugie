@@ -43,3 +43,11 @@ export interface TransactionFilterInput {
   limit?: number;
   offset?: number;
 }
+
+/** 거래 검색. 기간 없이 가계부 전체에서 제목·메모 부분 일치 (docs/features/search/design.md) */
+export interface TransactionSearchInput {
+  ledgerId: string;
+  /** normalizeKeyword로 정리된 값. 비어 있으면 DB가 0건을 돌려준다 */
+  keyword: string;
+  limit: number;
+}
