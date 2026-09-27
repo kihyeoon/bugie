@@ -21,7 +21,7 @@ import { EditAmountModal } from '@/components/transaction/EditAmountModal';
 import { TransactionInfoRow } from '@/components/transaction/TransactionInfoRow';
 import { EditTextModal } from '@/components/shared/EditTextModal';
 import { MemberSelectSheet } from '@/components/shared/MemberSelectSheet';
-import { paidByLabel } from '@/utils/transactionLabels';
+import { paidByLabel } from '@/utils/memberLabels';
 import { PaymentMethodBottomSheet } from '@/components/shared/PaymentMethodBottomSheet';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { usePaymentMethods } from '@/hooks/usePaymentMethods';

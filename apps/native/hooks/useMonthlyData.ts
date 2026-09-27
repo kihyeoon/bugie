@@ -59,13 +59,13 @@ async function fetchMonthlyData(
   ledgerId: string,
   year: number,
   month: number,
-  memberId: string | null
+  memberId?: string
 ): Promise<MonthlyData> {
   const summary = await transactionService.getCalendarSummary(
     ledgerId,
     year,
     month,
-    memberId ?? undefined
+    memberId
   );
   return {
     calendarData: transformToCalendarData(summary.dailySummary),
@@ -82,7 +82,6 @@ function useAdjacentMonthsPrefetch(
   ledgerId: string | undefined,
   year: number,
   month: number,
-  memberId: string | null,
   currentMonthReady: boolean
 ) {
   const queryClient = useQueryClient();
@@ -98,8 +97,7 @@ function useAdjacentMonthsPrefetch(
       const queryKey = queryKeys.monthlySummary.month(
         ledgerId,
         adjacentYear,
-        adjacentMonth,
-        memberId
+        adjacentMonth
       );
       if (queryClient.getQueryData(queryKey) !== undefined) continue;
 
@@ -110,8 +108,7 @@ function useAdjacentMonthsPrefetch(
             transactionService,
             ledgerId,
             adjacentYear,
-            adjacentMonth,
-            memberId
+            adjacentMonth
           ),
       });
     }
@@ -119,7 +116,6 @@ function useAdjacentMonthsPrefetch(
     ledgerId,
     year,
     month,
-    memberId,
     currentMonthReady,
     queryClient,
     transactionService,
@@ -127,12 +123,12 @@ function useAdjacentMonthsPrefetch(
 }
 
 /**
- * @param memberId 누구의 거래인가(지출자, 없으면 작성자). null이면 가계부 전체
+ * @param memberId 멤버 필터(지출자, 없으면 작성자). 없으면 가계부 전체
  */
 export function useMonthlyData(
   year: number,
   month: number,
-  memberId: string | null = null
+  memberId?: string
 ): MonthlyDataResult {
   const { transactionService } = useServices();
   const { currentLedger } = useLedger();
@@ -146,7 +142,8 @@ export function useMonthlyData(
   });
   const { loading, error, refetch } = useQueryStatus(query, !!ledgerId);
 
-  useAdjacentMonthsPrefetch(ledgerId, year, month, memberId, query.isSuccess);
+  // 멤버 필터 중엔 미리 받지 않는다. 목록은 미리 받지 않아 어차피 기다리고, 멤버를 둘러볼 때마다 요청만 세 배가 된다.
+  useAdjacentMonthsPrefetch(ledgerId, year, month, query.isSuccess && !memberId);
 
   return {
     // 다른 달의 값을 대신 보여주지 않는다. 새 달 데이터가 올 때까지는 비워둔다.

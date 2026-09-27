@@ -33,6 +33,7 @@ import { Calendar } from '@/components/shared/calendar';
 import { ScreenHeader } from '@/components/shared/ScreenHeader';
 import { TransactionItem } from '@/components/transaction/TransactionItem';
 import { MemberFilter } from '@/components/transaction/MemberFilter';
+import type { SelectableMember } from '@/components/shared/MemberSelectSheet';
 import { LoadingState } from '../components/shared/LoadingState';
 import { ErrorState } from '../components/shared/ErrorState';
 import { useLedger } from '../contexts/LedgerContext';
@@ -101,6 +102,17 @@ const HeaderTitle = ({
   );
 };
 
+function emptyMessage(
+  member: SelectableMember | undefined,
+  currentUserId: string | undefined
+): string {
+  if (!member) return '이 달에는 거래가 없어요';
+  if (member.user_id === currentUserId) return '이 달에는 내 거래가 없어요';
+  return member.full_name
+    ? `이 달에는 ${member.full_name}님의 거래가 없어요`
+    : '이 달에는 이 멤버의 거래가 없어요';
+}
+
 // 월간 합계 푸터 — 홈 "이번 달 요약" 카드와 동일 시맨틱(income/expense/balance).
 const MonthTotalsFooter = ({
   transactions,
@@ -158,13 +170,12 @@ export default function TransactionsScreen() {
   const { currentLedger } = useLedger();
   const { user } = useAuth();
 
-  // 멤버 필터 (null = 전체). 고른 멤버가 현재 가계부에 없으면(가계부 전환·멤버 이탈) 전체로 본다.
+  // 멤버 필터 (없으면 전체). 고른 멤버가 현재 가계부에 없으면(가계부 전환·멤버 이탈) 전체로 본다.
   // effect로 되돌리지 않고 렌더 중에 계산한다 — 되돌리기 전 한 번의 렌더가 엉뚱한 조합으로 요청을 보낸다.
   const members = currentLedger?.ledger_members ?? [];
-  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
-  const memberId = members.some((m) => m.user_id === selectedMemberId)
-    ? selectedMemberId
-    : null;
+  const [selectedMemberId, setSelectedMemberId] = useState<string>();
+  const selectedMember = members.find((m) => m.user_id === selectedMemberId);
+  const memberId = selectedMember?.user_id;
 
   const [selectedDate, setSelectedDate] = useState<Date>(
     params.date ? parseLocalDate(params.date as string) : new Date()
@@ -272,6 +283,13 @@ export default function TransactionsScreen() {
     [calendarViewType, scrollY, calendarHeight]
   );
 
+  const cancelPendingScroll = useCallback(() => {
+    if (pendingScroll.current) {
+      clearTimeout(pendingScroll.current);
+      pendingScroll.current = null;
+    }
+  }, []);
+
   // 날짜 섹션으로 스크롤. 섹션 번호는 실행 시점 목록에서 찾는다 — 예약 뒤 month가 바뀌거나
   // 재조회로 목록이 달라졌으면(로딩 중 섹션 0개 포함) 대상이 없으니 아무것도 하지 않는다.
   const scrollToSection = useCallback((dateStr: string, animated: boolean) => {
@@ -291,7 +309,7 @@ export default function TransactionsScreen() {
   const scrollToDate = useCallback(
     (dateStr: string) => {
       if (!groupedTransactions.some((group) => group.date === dateStr)) return;
-      if (pendingScroll.current) clearTimeout(pendingScroll.current);
+      cancelPendingScroll();
 
       // 프로그래매틱 스크롤 플래그 설정
       isProgrammaticScroll.current = true;
@@ -308,7 +326,7 @@ export default function TransactionsScreen() {
         }, 500);
       }, 300); // 더 긴 지연으로 안정성 확보
     },
-    [groupedTransactions, scrollToSection]
+    [groupedTransactions, scrollToSection, cancelPendingScroll]
   );
 
   // 날짜 선택 처리
@@ -405,15 +423,17 @@ export default function TransactionsScreen() {
   // 멤버 필터 변경: 옛 목록 기준으로 예약된 스크롤을 버리고 맨 위에서 시작한다.
   // 새 목록에 선택 날짜가 있으면 자동 스크롤 effect가 그 날짜로 옮긴다.
   // scrollToLocation 대신 scrollTo — 빈 목록에서도 안전하다.
-  const handleMemberChange = useCallback((nextMemberId: string | null) => {
-    if (pendingScroll.current) {
-      clearTimeout(pendingScroll.current);
-      pendingScroll.current = null;
-    }
-    isProgrammaticScroll.current = false;
-    listRef.current?.getScrollResponder()?.scrollTo({ y: 0, animated: false });
-    setSelectedMemberId(nextMemberId);
-  }, []);
+  const handleMemberChange = useCallback(
+    (nextMemberId?: string) => {
+      cancelPendingScroll();
+      isProgrammaticScroll.current = false;
+      listRef.current
+        ?.getScrollResponder()
+        ?.scrollTo({ y: 0, animated: false });
+      setSelectedMemberId(nextMemberId);
+    },
+    [cancelPendingScroll]
+  );
 
   // 자동 스크롤: 새 month 데이터 도착 후 selectedDate 섹션으로 한 번만 이동.
   useEffect(() => {
@@ -531,15 +551,6 @@ export default function TransactionsScreen() {
 
   // 목록이 비었을 때 목록 자리만 바꾼다. 캘린더까지 바꾸면 월을 넘길 때마다 화면 구조가 튄다.
   // loading·error는 받아둔 데이터가 없을 때만 참이라 항상 빈 목록과 함께 온다.
-  const emptyMessage = () => {
-    if (!memberId) return '이 달에는 거래가 없어요';
-    if (memberId === user?.id) return '이 달에는 내 거래가 없어요';
-    const name = members.find((m) => m.user_id === memberId)?.full_name;
-    return name
-      ? `이 달에는 ${name}님의 거래가 없어요`
-      : '이 달에는 이 멤버의 거래가 없어요';
-  };
-
   const renderListEmpty = () => {
     if (loading) {
       return <LoadingState message="거래 내역을 불러오는 중..." />;
@@ -555,7 +566,7 @@ export default function TransactionsScreen() {
     return (
       <View style={styles.emptyList}>
         <Typography variant="body1" color="secondary">
-          {emptyMessage()}
+          {emptyMessage(selectedMember, user?.id)}
         </Typography>
       </View>
     );
@@ -580,7 +591,7 @@ export default function TransactionsScreen() {
             <MemberFilter
               members={members}
               currentUserId={user?.id}
-              selectedMemberId={memberId}
+              selected={selectedMember}
               onChange={handleMemberChange}
             />
           </View>

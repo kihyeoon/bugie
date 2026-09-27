@@ -21,7 +21,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography, ToggleSwitch, Button, AmountInput } from '@/components/ui';
 import { CategorySelector } from '@/components/shared/CategorySelector';
 import { MemberSelectSheet } from '@/components/shared/MemberSelectSheet';
-import { paidByLabel } from '@/utils/transactionLabels';
+import { paidByLabel } from '@/utils/memberLabels';
 import { PaymentMethodBottomSheet } from '@/components/shared/PaymentMethodBottomSheet';
 import { useCategories } from '@/hooks/useCategories';
 import { usePaymentMethods } from '@/hooks/usePaymentMethods';

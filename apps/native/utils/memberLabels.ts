@@ -5,3 +5,8 @@
 export function paidByLabel(type: 'income' | 'expense'): string {
   return type === 'income' ? '받은 사람' : '지출한 사람';
 }
+
+/** 닉네임이 비어 있는 멤버의 표시 이름 */
+export function memberName(member: { full_name: string | null }): string {
+  return member.full_name || '멤버';
+}

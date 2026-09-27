@@ -4,19 +4,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography } from '@/components/ui';
-import { MemberSelectSheet } from '@/components/shared/MemberSelectSheet';
-
-interface Member {
-  user_id: string;
-  full_name: string | null;
-}
+import {
+  MemberSelectSheet,
+  type SelectableMember,
+} from '@/components/shared/MemberSelectSheet';
+import { memberName } from '@/utils/memberLabels';
 
 interface MemberFilterProps {
-  members: Member[];
+  members: SelectableMember[];
   currentUserId?: string;
-  /** null이면 전체 */
-  selectedMemberId: string | null;
-  onChange: (memberId: string | null) => void;
+  /** 없으면 전체 */
+  selected?: SelectableMember;
+  onChange: (memberId?: string) => void;
 }
 
 const TITLE = '멤버별로 보기';
@@ -28,7 +27,7 @@ const TITLE = '멤버별로 보기';
 export function MemberFilter({
   members,
   currentUserId,
-  selectedMemberId,
+  selected,
   onChange,
 }: MemberFilterProps) {
   const colorScheme = useColorScheme();
@@ -44,8 +43,7 @@ export function MemberFilter({
     [members, currentUserId]
   );
 
-  const selected = members.find((m) => m.user_id === selectedMemberId);
-  const label = selected ? selected.full_name || '멤버' : '전체';
+  const label = selected ? memberName(selected) : '전체';
   const isActive = selected !== undefined;
 
   return (
@@ -80,10 +78,10 @@ export function MemberFilter({
         visible={sheetVisible}
         title={TITLE}
         members={sortedMembers}
-        selectedUserId={selectedMemberId}
+        selectedUserId={selected?.user_id}
         currentUserId={currentUserId}
         onSelect={onChange}
-        onSelectAll={() => onChange(null)}
+        onSelectAll={() => onChange(undefined)}
         onClose={() => setSheetVisible(false)}
       />
     </>

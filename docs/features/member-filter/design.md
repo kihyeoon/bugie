@@ -177,14 +177,17 @@ notify pgrst, 'reload schema';
 
 ### 5.3 native 쿼리 키
 
-- **`useTransactions`**
-  - `UseTransactionsOptions`와 `queryClient.ts`의 `TransactionFilters`에 `memberId`를 추가한다.
-  - **키에는 `memberId ?? undefined`로 넣는다.** TanStack의 키 해시는 JSON 직렬화라 `undefined` 속성은 빠지고 `null`은 남는다.
-  - 목록 "전체"가 `{memberId: null}`이 되면 홈의 `{}`와 해시가 달라져, 같은 달 캐시를 공유하지 못하고 중복 요청과 로딩이 생긴다.
+- **"필터 없음"은 화면부터 core까지 `undefined` 하나로 표현한다(`null`을 쓰지 않는다).**
+  - TanStack의 키 해시는 JSON 직렬화다. 객체 안의 `undefined` 속성은 빠지고, `null`은 남는다.
+  - 목록 "전체"가 `{memberId: null}`이 되면 홈의 `{}`와 해시가 달라진다. 그러면 같은 달 캐시를 공유하지 못하고 중복 요청과 로딩이 생긴다.
+- **`useTransactions`**: `UseTransactionsOptions`와 `queryClient.ts`의 `TransactionFilters`에 `memberId?`를 추가한다.
 - **`useMonthlyData(year, month, memberId?)`**
-  - 키를 `monthlySummary.month(ledgerId, year, month, memberId ?? null)`로 바꾼다.
-  - 홈(`index.tsx`)과 목록이 같은 훅을 쓴다. 키를 나누지 않으면 목록의 필터된 집계가 홈 캐시를 덮어써 홈 합계가 한 사람 것으로 바뀐다.
-  - 홈도 `null`을 넣게 되므로 두 화면의 "전체" 키는 일치한다. 인접 월 prefetch 루프에도 `memberId`를 넘긴다.
+  - 키를 `monthlySummary.month(ledgerId, year, month, memberId)`로 바꾼다.
+  - 배열 안의 `undefined`는 `null`로 직렬화되므로 홈(인자 없음)과 목록 "전체" 키가 같다.
+  - 홈(`index.tsx`)과 목록은 같은 훅을 쓴다. 키를 나누지 않으면 목록의 필터된 집계가 홈 캐시를 덮어써 홈 합계가 한 사람 것으로 바뀐다.
+  - **인접 월 prefetch는 필터가 없을 때만 한다.**
+    - 목록은 미리 받지 않으므로, 필터 중에 집계만 미리 받아도 달을 넘길 때 어차피 기다린다.
+    - 반대로 멤버를 둘러볼 때마다 요청은 세 배가 된다.
 - **무효화는 바꾸지 않는다.**
   - 모든 무효화(입력, 상세 수정·삭제, 카테고리, 결제 수단, 프로필)가 `.all` 접두어 기반이라 필터된 캐시도 함께 stale이 된다.
   - 목록·집계 키에 `setQueryData`를 쓰는 곳은 없다. 상세의 낙관적 반영은 `queryKeys.transaction(id)`에만 쓴다.
@@ -276,7 +279,7 @@ notify pgrst, 'reload schema';
     - 월 전환에도 있는 동작이라 이번 범위에서 고치지 않는다.
 - **처음 고른 멤버는 한 번 로딩된다.**
   - 새 키라서 목록이 로딩 상태가 되고 캘린더 금액이 잠깐 비었다가 채워진다. 이 로딩은 **허용**한다.
-  - 한 번 받은 멤버·월은 캐시에서 바로 나오고, 인접 월은 prefetch된다.
+  - 한 번 받은 멤버·월은 캐시에서 바로 나온다. 필터 중엔 인접 월을 미리 받지 않는다(§5.3).
   - `keepPreviousData`는 쓰지 않는다. 월 전환과 섞이면 이전 달 데이터가 새 달처럼 보이는 문제가 생길 수 있다.
 
 ### 6.4 빈 상태
@@ -332,8 +335,8 @@ notify pgrst, 'reload schema';
    - `memberFilter` 함수를 만들어 `findWithDetails`와 `findByFilter`에 적용한다.
 3. **native 훅**
    - `queryClient.ts`: `TransactionFilters`와 `monthlySummary.month` 시그니처를 바꾼다.
-   - `useTransactions`: 옵션에 `memberId`를 추가한다(키에는 `?? undefined`).
-   - `useMonthlyData`: 인자, 키, prefetch에 `memberId`를 넣는다.
+   - `useTransactions`: 옵션에 `memberId?`를 추가한다.
+   - `useMonthlyData`: 인자와 키에 `memberId?`를 넣고, prefetch는 필터가 없을 때만 한다.
 4. **시트 일반화**: `PaidByBottomSheet`를 `MemberSelectSheet`로 바꾼다(title, `onSelectAll`, `ScrollView`, `Pressable`, 0.55). 빠른입력·상세 호출부도 고친다.
 5. **라벨**(§6.5): 상세 행·시트 제목·Alert와 빠른입력 시트 제목을 바꾸고, `'지출자 선택'` 대체 문구를 고친다.
 6. **목록 화면**: `MemberFilter`(알약 + 시트) 컴포넌트, 유효 멤버 계산, 필터 변경 시 스크롤 정리, 빈 상태 문구를 넣는다.
@@ -360,7 +363,7 @@ notify pgrst, 'reload schema';
   - 개인 가계부(`new@test.com`)에는 필터 바가 없다.
   - 멤버를 고르면 목록, 캘린더 금액, 푸터가 함께 바뀐다.
   - 필터 상태에서 홈으로 돌아가면 홈 합계는 전체 그대로다(캐시 분리).
-  - 월을 넘겨도 필터가 유지되고, prefetch된 인접 월도 필터된 값이다.
+  - 월을 넘겨도 필터가 유지되고, 넘긴 달도 필터된 값이다.
   - 목록을 드래그한 뒤 필터를 바꾸면 맨 위로 가고, 캘린더 선택 날짜가 튀지 않는다.
   - 날짜를 누른 직후 필터를 바꿔도 크래시가 없고 옛 날짜로 다시 스크롤하지 않는다.
   - 상세에서 지출한 사람을 바꾸고 돌아오면 필터 결과에 반영된다.

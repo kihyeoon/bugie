@@ -11,7 +11,7 @@ export const queryClient = new QueryClient({
 });
 
 // 키 해시는 JSON 직렬화라 undefined 속성은 빠지고 null은 남는다.
-// "필터 없음"은 undefined로 둬야 같은 달을 보는 화면끼리 캐시를 공유한다.
+// "필터 없음"은 null이 아니라 undefined로 둬야 같은 달을 보는 화면끼리 캐시를 공유한다.
 interface TransactionFilters {
   categoryId?: string;
   type?: 'income' | 'expense';
@@ -37,12 +37,12 @@ export const queryKeys = {
     ['paymentMethods', ledgerId] as const,
   monthlySummary: {
     all: ['monthlySummary'] as const,
-    // memberId null = 가계부 전체(홈). 목록의 멤버 필터 집계가 홈 캐시를 덮어쓰지 않게 키를 나눈다.
+    // memberId 없음 = 가계부 전체(홈). 목록의 멤버 필터 집계가 홈 캐시를 덮어쓰지 않게 키를 나눈다.
     month: (
       ledgerId: string | undefined,
       year: number,
       month: number,
-      memberId: string | null
+      memberId?: string
     ) => ['monthlySummary', ledgerId, year, month, memberId] as const,
   },
   updatePrompt: ['updatePrompt'] as const,

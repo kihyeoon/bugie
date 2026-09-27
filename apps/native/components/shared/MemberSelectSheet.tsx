@@ -7,17 +7,23 @@ import {
   type BaseBottomSheetRef,
 } from '@/components/ui/BaseBottomSheet';
 import { AnimatedCheck } from '@/components/ui/AnimatedCheck';
+import { memberName } from '@/utils/memberLabels';
 
 // 멤버 상한이 20명이라 스크롤이 필요하다. 결제 수단 시트와 같은 높이.
 const SHEET_HEIGHT_RATIO = 0.55;
 const CLOSE_DELAY_MS = 300;
 
+export interface SelectableMember {
+  user_id: string;
+  full_name: string | null;
+}
+
 interface MemberSelectSheetProps {
   visible: boolean;
   title: string;
-  members: { user_id: string; full_name: string | null }[];
-  /** null이면 "전체" 행이 선택된 상태 */
-  selectedUserId: string | null;
+  members: SelectableMember[];
+  /** null·undefined면 "전체" 행이 선택된 상태 */
+  selectedUserId?: string | null;
   currentUserId?: string;
   onSelect: (userId: string) => void;
   /** 있을 때만 맨 위에 "전체" 행을 그린다 */
@@ -35,8 +41,6 @@ export function MemberSelectSheet({
   onSelectAll,
   onClose,
 }: MemberSelectSheetProps) {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
   const sheetRef = useRef<BaseBottomSheetRef>(null);
 
   // 체크 애니메이션을 보여준 뒤 닫는다
@@ -45,21 +49,62 @@ export function MemberSelectSheet({
     setTimeout(() => sheetRef.current?.close(), CLOSE_DELAY_MS);
   };
 
-  const renderRow = (
-    key: string,
-    label: string,
-    isSelected: boolean,
-    onPress: () => void,
-    isCurrentUser = false
-  ) => (
+  return (
+    <BaseBottomSheet
+      ref={sheetRef}
+      visible={visible}
+      title={title}
+      onClose={onClose}
+      heightRatio={SHEET_HEIGHT_RATIO}
+    >
+      <ScrollView
+        style={styles.list}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        {onSelectAll && (
+          <MemberRow
+            label="전체"
+            isSelected={!selectedUserId}
+            onPress={() => selectAndClose(onSelectAll)}
+          />
+        )}
+        {members.map((member) => (
+          <MemberRow
+            key={member.user_id}
+            label={memberName(member)}
+            isSelected={member.user_id === selectedUserId}
+            isCurrentUser={member.user_id === currentUserId}
+            onPress={() => selectAndClose(() => onSelect(member.user_id))}
+          />
+        ))}
+      </ScrollView>
+    </BaseBottomSheet>
+  );
+}
+
+function MemberRow({
+  label,
+  isSelected,
+  isCurrentUser = false,
+  onPress,
+}: {
+  label: string;
+  isSelected: boolean;
+  isCurrentUser?: boolean;
+  onPress: () => void;
+}) {
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? 'light'];
+
+  return (
     <Pressable
-      key={key}
       style={({ pressed }) => [
         styles.memberItem,
         { backgroundColor: isSelected ? colors.tintLight : 'transparent' },
         pressed && styles.pressed,
       ]}
-      onPress={() => selectAndClose(onPress)}
+      onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected: isSelected }}
     >
@@ -83,34 +128,6 @@ export function MemberSelectSheet({
 
       <AnimatedCheck visible={isSelected} color={colors.tint} size={24} />
     </Pressable>
-  );
-
-  return (
-    <BaseBottomSheet
-      ref={sheetRef}
-      visible={visible}
-      title={title}
-      onClose={onClose}
-      heightRatio={SHEET_HEIGHT_RATIO}
-    >
-      <ScrollView
-        style={styles.list}
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-      >
-        {onSelectAll &&
-          renderRow('all', '전체', selectedUserId === null, onSelectAll)}
-        {members.map((member) =>
-          renderRow(
-            member.user_id,
-            member.full_name || '멤버',
-            member.user_id === selectedUserId,
-            () => onSelect(member.user_id),
-            member.user_id === currentUserId
-          )
-        )}
-      </ScrollView>
-    </BaseBottomSheet>
   );
 }
 
