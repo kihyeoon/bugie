@@ -38,12 +38,12 @@ export function memoMatchSnippet(
 }
 
 function snippetFrom(memo: string, matchIndex: number): string {
-  let start = Math.max(0, matchIndex - SNIPPET_LEADING_CHARS);
-  if (start === 0) return memo;
+  if (matchIndex <= SNIPPET_LEADING_CHARS) return memo;
 
   // 단어 중간에서 시작하지 않게, 남길 구간에 공백이 있으면 그 뒤부터
-  const lastSpace = memo.slice(start, matchIndex).lastIndexOf(' ');
-  if (lastSpace !== -1) start += lastSpace + 1;
+  const windowStart = matchIndex - SNIPPET_LEADING_CHARS;
+  const lastSpace = memo.slice(windowStart, matchIndex).lastIndexOf(' ');
+  const start = lastSpace === -1 ? windowStart : windowStart + lastSpace + 1;
 
   return `…${memo.slice(start)}`;
 }

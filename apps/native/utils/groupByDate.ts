@@ -1,12 +1,11 @@
 import type { SectionListData } from 'react-native';
 import type { TransactionWithDetails } from '@repo/core';
 
-// SectionList에 그대로 넘길 수 있게 SectionListData를 확장
-export interface GroupedTransaction
-  extends SectionListData<TransactionWithDetails, { date: string }> {
-  date: string;
-  data: TransactionWithDetails[];
-}
+// SectionList에 그대로 넘기는 날짜 섹션
+export type GroupedTransaction = SectionListData<
+  TransactionWithDetails,
+  { date: string }
+>;
 
 /**
  * 거래를 날짜별 섹션으로 묶는다. 날짜는 최신순, 같은 날짜 안은 받은 순서 그대로.

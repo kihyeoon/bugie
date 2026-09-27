@@ -202,7 +202,7 @@ notify pgrst, 'reload schema';
   - `utils/timing.ts`의 `debounce`는 콜백용이라 입력 상태에는 hook이 더 단순하다.
 - **캐시 쌓임**: 검색어마다 키가 생기지만 화면을 떠난 쿼리는 기본 `gcTime`(5분) 뒤 지워진다. 따로 `staleTime`·`gcTime`을 정하지 않는다.
 - **포커스 재조회**: 무효화가 `refetchType: 'none'`이라 표시만 한다. 화면에 돌아올 때 `refetch()`한다.
-  - `useFocusEffect` 콜백은 `(tabs)/index.tsx:102-107`의 ref 패턴을 따른다. `refetch` 정체성이 바뀔 때마다 포커스 효과가 다시 돌지 않게 한다.
+  - `useFocusEffect` 의존성에 `refetch`를 그대로 둔다. 검색어가 처음 생길 때(비활성 → 활성) 정체성이 바뀌어 효과가 다시 돌지만, `useQueryStatus`가 `cancelRefetch: false`로 진행 중인 마운트 조회에 합류시켜 요청이 겹치지 않는다.
 
 ## 6. UI
 
@@ -297,7 +297,8 @@ notify pgrst, 'reload schema';
 - **상한**: 결과가 1,000건이면 목록 끝에 "최근 1,000건까지만 보여요"를 보인다.
   - 정확히 1,000건일 때도 보이지만, 가장 큰 가계부가 401건이라 받아들인다.
 - **이전 결과를 유지하는 동안**(`isPlaceholderData`): 목록을 흐리게(opacity 0.5) 해 새 검색어의 결과가 아님을 보인다.
-- **검색어가 바뀌면 맨 위로**: `SectionList`의 `key`를 검색어로 둬 다시 마운트한다. 흐리게 보이는 이전 결과도 맨 위부터 보이고, 새 결과가 오면 그대로 이어진다. 안 그러면 깊이 내린 위치에서 결과만 갈아 끼워진다.
+- **검색어가 바뀌면 맨 위로**: 검색어가 바뀌면 목록을 맨 위로 스크롤한다(`getScrollResponder().scrollTo`). 목록을 다시 마운트(`key`)하면 이전 결과로 한 번, 새 결과로 한 번 셀을 두 번 만든다.
+- **결과 목록은 `components/search/SearchResults.tsx`의 memo 컴포넌트다.** 입력칸 상태(`input`)와 떼어 두어 글자를 칠 때마다 목록이 다시 그려지지 않는다(React Compiler가 꺼져 있다).
 - **키보드**
   - `keyboardShouldPersistTaps="handled"`: 키보드가 떠 있어도 첫 탭에 행이 눌린다.
   - `keyboardDismissMode="on-drag"`: 스크롤하면 키보드가 내려간다.
@@ -351,7 +352,7 @@ notify pgrst, 'reload schema';
 
 - **이어 받기(페이징).** 가계부 하나가 최대 401건이라 한 번에 받는다(§5.4).
   - 다시 볼 기준: 가계부 하나가 1만 건을 넘거나 응답이 체감될 만큼 느려질 때(아래 인덱스와 같다).
-  - 도입하면 캐시 모양 규칙(§8)부터 지켜야 한다.
+  - 도입하면 캐시 모양(§8)부터 본다.
 - **텍스트 인덱스(`pg_trgm` GIN).**
   - 기존 부분 인덱스 `idx_transactions_ledger_date (ledger_id, transaction_date desc) where deleted_at is null`이 가계부 하나(최대 401건)로 범위를 줄인다.
   - 정렬은 인라인되지 않는 함수 결과 위에서 따로 한다. 401행이라 문제없다.
@@ -368,10 +369,9 @@ notify pgrst, 'reload schema';
 
 ## 8. 함정
 
-- **`['transactions']` 아래 캐시는 거래 배열이어야 한다.**
-  - `useTransactionDetail`의 `findInTransactionLists`가 그 아래 모든 캐시에 `.find()`를 부른다.
-  - 다른 모양(`InfiniteData`, `{ rows, count }`)을 넣으면 상세 화면이 렌더 중에 죽는다.
-  - 모양을 바꿔야 하면 키를 `['transactions']` 밖으로 옮기고 무효화도 따로 건다.
+- **`['transactions']` 아래 캐시는 거래 배열로 둔다.**
+  - `useTransactionDetail`의 `findInTransactionLists`가 그 아래 캐시에서 같은 거래를 찾아 상세를 로딩 없이 연다.
+  - 구현 때 배열이 아닌 캐시는 건너뛰는 가드를 넣어 다른 모양(`InfiniteData` 등)이 와도 죽지는 않는다. 다만 그 캐시의 거래는 즉시 열리지 않는다.
 - **`active_transactions`를 다시 만드는 마이그레이션은 이 순서를 지킨다.** `20260308000002`처럼 `DROP VIEW ... CASCADE` → `CREATE VIEW`만 하면 두 가지가 한꺼번에 깨진다.
   - `search_transactions`가 에러 없이 지워진다. 앱은 검색에서 404(PGRST202)를 받는다.
   - `20260830000013`이 기본 권한을 회수해 새 뷰에 `authenticated` SELECT가 없다. **기존 거래 목록도 42501**이 되고, INVOKER인 검색도 막힌다.

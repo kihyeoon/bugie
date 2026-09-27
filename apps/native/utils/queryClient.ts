@@ -28,8 +28,7 @@ export const queryKeys = {
       month: number,
       filters: TransactionFilters
     ) => ['transactions', ledgerId, year, month, filters] as const,
-    // 검색 결과도 거래 배열이다. 상세 화면이 ['transactions'] 아래 캐시를 전부 배열로 보고 거래를 찾으므로
-    // 다른 모양(InfiniteData 등)을 여기 두면 상세가 죽는다 (docs/features/search/design.md §8).
+    // 검색 결과도 거래 배열이라 상세 화면이 여기서도 같은 거래를 찾아 로딩 없이 열린다.
     searchIn: (ledgerId: string | undefined) =>
       ['transactions', 'search', ledgerId] as const,
     search: (ledgerId: string | undefined, keyword: string) =>

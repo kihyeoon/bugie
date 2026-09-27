@@ -11,7 +11,7 @@ interface SearchInputProps {
   onSubmit: () => void;
 }
 
-// 제목 최대 길이와 같다
+// 제목 입력칸(빠른 입력·상세)과 같은 50자
 const MAX_LENGTH = 50;
 // 헤더 높이(44)가 고정이라 가장 큰 글자 크기에서 입력 글자가 잘리지 않게 막는다
 const MAX_FONT_SCALE = 1.3;
