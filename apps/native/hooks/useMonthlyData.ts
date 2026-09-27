@@ -58,12 +58,14 @@ async function fetchMonthlyData(
   transactionService: TransactionService,
   ledgerId: string,
   year: number,
-  month: number
+  month: number,
+  memberId: string | null
 ): Promise<MonthlyData> {
   const summary = await transactionService.getCalendarSummary(
     ledgerId,
     year,
-    month
+    month,
+    memberId ?? undefined
   );
   return {
     calendarData: transformToCalendarData(summary.dailySummary),
@@ -80,6 +82,7 @@ function useAdjacentMonthsPrefetch(
   ledgerId: string | undefined,
   year: number,
   month: number,
+  memberId: string | null,
   currentMonthReady: boolean
 ) {
   const queryClient = useQueryClient();
@@ -95,7 +98,8 @@ function useAdjacentMonthsPrefetch(
       const queryKey = queryKeys.monthlySummary.month(
         ledgerId,
         adjacentYear,
-        adjacentMonth
+        adjacentMonth,
+        memberId
       );
       if (queryClient.getQueryData(queryKey) !== undefined) continue;
 
@@ -106,7 +110,8 @@ function useAdjacentMonthsPrefetch(
             transactionService,
             ledgerId,
             adjacentYear,
-            adjacentMonth
+            adjacentMonth,
+            memberId
           ),
       });
     }
@@ -114,25 +119,34 @@ function useAdjacentMonthsPrefetch(
     ledgerId,
     year,
     month,
+    memberId,
     currentMonthReady,
     queryClient,
     transactionService,
   ]);
 }
 
-export function useMonthlyData(year: number, month: number): MonthlyDataResult {
+/**
+ * @param memberId 누구의 거래인가(지출자, 없으면 작성자). null이면 가계부 전체
+ */
+export function useMonthlyData(
+  year: number,
+  month: number,
+  memberId: string | null = null
+): MonthlyDataResult {
   const { transactionService } = useServices();
   const { currentLedger } = useLedger();
   const ledgerId = currentLedger?.id;
 
   const query = useQuery({
-    queryKey: queryKeys.monthlySummary.month(ledgerId, year, month),
-    queryFn: () => fetchMonthlyData(transactionService, ledgerId!, year, month),
+    queryKey: queryKeys.monthlySummary.month(ledgerId, year, month, memberId),
+    queryFn: () =>
+      fetchMonthlyData(transactionService, ledgerId!, year, month, memberId),
     enabled: !!ledgerId,
   });
   const { loading, error, refetch } = useQueryStatus(query, !!ledgerId);
 
-  useAdjacentMonthsPrefetch(ledgerId, year, month, query.isSuccess);
+  useAdjacentMonthsPrefetch(ledgerId, year, month, memberId, query.isSuccess);
 
   return {
     // 다른 달의 값을 대신 보여주지 않는다. 새 달 데이터가 올 때까지는 비워둔다.

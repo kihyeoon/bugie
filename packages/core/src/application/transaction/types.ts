@@ -38,6 +38,8 @@ export interface TransactionFilterInput {
   endDate?: string;
   type?: CategoryType;
   categoryId?: string;
+  /** 누구의 거래인가: 지출자, 없으면 작성자 */
+  memberId?: string;
   limit?: number;
   offset?: number;
 }

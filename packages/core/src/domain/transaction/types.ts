@@ -58,6 +58,8 @@ export interface TransactionFilter {
   endDate?: DomainDate;
   type?: CategoryType;
   categoryId?: EntityId;
+  /** 누구의 거래인가: 지출자, 없으면 작성자 (docs/features/member-filter/design.md §4) */
+  memberId?: EntityId;
   limit?: number;
   offset?: number;
 }
@@ -109,7 +111,8 @@ export interface TransactionRepository {
   getMonthlySummary(
     ledgerId: EntityId,
     year: number,
-    month: number
+    month: number,
+    memberId?: EntityId
   ): Promise<MonthlySummary>;
   getCategorySummary(
     ledgerId: EntityId,

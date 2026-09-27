@@ -20,7 +20,8 @@ import { formatDateKorean } from '@/utils/dateFormatter';
 import { EditAmountModal } from '@/components/transaction/EditAmountModal';
 import { TransactionInfoRow } from '@/components/transaction/TransactionInfoRow';
 import { EditTextModal } from '@/components/shared/EditTextModal';
-import { PaidByBottomSheet } from '@/components/shared/PaidByBottomSheet';
+import { MemberSelectSheet } from '@/components/shared/MemberSelectSheet';
+import { paidByLabel } from '@/utils/transactionLabels';
 import { PaymentMethodBottomSheet } from '@/components/shared/PaymentMethodBottomSheet';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { usePaymentMethods } from '@/hooks/usePaymentMethods';
@@ -215,7 +216,7 @@ export default function TransactionDetailScreen() {
           paid_by_name: selectedMember?.full_name ?? null,
         });
       } catch {
-        Alert.alert('오류', '지출자 변경에 실패했습니다.');
+        Alert.alert('오류', '변경에 실패했습니다.');
       }
     },
     [updateTransaction, members]
@@ -387,10 +388,10 @@ export default function TransactionDetailScreen() {
             onPress={() => setDatePickerVisible(true)}
             disabled={!canUpdateTransaction}
           />
-          {/* 지출자 - 공유 가계부에서만 표시 */}
+          {/* 지출한 사람/받은 사람 - 공유 가계부에서만 표시 */}
           {isSharedLedger && (
             <TransactionInfoRow
-              label="지출자"
+              label={paidByLabel(transaction.type)}
               value={
                 transaction.paid_by
                   ? transaction.paid_by_name || DELETED_USER_LABEL
@@ -527,9 +528,10 @@ export default function TransactionDetailScreen() {
             onClose={() => setPaymentMethodModalVisible(false)}
           />
 
-          {/* 지출자 선택 바텀시트 */}
-          <PaidByBottomSheet
+          {/* 지출한 사람/받은 사람 선택 바텀시트 */}
+          <MemberSelectSheet
             visible={paidByModalVisible}
+            title={`${paidByLabel(transaction.type)} 선택`}
             members={members}
             selectedUserId={transaction.paid_by || transaction.created_by}
             currentUserId={user?.id}
