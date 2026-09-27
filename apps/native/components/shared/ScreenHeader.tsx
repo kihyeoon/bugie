@@ -20,6 +20,11 @@ interface ScreenHeaderProps {
   onBack?: () => void;
   /** 헤더 배경색 (기본 colors.background) */
   background?: string;
+  /**
+   * 중앙을 내용 폭으로 두고 좌/우가 남는 공간을 똑같이 나눈다 (기본 false = 좌/우 44 고정).
+   * 우측에 44보다 넓은 내용을 두면서 중앙을 화면 가운데에 유지할 때 쓴다. 우측 내용은 남는 폭 안에서 줄어들어야 한다.
+   */
+  fitCenter?: boolean;
 }
 
 // 네이티브 nav bar content 영역과 동등한 높이
@@ -34,6 +39,7 @@ export function ScreenHeader({
   showBack = true,
   onBack,
   background,
+  fitCenter = false,
 }: ScreenHeaderProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -51,7 +57,7 @@ export function ScreenHeader({
     >
       <View style={styles.row}>
         {/* 좌측 슬롯 */}
-        <View style={styles.leftSlot}>
+        <View style={[styles.leftSlot, fitCenter && styles.flexibleSlot]}>
           {showBack && (
             <Pressable
               onPress={handleBack}
@@ -64,7 +70,7 @@ export function ScreenHeader({
         </View>
 
         {/* 중앙 슬롯 */}
-        <View style={styles.center}>
+        <View style={fitCenter ? styles.fittedCenter : styles.center}>
           {center ?? (
             <Typography variant="body1" weight="600" numberOfLines={1}>
               {title ?? ''}
@@ -73,7 +79,9 @@ export function ScreenHeader({
         </View>
 
         {/* 우측 슬롯 */}
-        <View style={styles.rightSlot}>{right}</View>
+        <View style={[styles.rightSlot, fitCenter && styles.flexibleSlot]}>
+          {right}
+        </View>
       </View>
     </View>
   );
@@ -100,6 +108,16 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // 좌/우가 flex 1로 같은 폭을 가져가야 내용 폭의 중앙이 화면 가운데에 온다
+  flexibleSlot: {
+    flex: 1,
+  },
+  fittedCenter: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    // 넓어진 좌/우 내용이 중앙에 붙지 않게. 양쪽 같은 값이라 중앙 정렬은 그대로다
+    marginHorizontal: 8,
   },
   backButton: {
     height: CONTENT_HEIGHT,

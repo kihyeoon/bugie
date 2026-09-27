@@ -92,7 +92,8 @@ const styles = StyleSheet.create({
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
+    // 놓인 칸보다 넓어지지 않게. 이름이 길면 라벨이 줄어들며 말줄임된다
+    maxWidth: '100%',
     gap: 4,
     height: 32,
     paddingHorizontal: 12,
@@ -102,6 +103,6 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   label: {
-    maxWidth: 160,
+    flexShrink: 1,
   },
 });

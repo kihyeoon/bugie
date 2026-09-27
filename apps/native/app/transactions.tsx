@@ -576,6 +576,18 @@ export default function TransactionsScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScreenHeader
         background={colors.background}
+        fitCenter
+        right={
+          // 개인 가계부는 필터가 없다. fitCenter라 비어 있어도 월 표시는 가운데 그대로다
+          members.length > 1 && (
+            <MemberFilter
+              members={members}
+              currentUserId={user?.id}
+              selected={selectedMember}
+              onChange={handleMemberChange}
+            />
+          )
+        }
         center={
           <HeaderTitle
             date={selectedDate}
@@ -585,18 +597,6 @@ export default function TransactionsScreen() {
         }
       />
       <SafeAreaView style={styles.content} edges={['left', 'right', 'bottom']}>
-        {/* 멤버 필터 — 캘린더 애니메이션 컨테이너(고정 높이 + overflow hidden) 밖에 둔다 */}
-        {members.length > 1 && (
-          <View style={styles.filterBar}>
-            <MemberFilter
-              members={members}
-              currentUserId={user?.id}
-              selected={selectedMember}
-              onChange={handleMemberChange}
-            />
-          </View>
-        )}
-
         {/* 애니메이션 캘린더 */}
         <Animated.View
           style={[animatedCalendarStyle, styles.calendarContainer]}
@@ -652,10 +652,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-  },
-  filterBar: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
   },
   calendarContainer: {
     paddingHorizontal: 16,
