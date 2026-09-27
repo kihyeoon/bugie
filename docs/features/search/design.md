@@ -361,7 +361,8 @@ notify pgrst, 'reload schema';
 - 최근 검색어(저장 위치·삭제 UI까지 범위가 커진다).
 - 일치 부분 강조 표시, 결과 개수 음성 안내(VoiceOver announce).
 - 멤버·카테고리·기간 필터와 조합. 멤버는 `search`에 `.or(memberFilter(id))`를 붙이면 된다(§5.1).
-- 단어별 AND 검색, 초성 검색, 유니코드 정규화.
+- 단어별 AND 검색, 유니코드 정규화.
+- 초성 검색(`ㄱㅂ` → 김밥). BGI-54에서 따로 기획한다.
 - web. web은 거래 목록 조회 경로를 쓰지 않는다(`apps/web/lib/services.ts`).
 - 행동 분석 이벤트. native에 수집 SDK가 없다.
 
