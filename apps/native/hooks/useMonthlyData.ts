@@ -122,6 +122,18 @@ function useAdjacentMonthsPrefetch(
   ]);
 }
 
+// 키 모양: queryKeys.monthlySummary.month → ['monthlySummary', ledgerId, year, month, memberId]
+function isSameMonth(
+  queryKey: readonly unknown[] | undefined,
+  ledgerId: string | undefined,
+  year: number,
+  month: number
+): boolean {
+  return (
+    queryKey?.[1] === ledgerId && queryKey?.[2] === year && queryKey?.[3] === month
+  );
+}
+
 /**
  * @param memberId 멤버 필터(지출자, 없으면 작성자). 없으면 가계부 전체
  */
@@ -139,6 +151,12 @@ export function useMonthlyData(
     queryFn: () =>
       fetchMonthlyData(transactionService, ledgerId!, year, month, memberId),
     enabled: !!ledgerId,
+    // 같은 달에서 멤버 필터만 바꾸면 새 금액이 올 때까지 이전 금액을 둔다 — 캘린더가 비었다 채워지며 깜빡이지 않게.
+    // 달이 바뀌면 두지 않는다(다른 달 금액을 이 달 것처럼 보여주지 않는다).
+    placeholderData: (previousData, previousQuery) =>
+      isSameMonth(previousQuery?.queryKey, ledgerId, year, month)
+        ? previousData
+        : undefined,
   });
   const { loading, error, refetch } = useQueryStatus(query, !!ledgerId);
 
