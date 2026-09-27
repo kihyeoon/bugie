@@ -118,6 +118,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     // 넓어진 좌/우 내용이 중앙에 붙지 않게. 양쪽 같은 값이라 중앙 정렬은 그대로다
     marginHorizontal: 8,
+    // 긴 title과 함께 써도 넘치지 않고 말줄임되게
+    flexShrink: 1,
   },
   backButton: {
     height: CONTENT_HEIGHT,

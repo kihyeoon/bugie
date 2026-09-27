@@ -37,13 +37,20 @@ export const queryKeys = {
     ['paymentMethods', ledgerId] as const,
   monthlySummary: {
     all: ['monthlySummary'] as const,
+    // 멤버 필터와 무관한 한 달 범위. 멤버만 바뀌었는지 가를 때 쓴다
+    monthPrefix: (ledgerId: string | undefined, year: number, month: number) =>
+      ['monthlySummary', ledgerId, year, month] as const,
     // memberId 없음 = 가계부 전체(홈). 목록의 멤버 필터 집계가 홈 캐시를 덮어쓰지 않게 키를 나눈다.
     month: (
       ledgerId: string | undefined,
       year: number,
       month: number,
       memberId?: string
-    ) => ['monthlySummary', ledgerId, year, month, memberId] as const,
+    ) =>
+      [
+        ...queryKeys.monthlySummary.monthPrefix(ledgerId, year, month),
+        memberId,
+      ] as const,
   },
   updatePrompt: ['updatePrompt'] as const,
 };

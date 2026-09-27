@@ -578,7 +578,7 @@ export default function TransactionsScreen() {
         background={colors.background}
         fitCenter
         right={
-          // 개인 가계부는 필터가 없다. fitCenter라 비어 있어도 월 표시는 가운데 그대로다
+          // 개인 가계부는 필터가 없다
           members.length > 1 && (
             <MemberFilter
               members={members}

@@ -1,6 +1,10 @@
 import { useEffect } from 'react';
 import { addMonths } from 'date-fns';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  partialMatchKey,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import type { TransactionService } from '@repo/core';
 import { useServices } from '../contexts/ServiceContext';
 import { useLedger } from '../contexts/LedgerContext';
@@ -122,18 +126,6 @@ function useAdjacentMonthsPrefetch(
   ]);
 }
 
-// 키 모양: queryKeys.monthlySummary.month → ['monthlySummary', ledgerId, year, month, memberId]
-function isSameMonth(
-  queryKey: readonly unknown[] | undefined,
-  ledgerId: string | undefined,
-  year: number,
-  month: number
-): boolean {
-  return (
-    queryKey?.[1] === ledgerId && queryKey?.[2] === year && queryKey?.[3] === month
-  );
-}
-
 /**
  * @param memberId 멤버 필터(지출자, 없으면 작성자). 없으면 가계부 전체
  */
@@ -154,14 +146,24 @@ export function useMonthlyData(
     // 같은 달에서 멤버 필터만 바꾸면 새 금액이 올 때까지 이전 금액을 둔다 — 캘린더가 비었다 채워지며 깜빡이지 않게.
     // 달이 바뀌면 두지 않는다(다른 달 금액을 이 달 것처럼 보여주지 않는다).
     placeholderData: (previousData, previousQuery) =>
-      isSameMonth(previousQuery?.queryKey, ledgerId, year, month)
+      previousQuery &&
+      partialMatchKey(
+        previousQuery.queryKey,
+        queryKeys.monthlySummary.monthPrefix(ledgerId, year, month)
+      )
         ? previousData
         : undefined,
   });
   const { loading, error, refetch } = useQueryStatus(query, !!ledgerId);
 
   // 멤버 필터 중엔 미리 받지 않는다. 목록은 미리 받지 않아 어차피 기다리고, 멤버를 둘러볼 때마다 요청만 세 배가 된다.
-  useAdjacentMonthsPrefetch(ledgerId, year, month, query.isSuccess && !memberId);
+  // placeholder로 성공 상태가 돼도 현재 달을 실제로 받은 뒤에만 미리 받는다
+  useAdjacentMonthsPrefetch(
+    ledgerId,
+    year,
+    month,
+    query.isSuccess && !query.isPlaceholderData && !memberId
+  );
 
   return {
     // 다른 달의 값을 대신 보여주지 않는다. 새 달 데이터가 올 때까지는 비워둔다.
