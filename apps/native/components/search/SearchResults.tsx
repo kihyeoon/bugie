@@ -16,7 +16,7 @@ interface SearchResultsProps {
   count: number;
   /** 결과를 받은 검색어. 메모 스니펫과 맨 위로 올리기에 쓴다 */
   keyword: string;
-  /** 이전 검색어의 결과를 보이는 중 — 흐리게 그리고 개수는 숨긴다 */
+  /** 이전 검색어의 결과를 보이는 중 — 개수까지 통째로 흐리게 그린다 */
   isPlaceholderData: boolean;
   /** 상한에 닿았으면 끝에 안내를 붙인다 */
   isTruncated: boolean;
@@ -90,12 +90,13 @@ export const SearchResults = memo(function SearchResults({
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
       automaticallyAdjustKeyboardInsets
+      // 흐린 동안에도 개수 줄을 둔다. 숨기면 그 높이만큼 목록이 올라갔다 내려온다
       ListHeaderComponent={
-        isPlaceholderData ? null : (
+        count > 0 ? (
           <Typography variant="body2" color="secondary" style={styles.count}>
             {`${count.toLocaleString()}건`}
           </Typography>
-        )
+        ) : null
       }
       ListFooterComponent={
         isTruncated ? (
