@@ -32,9 +32,12 @@ import { Typography, AmountDisplay } from '@/components/ui';
 import { Calendar } from '@/components/shared/calendar';
 import { ScreenHeader } from '@/components/shared/ScreenHeader';
 import { TransactionItem } from '@/components/transaction/TransactionItem';
+import { MemberFilter } from '@/components/transaction/MemberFilter';
+import type { SelectableMember } from '@/components/shared/MemberSelectSheet';
 import { LoadingState } from '../components/shared/LoadingState';
 import { ErrorState } from '../components/shared/ErrorState';
 import { useLedger } from '../contexts/LedgerContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useTransactions } from '../hooks/useTransactions';
 import { useMonthlyData } from '../hooks/useMonthlyData';
 import { parseLocalDate } from '@repo/core';
@@ -99,6 +102,17 @@ const HeaderTitle = ({
   );
 };
 
+function emptyMessage(
+  member: SelectableMember | undefined,
+  currentUserId: string | undefined
+): string {
+  if (!member) return '이 달에는 거래가 없어요';
+  if (member.user_id === currentUserId) return '이 달에는 내 거래가 없어요';
+  return member.full_name
+    ? `이 달에는 ${member.full_name}님의 거래가 없어요`
+    : '이 달에는 이 멤버의 거래가 없어요';
+}
+
 // 월간 합계 푸터 — 홈 "이번 달 요약" 카드와 동일 시맨틱(income/expense/balance).
 const MonthTotalsFooter = ({
   transactions,
@@ -154,6 +168,14 @@ export default function TransactionsScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const { currentLedger } = useLedger();
+  const { user } = useAuth();
+
+  // 멤버 필터 (없으면 전체). 고른 멤버가 현재 가계부에 없으면(가계부 전환·멤버 이탈) 전체로 본다.
+  // effect로 되돌리지 않고 렌더 중에 계산한다 — 되돌리기 전 한 번의 렌더가 엉뚱한 조합으로 요청을 보낸다.
+  const members = currentLedger?.ledger_members ?? [];
+  const [selectedMemberId, setSelectedMemberId] = useState<string>();
+  const selectedMember = members.find((m) => m.user_id === selectedMemberId);
+  const memberId = selectedMember?.user_id;
 
   const [selectedDate, setSelectedDate] = useState<Date>(
     params.date ? parseLocalDate(params.date as string) : new Date()
@@ -190,6 +212,7 @@ export default function TransactionsScreen() {
       ledgerId: currentLedger?.id,
       year,
       month,
+      memberId,
     });
 
   // 예약된 스크롤이 실행 시점의 목록을 보도록 최신 섹션을 ref로 노출.
@@ -201,7 +224,7 @@ export default function TransactionsScreen() {
 
   // 캘린더용 월별 집계 (서버 집계와 일관 — 홈 화면과 동일 소스)
   const { calendarData: monthlyCalendarData, refetch: refetchMonthly } =
-    useMonthlyData(year, month);
+    useMonthlyData(year, month, memberId);
 
   // 마지막 리페치 시간 추적 (디바운싱용)
   const lastRefetchTime = useRef(0);
@@ -260,6 +283,13 @@ export default function TransactionsScreen() {
     [calendarViewType, scrollY, calendarHeight]
   );
 
+  const cancelPendingScroll = useCallback(() => {
+    if (pendingScroll.current) {
+      clearTimeout(pendingScroll.current);
+      pendingScroll.current = null;
+    }
+  }, []);
+
   // 날짜 섹션으로 스크롤. 섹션 번호는 실행 시점 목록에서 찾는다 — 예약 뒤 month가 바뀌거나
   // 재조회로 목록이 달라졌으면(로딩 중 섹션 0개 포함) 대상이 없으니 아무것도 하지 않는다.
   const scrollToSection = useCallback((dateStr: string, animated: boolean) => {
@@ -279,7 +309,7 @@ export default function TransactionsScreen() {
   const scrollToDate = useCallback(
     (dateStr: string) => {
       if (!groupedTransactions.some((group) => group.date === dateStr)) return;
-      if (pendingScroll.current) clearTimeout(pendingScroll.current);
+      cancelPendingScroll();
 
       // 프로그래매틱 스크롤 플래그 설정
       isProgrammaticScroll.current = true;
@@ -296,7 +326,7 @@ export default function TransactionsScreen() {
         }, 500);
       }, 300); // 더 긴 지연으로 안정성 확보
     },
-    [groupedTransactions, scrollToSection]
+    [groupedTransactions, scrollToSection, cancelPendingScroll]
   );
 
   // 날짜 선택 처리
@@ -380,14 +410,30 @@ export default function TransactionsScreen() {
     };
   }, [debouncedDateUpdate]);
 
-  // month 전환 시 stale 정리: 옛 month 기준 pending update 취소 + 자동 스크롤 재개 + 드래그 신호 리셋.
-  // 아래 자동 스크롤 effect보다 먼저 선언한다 — 같은 커밋에서 이 리셋이 먼저 돌아야 캐시된 month로
-  // 돌아왔을 때 자동 스크롤이 옛 month의 "이미 스크롤함" 플래그에 막히지 않는다.
+  // month·멤버 필터 전환 시 stale 정리: 옛 목록 기준 pending update 취소 + 자동 스크롤 재개 + 드래그 신호 리셋.
+  // 드래그 신호가 남아 있으면 새 목록이 그려지며 viewable이 맨 위 날짜로 selectedDate를 덮어쓴다.
+  // 아래 자동 스크롤 effect보다 먼저 선언한다 — 같은 커밋에서 이 리셋이 먼저 돌아야 캐시된 목록으로
+  // 돌아왔을 때 자동 스크롤이 옛 목록의 "이미 스크롤함" 플래그에 막히지 않는다.
   useEffect(() => {
     debouncedDateUpdate.cancel();
     hasScrolledToInitialDate.current = false;
     userHasDraggedSinceChange.current = false;
-  }, [year, month, debouncedDateUpdate]);
+  }, [year, month, memberId, debouncedDateUpdate]);
+
+  // 멤버 필터 변경: 옛 목록 기준으로 예약된 스크롤을 버리고 맨 위에서 시작한다.
+  // 새 목록에 선택 날짜가 있으면 자동 스크롤 effect가 그 날짜로 옮긴다.
+  // scrollToLocation 대신 scrollTo — 빈 목록에서도 안전하다.
+  const handleMemberChange = useCallback(
+    (nextMemberId?: string) => {
+      cancelPendingScroll();
+      isProgrammaticScroll.current = false;
+      listRef.current
+        ?.getScrollResponder()
+        ?.scrollTo({ y: 0, animated: false });
+      setSelectedMemberId(nextMemberId);
+    },
+    [cancelPendingScroll]
+  );
 
   // 자동 스크롤: 새 month 데이터 도착 후 selectedDate 섹션으로 한 번만 이동.
   useEffect(() => {
@@ -520,7 +566,7 @@ export default function TransactionsScreen() {
     return (
       <View style={styles.emptyList}>
         <Typography variant="body1" color="secondary">
-          이 달에는 거래가 없어요
+          {emptyMessage(selectedMember, user?.id)}
         </Typography>
       </View>
     );
@@ -539,6 +585,18 @@ export default function TransactionsScreen() {
         }
       />
       <SafeAreaView style={styles.content} edges={['left', 'right', 'bottom']}>
+        {/* 멤버 필터 — 캘린더 애니메이션 컨테이너(고정 높이 + overflow hidden) 밖에 둔다 */}
+        {members.length > 1 && (
+          <View style={styles.filterBar}>
+            <MemberFilter
+              members={members}
+              currentUserId={user?.id}
+              selected={selectedMember}
+              onChange={handleMemberChange}
+            />
+          </View>
+        )}
+
         {/* 애니메이션 캘린더 */}
         <Animated.View
           style={[animatedCalendarStyle, styles.calendarContainer]}
@@ -594,6 +652,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  filterBar: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
   },
   calendarContainer: {
     paddingHorizontal: 16,

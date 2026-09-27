@@ -12,6 +12,8 @@ interface UseTransactionsOptions {
   month: number;
   categoryId?: string;
   type?: 'income' | 'expense';
+  /** 멤버 필터(지출자, 없으면 작성자). 없으면 전체 */
+  memberId?: string;
   /** false면 fetch하지 않는다. 홈처럼 날짜를 고른 뒤에야 필요한 화면에서 지연 로드용. */
   enabled?: boolean;
 }
@@ -42,6 +44,7 @@ export function useTransactions({
   month,
   categoryId,
   type,
+  memberId,
   enabled = true,
 }: UseTransactionsOptions): UseTransactionsReturn {
   const { transactionService } = useServices();
@@ -51,6 +54,7 @@ export function useTransactions({
     queryKey: queryKeys.transactions.month(ledgerId, year, month, {
       categoryId,
       type,
+      memberId,
     }),
     queryFn: async () => {
       const result = await transactionService.getTransactions({
@@ -59,6 +63,7 @@ export function useTransactions({
         endDate: formatLocalDate(new Date(year, month, 0)),
         categoryId,
         type,
+        memberId,
         limit: FETCH_LIMIT,
         offset: 0,
       });

@@ -55,6 +55,7 @@ export class TransactionService {
       endDate: filter.endDate ? parseLocalDate(filter.endDate) : undefined,
       type: filter.type,
       categoryId: filter.categoryId,
+      memberId: filter.memberId,
       limit: filter.limit,
       offset: filter.offset,
     };
@@ -228,7 +229,8 @@ export class TransactionService {
   async getMonthlySummary(
     ledgerId: string,
     year: number,
-    month: number
+    month: number,
+    memberId?: string
   ): Promise<MonthlySummary> {
     const currentUser = await this.authService.getCurrentUser();
     if (!currentUser) throw new UnauthorizedError('인증이 필요합니다.');
@@ -242,7 +244,12 @@ export class TransactionService {
       throw new UnauthorizedError('가계부에 접근할 권한이 없습니다.');
     }
 
-    return await this.transactionRepo.getMonthlySummary(ledgerId, year, month);
+    return await this.transactionRepo.getMonthlySummary(
+      ledgerId,
+      year,
+      month,
+      memberId
+    );
   }
 
   /**
@@ -251,12 +258,18 @@ export class TransactionService {
   async getCalendarSummary(
     ledgerId: string,
     year: number,
-    month: number
+    month: number,
+    memberId?: string
   ): Promise<{
     dailySummary: Record<string, { income: number; expense: number }>;
     monthlyTotal: { income: number; expense: number; balance: number };
   }> {
-    const summary = await this.getMonthlySummary(ledgerId, year, month);
+    const summary = await this.getMonthlySummary(
+      ledgerId,
+      year,
+      month,
+      memberId
+    );
 
     // Convert dailySummaries array back to object format for calendar UI
     const dailySummary: Record<string, { income: number; expense: number }> =

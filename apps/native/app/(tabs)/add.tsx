@@ -20,7 +20,8 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Typography, ToggleSwitch, Button, AmountInput } from '@/components/ui';
 import { CategorySelector } from '@/components/shared/CategorySelector';
-import { PaidByBottomSheet } from '@/components/shared/PaidByBottomSheet';
+import { MemberSelectSheet } from '@/components/shared/MemberSelectSheet';
+import { paidByLabel } from '@/utils/memberLabels';
 import { PaymentMethodBottomSheet } from '@/components/shared/PaymentMethodBottomSheet';
 import { useCategories } from '@/hooks/useCategories';
 import { usePaymentMethods } from '@/hooks/usePaymentMethods';
@@ -357,7 +358,7 @@ export default function AddTransactionScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* 지출자 선택 (공유 가계부에서만 표시) */}
+          {/* 지출한 사람/받은 사람 선택 (공유 가계부에서만 표시) */}
           {currentLedger && currentLedger.ledger_members.length > 1 && (
             <View style={styles.paidBySection}>
               <TouchableOpacity
@@ -380,7 +381,7 @@ export default function AddTransactionScreen() {
                 >
                   {currentLedger.ledger_members.find(
                     (m) => m.user_id === selectedPaidBy
-                  )?.full_name || '지출자 선택'}
+                  )?.full_name || '멤버'}
                 </Text>
                 {selectedPaidBy === user?.id && (
                   <View
@@ -513,10 +514,11 @@ export default function AddTransactionScreen() {
         cancelTextIOS="취소"
       />
 
-      {/* 지출자 선택 바텀시트 */}
+      {/* 지출한 사람/받은 사람 선택 바텀시트 */}
       {currentLedger && currentLedger.ledger_members.length > 1 && (
-        <PaidByBottomSheet
+        <MemberSelectSheet
           visible={paidBySheetVisible}
+          title={`${paidByLabel(transactionType)} 선택`}
           members={currentLedger.ledger_members}
           selectedUserId={selectedPaidBy}
           currentUserId={user?.id}

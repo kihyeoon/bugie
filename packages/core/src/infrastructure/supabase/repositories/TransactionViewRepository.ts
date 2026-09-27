@@ -3,6 +3,7 @@ import type { TransactionFilter, CategorySummary } from '../../../domain/transac
 import type { EntityId } from '../../../domain/shared/types';
 import type { TransactionWithDetails as DbTransactionWithDetails } from '../../../shared/types';
 import { formatLocalDate } from '../../../domain/shared/utils';
+import { memberFilter } from './memberFilter';
 
 /**
  * UI 데이터 조회를 위한 거래 뷰 리포지토리
@@ -37,6 +38,11 @@ export class TransactionViewRepository {
     // 카테고리 필터
     if (filter.categoryId) {
       query = query.eq('category_id', filter.categoryId);
+    }
+
+    // 멤버 필터
+    if (filter.memberId) {
+      query = query.or(memberFilter(filter.memberId));
     }
 
     // 정렬 및 페이징

@@ -11,6 +11,7 @@ import type { EntityId } from '../../../domain/shared/types';
 import { TransactionRules } from '../../../domain/transaction/rules';
 import { formatLocalDate, parseLocalDate } from '../../../domain/shared/utils';
 import { TransactionMapper } from '../mappers/TransactionMapper';
+import { memberFilter } from './memberFilter';
 
 /** get_daily_summary RPC가 돌려주는 행. numeric은 supabase-js에서 문자열로 온다. */
 interface DailySummaryRow {
@@ -63,6 +64,11 @@ export class TransactionRepository implements ITransactionRepository {
     // 카테고리 필터
     if (filter.categoryId) {
       query = query.eq('category_id', filter.categoryId);
+    }
+
+    // 멤버 필터
+    if (filter.memberId) {
+      query = query.or(memberFilter(filter.memberId));
     }
 
     // 정렬 및 페이징
@@ -193,7 +199,8 @@ export class TransactionRepository implements ITransactionRepository {
   async getMonthlySummary(
     ledgerId: EntityId,
     year: number,
-    month: number
+    month: number,
+    memberId?: EntityId
   ): Promise<MonthlySummary> {
     // 집계는 DB에서 끝낸다. 행을 다 받아오면 거래가 쌓일수록 홈 진입이 무거워진다.
     // RPC는 SECURITY INVOKER라 RLS(멤버십 + deleted_at IS NULL)가 그대로 적용된다.
@@ -201,6 +208,8 @@ export class TransactionRepository implements ITransactionRepository {
       p_ledger_id: ledgerId,
       p_year: year,
       p_month: month,
+      // undefined면 본문에서 빠져 기존 3인자 호출과 같다
+      p_member_id: memberId,
     });
 
     if (error) throw error;
